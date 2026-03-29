@@ -1,0 +1,72 @@
+{
+  "name": "yongledadian",
+  "version": "1.0.0",
+  "description": "Universal AI Integration Framework - Seamlessly integrate OpenAI, Anthropic, Ollama, LM Studio, and custom AI backends with unified interfaces | 通用AI集成框架 - 无缝对接多种AI服务",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "openai",
+    "anthropic",
+    "claude",
+    "ollama",
+    "lm-studio",
+    "local-llm",
+    "chatgpt",
+    "gpt-4",
+    "artificial-intelligence",
+    "machine-learning",
+    "nlp",
+    "natural-language-processing",
+    "typescript",
+    "nodejs",
+    "framework",
+    "unified-api",
+    "streaming",
+    "tool-calling",
+    "function-calling",
+    "ai-controller",
+    "ai-provider",
+    "multi-provider",
+    "fallback",
+    "中文",
+    "chinese"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/YongLeDaDian.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/YongLeDaDian/issues"
+  },
+  "homepage": "https://github.com/your-username/YongLeDaDian#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "rimraf": "^5.0.0"
+  },
+  "dependencies": {},
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
+}

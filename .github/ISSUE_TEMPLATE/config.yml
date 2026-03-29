@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation / 文档
+    url: https://github.com/your-username/YongLeDaDian#readme
+    about: Check the documentation before opening an issue / 在提问前请先查看文档
+  - name: 💬 Discussions / 讨论
+    url: https://github.com/your-username/YongLeDaDian/discussions
+    about: Ask questions and discuss with the community / 提问并与社区讨论
