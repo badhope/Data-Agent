@@ -1,0 +1,52 @@
+name: Feature Request
+description: Suggest an idea for this project
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature!
+        感谢您的功能建议！
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / 问题描述
+      description: Is your feature request related to a problem? / 您的功能建议是否与某个问题相关？
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution / 建议方案
+      description: What solution would you like to see? / 您希望看到什么解决方案？
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered / 考虑过的替代方案
+      description: Have you considered any alternative solutions? / 您是否考虑过其他替代方案？
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority / 优先级
+      description: How important is this feature to you? / 这个功能对您有多重要？
+      options:
+        - Low / 低
+        - Medium / 中
+        - High / 高
+        - Critical / 关键
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context / 补充信息
+      description: Add any other context or screenshots here / 在此添加任何其他上下文或截图
