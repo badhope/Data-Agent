@@ -21,7 +21,7 @@
 
 ### 报告Bug
 
-1. 在 [Issues](https://github.com/your-repo/YongLeDaDian/issues) 中搜索是否已有相同问题
+1. 在 [Issues](https://github.com/your-repo/Agent/issues) 中搜索是否已有相同问题
 2. 如果没有，创建新Issue，包含：
    - 清晰的标题
    - 详细的问题描述
@@ -31,7 +31,7 @@
 
 ### 提交功能建议
 
-1. 先在 [Discussions](https://github.com/your-repo/YongLeDaDian/discussions) 中讨论您的想法
+1. 先在 [Discussions](https://github.com/your-repo/Agent/discussions) 中讨论您的想法
 2. 创建Feature Request Issue，说明：
    - 功能描述
    - 使用场景
@@ -78,7 +78,7 @@ This project follows the Contributor Covenant Code of Conduct. By participating,
 
 ### Reporting Bugs
 
-1. Search [Issues](https://github.com/your-repo/YongLeDaDian/issues) for existing reports
+1. Search [Issues](https://github.com/your-repo/Agent/issues) for existing reports
 2. If none exists, create a new Issue with:
    - Clear title
    - Detailed description
@@ -88,7 +88,7 @@ This project follows the Contributor Covenant Code of Conduct. By participating,
 
 ### Suggesting Features
 
-1. Discuss your idea in [Discussions](https://github.com/your-repo/YongLeDaDian/discussions) first
+1. Discuss your idea in [Discussions](https://github.com/your-repo/Agent/discussions) first
 2. Create a Feature Request Issue with:
    - Feature description
    - Use cases
@@ -129,8 +129,8 @@ chore: build/tools
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/YongLeDaDian.git
-cd YongLeDaDian
+git clone https://github.com/your-repo/Agent.git
+cd Agent
 
 # Install dependencies
 npm install

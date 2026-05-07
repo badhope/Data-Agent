@@ -35,11 +35,11 @@
 ## 📦 Installation
 
 ```bash
-npm install yongledadian
+npm install agent
 # or
-yarn add yongledadian
+yarn add agent
 # or
-pnpm add yongledadian
+pnpm add agent
 ```
 
 ## 🚀 Quick Start
@@ -47,7 +47,7 @@ pnpm add yongledadian
 ### Basic Usage
 
 ```typescript
-import { createAIController, AIProviderFactory } from 'yongledadian';
+import { createAIController, AIProviderFactory } from 'agent';
 
 // Register your AI provider
 AIProviderFactory.register({
@@ -66,7 +66,7 @@ console.log(response);
 ### Using Local Models (Ollama)
 
 ```typescript
-import { createAIController, AIProviderFactory } from 'yongledadian';
+import { createAIController, AIProviderFactory } from 'agent';
 
 // Register local Ollama
 AIProviderFactory.register({
@@ -115,7 +115,7 @@ const response = await ai.chat('What\'s the weather in Beijing?', {
 ### Multi-Provider Fallback
 
 ```typescript
-import { AIProviderFactory, createAIController } from 'yongledadian';
+import { AIProviderFactory, createAIController } from 'agent';
 
 // Register multiple providers with priority
 AIProviderFactory.register({ type: 'openai', name: 'primary', ... }, 10);
@@ -241,7 +241,7 @@ DEFAULT_PROVIDER=openai
 ## 📦 安装
 
 ```bash
-npm install yongledadian
+npm install agent
 ```
 
 ## 🚀 快速开始
@@ -249,7 +249,7 @@ npm install yongledadian
 ### 基础使用
 
 ```typescript
-import { createAIController, AIProviderFactory } from 'yongledadian';
+import { createAIController, AIProviderFactory } from 'agent';
 
 // 注册AI服务
 AIProviderFactory.register({
@@ -268,7 +268,7 @@ console.log(response);
 ### 使用本地模型 (Ollama)
 
 ```typescript
-import { createAIController, AIProviderFactory } from 'yongledadian';
+import { createAIController, AIProviderFactory } from 'agent';
 
 // 注册本地Ollama
 AIProviderFactory.register({
@@ -317,7 +317,7 @@ const response = await ai.chat('北京今天天气怎么样？', {
 ### 多服务降级
 
 ```typescript
-import { AIProviderFactory, createAIController } from 'yongledadian';
+import { AIProviderFactory, createAIController } from 'agent';
 
 // 按优先级注册多个服务
 AIProviderFactory.register({ type: 'openai', name: 'primary', ... }, 10);
@@ -429,5 +429,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## 📧 Contact
 
-- Issues: [GitHub Issues](https://github.com/your-repo/YongLeDaDian/issues)
-- Discussions: [GitHub Discussions](https://github.com/your-repo/YongLeDaDian/discussions)
+- Issues: [GitHub Issues](https://github.com/your-repo/Agent/issues)
+- Discussions: [GitHub Discussions](https://github.com/your-repo/Agent/discussions)

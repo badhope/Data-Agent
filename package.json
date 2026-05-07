@@ -1,5 +1,5 @@
 {
-  "name": "yongledadian",
+  "name": "agent",
   "version": "1.0.0",
   "description": "Universal AI Integration Framework - Seamlessly integrate OpenAI, Anthropic, Ollama, LM Studio, and custom AI backends with unified interfaces | 通用AI集成框架 - 无缝对接多种AI服务",
   "main": "dist/index.js",
@@ -50,12 +50,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/YongLeDaDian.git"
+    "url": "https://github.com/your-username/Agent.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/YongLeDaDian/issues"
+    "url": "https://github.com/your-username/Agent/issues"
   },
-  "homepage": "https://github.com/your-username/YongLeDaDian#readme",
+  "homepage": "https://github.com/your-username/Agent#readme",
   "engines": {
     "node": ">=18.0.0"
   },
