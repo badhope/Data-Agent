@@ -1,0 +1,26 @@
+# LangChain Office Assistant Agent Dependencies
+# Core LangChain
+langchain==0.3.7
+langchain-core==0.3.24
+langchain-community==0.3.5
+langchain-openai==0.2.6
+
+# Memory & Vector Store
+langchain-redis==0.2.0
+redis==5.2.0
+
+# Tools & Integrations
+requests==2.32.3
+beautifulsoup4==4.12.3
+python-dotenv==1.0.1
+
+# Office Integrations (Optional - enable as needed)
+# microsoft-graph-sdk==1.12.0  # Microsoft 365
+# aliyun-python-sdk-core==2.15.1  # Alibaba Cloud
+# dingtalk-creator-sdk==1.0.0  # DingTalk
+
+# Development & Testing
+pytest==8.3.3
+pytest-asyncio==0.24.0
+black==24.8.0
+ruff==0.7.1
