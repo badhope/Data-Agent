@@ -472,7 +472,7 @@ static saveToFile(path: string): void
 ### OpenAIProvider
 
 ```typescript
-import { OpenAIProvider } from 'yongledadian';
+import { OpenAIProvider } from 'agent';
 
 const provider = new OpenAIProvider({
   type: 'openai',
@@ -485,7 +485,7 @@ const provider = new OpenAIProvider({
 ### OllamaProvider
 
 ```typescript
-import { OllamaProvider } from 'yongledadian';
+import { OllamaProvider } from 'agent';
 
 const provider = new OllamaProvider({
   type: 'ollama',
@@ -502,7 +502,7 @@ await provider.embed(['text1', 'text2']);  // Get embeddings
 ### LMStudioProvider
 
 ```typescript
-import { LMStudioProvider } from 'yongledadian';
+import { LMStudioProvider } from 'agent';
 
 const provider = new LMStudioProvider({
   type: 'lmstudio',
