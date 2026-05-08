@@ -28,7 +28,7 @@ Guidelines:
 
 def get_agent():
     """Get or create the agent instance."""
-    from langchain.agents import create_agent
+    from langgraph.prebuilt import create_react_agent
     from langchain_office_assistant.tools import ALL_OFFICE_TOOLS
 
     model = ChatOpenAI(
@@ -37,10 +37,10 @@ def get_agent():
         streaming=True
     )
 
-    agent = create_agent(
+    agent = create_react_agent(
         model=model,
         tools=ALL_OFFICE_TOOLS,
-        system_prompt=SYSTEM_PROMPT,
+        state_modifier=SYSTEM_PROMPT,
     )
 
     return agent
