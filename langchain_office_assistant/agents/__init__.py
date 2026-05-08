@@ -1,4 +1,4 @@
-"""Office Agent - Built on LangChain create_agent() API."""
+"""Office Agent - Built on LangGraph prebuilt ReAct agent."""
 
 from typing import Optional, Union
 from langchain_core.language_models import BaseChatModel
@@ -30,18 +30,18 @@ def create_office_agent(
     system_prompt: Optional[str] = None,
     **kwargs
 ):
-    """Create an office assistant agent using LangChain's create_agent() API.
+    """Create an office assistant agent using LangGraph prebuilt ReAct agent.
 
-    This function wraps LangChain's create_agent() with office-specific configuration.
+    This function wraps LangGraph's create_react_agent with office-specific configuration.
 
     Args:
         model: A chat model instance or model name string (default: "gpt-4")
         tools: List of tools to use (defaults to ALL_OFFICE_TOOLS)
         system_prompt: Custom system prompt (defaults to office assistant prompt)
-        **kwargs: Additional arguments passed to create_agent()
+        **kwargs: Additional arguments passed to create_react_agent()
 
     Returns:
-        A compiled LangChain agent graph
+        A compiled LangGraph agent graph
 
     Example:
         ```python
@@ -54,15 +54,19 @@ def create_office_agent(
         result = agent.invoke({"messages": [{"role": "user", "content": "Schedule a meeting"}]})
         ```
     """
-    from langchain.agents import create_agent
+    from langgraph.prebuilt import create_react_agent
 
     agent_tools = tools if tools is not None else ALL_OFFICE_TOOLS
     prompt = system_prompt if system_prompt is not None else SYSTEM_PROMPT
 
-    agent = create_agent(
+    if isinstance(model, str):
+        from langchain_openai import ChatOpenAI
+        model = ChatOpenAI(model=model, temperature=0.7)
+
+    agent = create_react_agent(
         model=model,
         tools=agent_tools,
-        system_prompt=prompt,
+        state_modifier=prompt,
         **kwargs
     )
 
@@ -97,6 +101,7 @@ def run_office_assistant(
                 last_msg = chunk["messages"][-1]
                 if hasattr(last_msg, "content") and last_msg.content:
                     print(last_msg.content, end="", flush=True)
+        print()  # Add newline after streaming completes
     else:
         result = agent.invoke(
             {"messages": [{"role": "user", "content": user_input}]}
