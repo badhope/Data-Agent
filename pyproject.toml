@@ -1,0 +1,49 @@
+[project]
+name = "langchain-office-assistant"
+version = "0.1.0"
+description = "Office Assistant Agent built on LangChain - Email, Calendar, Document, Task management"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    { name = "LangChain Team", email = "engineering@langchain.dev" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langgraph>=0.2.0",
+    "chainlit>=0.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.7",
+    "mypy>=1.0",
+]
+cli = [
+    "langgraph-cli[inmem]>=0.2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["langchain_office_assistant"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/agent.py" = "src/agent.py"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
