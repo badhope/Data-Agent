@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables.config import RunnableConfig
 from langchain_core.runnables import Runnable
+import os
 
 SYSTEM_PROMPT = """You are a professional office assistant helping users with:
 
@@ -31,11 +32,22 @@ def get_agent():
     from langgraph.prebuilt import create_react_agent
     from langchain_office_assistant.tools import ALL_OFFICE_TOOLS
 
-    model = ChatOpenAI(
-        model="gpt-4",
-        temperature=0.7,
-        streaming=True
-    )
+    # Check for OLLAMA_MODEL environment variable or default to qwen2.5:7b
+    ollama_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
+    
+    try:
+        from langchain_ollama import ChatOllama
+        model = ChatOllama(
+            model=ollama_model,
+            temperature=0.7
+        )
+    except ImportError:
+        # Fallback to OpenAI if langchain-ollama not installed
+        model = ChatOpenAI(
+            model="gpt-4",
+            temperature=0.7,
+            streaming=True
+        )
 
     agent = create_react_agent(
         model=model,
