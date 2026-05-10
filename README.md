@@ -1,73 +1,151 @@
-# LangChain Office Assistant
+<p align="center">
+  <a href="#%23-%E4%B8%AD%E6%96%87%E8%8B%A8"><img alt="README in 中文" src="https://img.shields.io/badge/中文-FF8c00"></a>
+  <a href="#%23-english"><img alt="README in English" src="https://img.shields.io/badge/English-3399ff"></a>
+</p>
 
-基于 LangChain 构建的智能办公助手 Agent，支持邮件、日程、文档和任务管理。
+# Data-Agent - Intelligent Office Assistant
 
-## 功能特性
+## Introduction
 
-- 📧 **邮件管理** - 发送、搜索、读取邮件
-- 📅 **日程安排** - 查看日历、安排会议
-- ✅ **任务管理** - 创建、追踪、列出任务
-- 📄 **文档处理** - 搜索、总结文档
+Data-Agent is an enterprise-grade intelligent office assistant platform built on Dify. It combines AI workflows, RAG (Retrieval-Augmented Generation), agent capabilities, and model management to streamline office work, helping you handle emails, schedules, documents, and tasks with AI-powered efficiency.
 
-## 技术栈
+This platform is a customized version of [Dify](https://github.com/langgenius/dify), enhanced specifically for office automation scenarios.
 
-- **LangChain** - Agent 框架
-- **Chainlit** - 前端界面
-- **LangGraph** - 状态图和运行时
+## Key Features
+
+### Core Features:
+
+1. **AI Workflow**: Build visual workflows for email processing, document summarization, meeting scheduling, and more
+
+2. **Multi-Model Support**: Seamless integration with OpenAI, Claude, Llama3, and any OpenAI-compatible models
+
+3. **RAG Pipeline**: Advanced document processing and retrieval for knowledge management
+
+4. **Agent Capabilities**: 50+ built-in tools for email, calendar, documents, and custom tools
+
+5. **LLMOps**: Monitor and optimize your office agent over time
+
+## Quick Start
+
+System Requirements:
+- CPU >= 2 Core
+- RAM >= 4 GiB
+- Docker & Docker Compose installed
+
+```bash
+cd Data-Agent/docker
+cp .env.example .env
+docker compose up -d
+```
+
+After running, access at [http://localhost/install](http://localhost/install) to complete initialization.
+
+## Building an Office Assistant
+
+Create your intelligent office assistant in 4 steps:
+
+1. **Create Application**: Choose Agent or Chatflow
+2. **Configure Model**: Connect your LLM (OpenAI, Claude, local model, etc.)
+3. **Add Tools**: Integrate email, calendar, document processing tools
+4. **Test & Deploy**: Deploy your customized office assistant
+
+## Built-in Office Tools
+
+- **Email Management**: Send, search, read emails via Gmail/Outlook API
+- **Calendar**: Schedule meetings, check calendars via Google Calendar
+- **Document**: Summarize, search, and manage documents
+- **Task**: Create, list tasks with priority and deadlines
+
+## Project Structure
+
+```
+Data-Agent/
+├── api/              # Backend (Flask + Python)
+├── web/              # Frontend (Next.js)
+├── docker/          # Docker deployment
+└── docs/            # Documentation
+```
+
+## Community & Contact
+
+- [Dify Documentation](https://docs.dify.ai)
+- [GitHub Issues](https://github.com/badhope/Data-Agent/issues)
+
+## License
+
+This repository is licensed under the Dify Open Source License based on Apache 2.0 with additional conditions.
+
+---
+---
+
+# Data-Agent - 智能办公助手
+
+## 简介
+
+Data-Agent 是一个基于 Dify 构建的企业级智能办公助手平台。它结合了 AI 工作流、RAG（检索增强生成）、Agent 能力和模型管理，帮助您用 AI 高效处理邮件、日程、文档和任务。
+
+本项目是 [Dify](https://github.com/langgenius/dify) 的定制版本，专门针对办公自动化场景进行了增强。
+
+## 核心功能
+
+主要特性：
+
+1. **AI 工作流**：构建邮件处理、文档摘要、会议安排等可视化工作流
+
+2. **多模型支持**：无缝集成 OpenAI、Claude、Llama3 及所有 OpenAI 兼容模型
+
+3. **RAG 管道**：高级文档处理和检索能力，用于知识管理
+
+4. **Agent 能力**：50+ 内置工具，支持邮件、日历、文档及自定义工具
+
+5. **LLMOps**：持续监控和优化您的办公助手
 
 ## 快速开始
 
-### 1. 安装依赖
+系统要求：
+- CPU >= 2 核
+- RAM >= 4 GiB
+- 已安装 Docker 和 Docker Compose
 
 ```bash
-pip install -e ".[cli]"
-pip install chainlit pydantic==2.9.2
+cd Data-Agent/docker
+cp .env.example .env
+docker compose up -d
 ```
 
-### 2. 设置环境变量
+启动后，访问 [http://localhost/install](http://localhost/install) 完成初始化。
 
-```bash
-export OPENAI_API_KEY=sk-your-key
-export LANGSMITH_TRACING=false
-```
+## 构建办公助手
 
-### 3. 启动
+分 4 步创建您的智能办公助手：
 
-```bash
-# Chainlit 前端
-chainlit run chainlit_app.py
+1. **创建应用**：选择 Agent 或 Chatflow
+2. **配置模型**：连接您的 LLM（OpenAI、Claude、本地模型等）
+3. **添加工具**：集成邮件、日历、文档处理工具
+4. **测试和部署**：部署您定制的办公助手
 
-# 访问 http://localhost:8000
-```
+## 内置办公工具
+
+- **邮件管理**：通过 Gmail/Outlook API 发送、搜索、读取邮件
+- **日历**：安排会议、通过 Google Calendar 查看日程
+- **文档**：摘要、搜索和管理文档
+- **任务**：创建、列出带优先级和截止日期的任务
 
 ## 项目结构
 
 ```
-.
-├── chainlit_app.py                  # Chainlit 前端
-├── pyproject.toml                   # 项目配置
-└── langchain_office_assistant/
-    ├── __init__.py                 # 主入口
-    ├── tools/                      # 工具集
-    │   └── __init__.py             # 9个工具
-    └── agents/                     # Agent 模块
-        └── __init__.py             # create_office_agent()
+Data-Agent/
+├── api/              # 后端 (Flask + Python)
+├── web/              # 前端 (Next.js)
+├── docker/          # Docker 部署
+└── docs/            # 文档
 ```
 
-## 工具列表
+## 社区与联系方式
 
-| 工具 | 功能 |
-|------|------|
-| `send_email` | 发送邮件 |
-| `search_emails` | 搜索邮件 |
-| `read_email` | 读取邮件 |
-| `check_calendar` | 查看日历 |
-| `schedule_meeting` | 安排会议 |
-| `create_task` | 创建任务 |
-| `list_tasks` | 列出任务 |
-| `search_documents` | 搜索文档 |
-| `summarize_document` | 总结文档 |
+- [Dify 官方文档](https://docs.dify.ai)
+- [GitHub Issues](https://github.com/badhope/Data-Agent/issues)
 
-## License
+## 许可证
 
-MIT
+本仓库采用基于 Apache 2.0 的 Dify 开源许可证。
