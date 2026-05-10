@@ -35,7 +35,8 @@ def create_office_agent(
     This function wraps LangGraph's create_react_agent with office-specific configuration.
 
     Args:
-        model: A chat model instance or model name string (default: "gpt-4")
+        model: A chat model instance or model name string (default: "gpt-4"). 
+               For Ollama models, use format like "ollama:qwen2.5:7b"
         tools: List of tools to use (defaults to ALL_OFFICE_TOOLS)
         system_prompt: Custom system prompt (defaults to office assistant prompt)
         **kwargs: Additional arguments passed to create_react_agent()
@@ -48,8 +49,12 @@ def create_office_agent(
         from langchain_office_assistant.agents import create_office_agent
         from langchain_openai import ChatOpenAI
 
+        # Using OpenAI
         model = ChatOpenAI(model="gpt-4", temperature=0.7)
         agent = create_office_agent(model=model)
+
+        # Using Ollama
+        agent = create_office_agent(model="ollama:qwen2.5:7b")
 
         result = agent.invoke({"messages": [{"role": "user", "content": "Schedule a meeting"}]})
         ```
@@ -60,8 +65,13 @@ def create_office_agent(
     prompt = system_prompt if system_prompt is not None else SYSTEM_PROMPT
 
     if isinstance(model, str):
-        from langchain_openai import ChatOpenAI
-        model = ChatOpenAI(model=model, temperature=0.7)
+        if model.startswith("ollama:"):
+            from langchain_ollama import ChatOllama
+            model_name = model[len("ollama:"):]
+            model = ChatOllama(model=model_name, temperature=0.7)
+        else:
+            from langchain_openai import ChatOpenAI
+            model = ChatOpenAI(model=model, temperature=0.7)
 
     agent = create_react_agent(
         model=model,
