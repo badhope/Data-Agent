@@ -1,42 +1,199 @@
-# Dependencies
-node_modules/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
 
-# Build
-dist/
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
 build/
-*.tsbuildinfo
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+coverage.json
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.env.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+pyrightconfig.json
+!api/pyrightconfig.json
+
+# Pyre type checker
+.pyre/
 
 # IDE
 .idea/
-.vscode/
-*.swp
-*.swo
-*~
+!.idea/vcs.xml
+!.idea/icon.png
+.ideaDataSources/
+*.iml
+api/.idea
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Environment
-.env
-.env.local
-.env.*.local
+# pnpm
+.pnpm-store/
+node_modules
+.vite-hooks/
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Docker volumes
+docker/volumes/app/storage/*
+docker/volumes/certbot/*
+docker/volumes/db/data/*
+docker/volumes/redis/data/*
+docker/volumes/weaviate/*
+docker/volumes/qdrant/*
+docker/volumes/etcd/*
+docker/volumes/minio/*
+docker/volumes/milvus/*
+docker/volumes/chroma/*
+docker/volumes/opensearch/data/*
+docker/volumes/myscale/data/*
+docker/volumes/myscale/log/*
+docker/volumes/unstructured/*
+docker/volumes/pgvector/data/*
+docker/volumes/pgvecto_rs/data/*
+docker/volumes/couchbase/*
+docker/volumes/oceanbase/*
+docker/volumes/plugin_daemon/*
+docker/volumes/matrixone/*
+docker/volumes/mysql/*
+docker/volumes/seekdb/*
+!docker/volumes/oceanbase/init.d
+docker/volumes/iris/*
 
-# Testing
-coverage/
-.nyc_output/
+# Generated API OpenAPI specs
+packages/contracts/openapi/
 
-# Misc
-*.bak
-*.tmp
-.cache/
+# mise
+mise.toml
+
+# AI Assistant
+.roo/
+/.claude/worktrees/
+api/.env.backup
+
+# Benchmark
+scripts/stress-test/setup/config/
+scripts/stress-test/reports/
+
+# Settings
+*.local.json
+*.local.md
+
+# Code Agent Folder
+.qoder/*
+
+.eslintcache
+
+# Scripts
+startup.sh
