@@ -1082,27 +1082,34 @@ input:checked + .toggle-slider:before {
     </div>
     
     <nav class="nav-menu">
+      <!-- 主要功能 -->
       <div class="nav-section">
-        <div class="nav-section-title">概览</div>
-        <a class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
-          <span class="icon">📊</span>
-          <span>仪表盘</span>
-        </a>
-        <a class="nav-item" data-page="chat" onclick="showPage('chat')">
+        <div class="nav-section-title">主要功能</div>
+        <a class="nav-item active" data-page="chat" onclick="showPage('chat')">
           <span class="icon">💬</span>
           <span>AI 对话</span>
         </a>
+        <a class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">
+          <span class="icon">📊</span>
+          <span>仪表盘</span>
+        </a>
       </div>
       
+      <!-- 插件管理 -->
       <div class="nav-section">
-        <div class="nav-section-title">配置管理</div>
-        <a class="nav-item" data-page="api" onclick="showPage('api')">
-          <span class="icon">🔑</span>
-          <span>API 配置</span>
-        </a>
+        <div class="nav-section-title">插件</div>
         <a class="nav-item" data-page="plugins" onclick="showPage('plugins')">
           <span class="icon">🧩</span>
           <span>插件管理</span>
+        </a>
+      </div>
+      
+      <!-- 配置 -->
+      <div class="nav-section">
+        <div class="nav-section-title">配置</div>
+        <a class="nav-item" data-page="api" onclick="showPage('api')">
+          <span class="icon">🔑</span>
+          <span>API 配置</span>
         </a>
         <a class="nav-item" data-page="parameters" onclick="showPage('parameters')">
           <span class="icon">⚙️</span>
@@ -1110,8 +1117,9 @@ input:checked + .toggle-slider:before {
         </a>
       </div>
       
+      <!-- 工具 -->
       <div class="nav-section">
-        <div class="nav-section-title">系统</div>
+        <div class="nav-section-title">工具</div>
         <a class="nav-item" data-page="sessions" onclick="showPage('sessions')">
           <span class="icon">📝</span>
           <span>会话记录</span>
@@ -1122,7 +1130,7 @@ input:checked + .toggle-slider:before {
         </a>
         <a class="nav-item" data-page="about" onclick="showPage('about')">
           <span class="icon">ℹ️</span>
-          <span>关于系统</span>
+          <span>关于</span>
         </a>
       </div>
     </nav>
@@ -1142,7 +1150,7 @@ input:checked + .toggle-slider:before {
       <div class="header-left">
         <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
         <div>
-          <h1 class="page-title" id="pageTitle">仪表盘</h1>
+          <h1 class="page-title" id="pageTitle">AI 对话</h1>
           <div class="breadcrumb">
             <span>首页</span>
             <span>/</span>
@@ -1991,7 +1999,7 @@ function showToast(message) {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-  showPage('dashboard');
+  showPage('chat');
 });
 </script>
 </body>
