@@ -12,6 +12,27 @@ from enum import Enum
 import threading
 
 
+# 缓存配置常量
+CACHE_CONFIG = {
+    "default": {
+        "max_size": 1000,
+        "ttl": 3600  # 1 hour
+    },
+    "llm": {
+        "max_size": 100,
+        "ttl": 7200  # 2 hours
+    },
+    "vector": {
+        "max_size": 500,
+        "ttl": 3600  # 1 hour
+    },
+    "result": {
+        "max_size": 200,
+        "ttl": 1800  # 30 minutes
+    }
+}
+
+
 class CacheType(Enum):
     """缓存类型"""
     MEMORY = "memory"
@@ -118,10 +139,11 @@ class CacheManager:
 
     def __init__(self):
         self._caches: Dict[str, MemoryCache] = {
-            "default": MemoryCache(max_size=1000, default_ttl=3600),
-            "llm": MemoryCache(max_size=100, default_ttl=7200),
-            "vector": MemoryCache(max_size=500, default_ttl=3600),
-            "result": MemoryCache(max_size=200, default_ttl=1800),
+            name: MemoryCache(
+                max_size=config["max_size"],
+                default_ttl=config["ttl"]
+            )
+            for name, config in CACHE_CONFIG.items()
         }
 
     def get_cache(self, name: str = "default") -> MemoryCache:
