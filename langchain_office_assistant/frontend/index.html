@@ -43,7 +43,7 @@ body {
 
 .app {
   display: grid;
-  grid-template-columns: 280px 1fr 320px;
+  grid-template-columns: 280px 1fr;
   height: 100vh;
 }
 
@@ -94,8 +94,39 @@ body {
   transition: var(--transition);
   font-family: inherit;
 }
-.new-chat-btn:hover {
-  background: var(--accent-glow);
+.new-chat-btn:hover { background: var(--accent-glow); }
+
+.nav-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 13px;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.nav-item.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-active);
+}
+.nav-item .icon { font-size: 16px; }
+.nav-item .badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
 }
 
 .session-list {
@@ -113,22 +144,9 @@ body {
   border: 1px solid transparent;
 }
 .session-item:hover { background: var(--bg-hover); }
-.session-item.active {
-  background: var(--bg-card);
-  border-color: var(--border-active);
-}
-.session-item .session-title {
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.session-item .session-time {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
+.session-item.active { background: var(--bg-card); border-color: var(--border-active); }
+.session-item .session-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.session-item .session-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
 .sidebar-footer {
   padding: 16px 20px;
@@ -140,16 +158,18 @@ body {
   align-items: center;
 }
 
-/* ===== MAIN CHAT ===== */
-.chat-main {
+/* ===== MAIN CONTENT ===== */
+.main-content {
   display: flex;
   flex-direction: column;
   background: var(--bg-deep);
   position: relative;
+  overflow: hidden;
 }
 
+/* ===== HEADER ===== */
 .chat-header {
-  padding: 16px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--border);
   background: rgba(17,24,39,0.8);
   backdrop-filter: blur(12px);
@@ -165,7 +185,7 @@ body {
   gap: 12px;
 }
 
-.chat-header-left .status-dot {
+.status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -173,12 +193,9 @@ body {
   box-shadow: 0 0 8px var(--success);
 }
 
-.chat-header-left h2 {
-  font-size: 15px;
-  font-weight: 500;
-}
+.chat-header h2 { font-size: 15px; font-weight: 500; }
 
-.chat-header-right {
+.header-actions {
   display: flex;
   gap: 8px;
 }
@@ -194,10 +211,221 @@ body {
   transition: var(--transition);
   font-family: inherit;
 }
-.header-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+.header-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.header-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ===== PAGE CONTAINER ===== */
+.page-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
 }
+
+/* ===== WELCOME PAGE ===== */
+.welcome-page { max-width: 900px; margin: 0 auto; }
+
+.welcome-hero {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.welcome-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--user-bubble);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 20px;
+  box-shadow: 0 0 60px var(--accent-glow);
+}
+
+.welcome-hero h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.welcome-hero p { color: var(--text-secondary); font-size: 15px; max-width: 500px; margin: 0 auto; }
+
+/* ===== CAPABILITIES GRID ===== */
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.capability-card {
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.capability-card:hover {
+  border-color: var(--border-active);
+  background: var(--bg-hover);
+  transform: translateY(-2px);
+}
+
+.capability-icon { font-size: 28px; margin-bottom: 10px; }
+.capability-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.capability-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.capability-tools { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.capability-tools span {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg-deep);
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+/* ===== SETTINGS PAGE ===== */
+.settings-page { max-width: 800px; margin: 0 auto; }
+
+.settings-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.settings-section-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-section-header h3 { font-size: 15px; font-weight: 600; }
+.settings-section-header .icon { font-size: 18px; }
+
+.settings-section-body { padding: 20px; }
+
+.form-group {
+  margin-bottom: 16px;
+}
+.form-group:last-child { margin-bottom: 0; }
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.platform-option {
+  padding: 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+.platform-option:hover { border-color: var(--border-active); background: var(--bg-hover); }
+.platform-option.active { border-color: var(--accent); background: var(--accent-soft); }
+.platform-option .name { font-size: 13px; font-weight: 500; }
+.platform-option .desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.save-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.save-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* ===== TOOLS PAGE ===== */
+.tools-page { max-width: 1000px; margin: 0 auto; }
+
+.tools-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.tools-header h2 { font-size: 20px; font-weight: 600; }
+
+.tools-filter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.filter-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.tool-card {
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+.tool-card:hover { border-color: var(--border-active); }
+
+.tool-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.tool-icon { font-size: 24px; }
+.tool-name { font-size: 14px; font-weight: 600; }
+.tool-plugin { font-size: 10px; padding: 2px 6px; background: var(--accent-soft); border-radius: 4px; color: var(--accent); margin-left: auto; }
+
+.tool-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.tool-example { font-size: 11px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.tool-example code { background: var(--bg-deep); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+
+/* ===== CHAT PAGE ===== */
+.chat-page { display: flex; flex-direction: column; height: 100%; }
 
 .messages {
   flex: 1;
@@ -208,22 +436,8 @@ body {
   gap: 16px;
 }
 
-.message {
-  display: flex;
-  gap: 12px;
-  max-width: 80%;
-  animation: fadeInUp 0.3s ease;
-}
-
-@keyframes fadeInUp {
-  from { opacity:0; transform:translateY(8px); }
-  to { opacity:1; transform:translateY(0); }
-}
-
-.message.user {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-}
+.message { display: flex; gap: 12px; max-width: 80%; animation: fadeInUp 0.3s ease; }
+.message.user { align-self: flex-end; flex-direction: row-reverse; }
 
 .message-avatar {
   width: 36px;
@@ -235,15 +449,8 @@ body {
   font-size: 14px;
   flex-shrink: 0;
 }
-
-.message.bot .message-avatar {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-}
-
-.message.user .message-avatar {
-  background: var(--user-bubble);
-}
+.message.bot .message-avatar { background: var(--bg-card); border: 1px solid var(--border); }
+.message.user .message-avatar { background: var(--user-bubble); }
 
 .message-content {
   padding: 12px 16px;
@@ -251,33 +458,11 @@ body {
   font-size: 14px;
   line-height: 1.7;
 }
+.message.bot .message-content { background: var(--bot-bubble); border: 1px solid var(--border); }
+.message.user .message-content { background: var(--user-bubble); color: #fff; }
 
-.message.bot .message-content {
-  background: var(--bot-bubble);
-  border: 1px solid var(--border);
-}
-
-.message.user .message-content {
-  background: var(--user-bubble);
-  color: #fff;
-}
-
-.message-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 6px;
-  display: flex;
-  gap: 12px;
-}
-
-.message-meta .tag {
-  padding: 2px 8px;
-  background: var(--accent-soft);
-  border-radius: 4px;
-  color: var(--accent);
-  font-size: 10px;
-  font-weight: 500;
-}
+.message-meta { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 12px; }
+.message-meta .tag { padding: 2px 8px; background: var(--accent-soft); border-radius: 4px; color: var(--accent); font-size: 10px; font-weight: 500; }
 
 .typing-indicator {
   display: flex;
@@ -288,7 +473,6 @@ body {
   border-radius: var(--radius);
   width: fit-content;
 }
-
 .typing-indicator span {
   width: 6px;
   height: 6px;
@@ -304,6 +488,11 @@ body {
   30% { transform:translateY(-6px); opacity:1; }
 }
 
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(8px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
 /* ===== INPUT AREA ===== */
 .input-area {
   padding: 16px 24px 24px;
@@ -312,11 +501,7 @@ body {
   backdrop-filter: blur(12px);
 }
 
-.input-wrapper {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-}
+.input-wrapper { display: flex; gap: 10px; align-items: flex-end; }
 
 .input-wrapper textarea {
   flex: 1;
@@ -338,9 +523,7 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
-.input-wrapper textarea::placeholder {
-  color: var(--text-muted);
-}
+.input-wrapper textarea::placeholder { color: var(--text-muted); }
 
 .send-btn {
   width: 44px;
@@ -355,13 +538,10 @@ body {
   justify-content: center;
   transition: var(--transition);
   flex-shrink: 0;
+  font-size: 18px;
 }
 .send-btn:hover { transform:scale(1.05); }
-.send-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
+.send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .quick-actions {
   display: flex;
@@ -387,187 +567,6 @@ body {
   border-color: var(--border-active);
 }
 
-/* ===== RIGHT PANEL ===== */
-.right-panel {
-  background: var(--bg-surface);
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.panel-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-}
-
-.panel-tab {
-  flex: 1;
-  padding: 12px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: var(--transition);
-  background: none;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-  font-family: inherit;
-}
-.panel-tab.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.panel-tab:hover {
-  color: var(--text-primary);
-}
-
-.panel-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-.trace-step {
-  padding: 10px 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  font-size: 12px;
-}
-
-.trace-step .step-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.trace-step .step-name {
-  font-weight: 500;
-  color: var(--accent);
-}
-
-.trace-step .step-time {
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-.trace-step .step-detail {
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.tool-card {
-  padding: 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-}
-
-.tool-card .tool-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.tool-card .tool-desc {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.tool-card .tool-plugin {
-  font-size: 10px;
-  color: var(--accent);
-  padding: 2px 6px;
-  background: var(--accent-soft);
-  border-radius: 4px;
-  display: inline-block;
-  margin-top: 6px;
-}
-
-/* ===== WELCOME ===== */
-.welcome {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 40px;
-}
-
-.welcome-icon {
-  width: 72px;
-  height: 72px;
-  background: var(--user-bubble);
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  margin-bottom: 20px;
-  box-shadow: 0 0 40px var(--accent-glow);
-}
-
-.welcome h2 {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.welcome p {
-  color: var(--text-secondary);
-  font-size: 14px;
-  max-width: 400px;
-  line-height: 1.6;
-}
-
-.welcome-features {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 24px;
-  width: 100%;
-  max-width: 480px;
-}
-
-.welcome-feature {
-  padding: 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  text-align: left;
-  cursor: pointer;
-  transition: var(--transition);
-}
-.welcome-feature:hover {
-  border-color: var(--border-active);
-  background: var(--bg-hover);
-}
-
-.welcome-feature .feat-icon {
-  font-size: 18px;
-  margin-bottom: 6px;
-}
-
-.welcome-feature .feat-title {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.welcome-feature .feat-desc {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -577,7 +576,7 @@ body {
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .app { grid-template-columns: 1fr; }
-  .sidebar, .right-panel { display: none; }
+  .sidebar { display: none; }
 }
 </style>
 </head>
@@ -590,112 +589,450 @@ body {
       <h1><span class="logo">🤖</span> Office Agent</h1>
       <button class="new-chat-btn" onclick="newChat()">+ 新建对话</button>
     </div>
+
+    <div class="nav-section">
+      <div class="nav-item active" onclick="showPage('chat')">
+        <span class="icon">💬</span>
+        <span>对话</span>
+      </div>
+      <div class="nav-item" onclick="showPage('capabilities')">
+        <span class="icon">⚡</span>
+        <span>功能</span>
+        <span class="badge">31</span>
+      </div>
+      <div class="nav-item" onclick="showPage('tools')">
+        <span class="icon">🛠️</span>
+        <span>工具列表</span>
+      </div>
+      <div class="nav-item" onclick="showPage('settings')">
+        <span class="icon">⚙️</span>
+        <span>设置</span>
+      </div>
+    </div>
+
     <div class="session-list" id="sessionList"></div>
+
     <div class="sidebar-footer">
       <span>v1.0.0</span>
       <span id="statusText">● 已连接</span>
     </div>
   </div>
 
-  <!-- MAIN CHAT -->
-  <div class="chat-main">
-    <div class="chat-header">
-      <div class="chat-header-left">
-        <span class="status-dot"></span>
-        <h2>智能办公助手</h2>
-      </div>
-      <div class="chat-header-right">
-        <button class="header-btn" onclick="clearChat()">清空对话</button>
-        <button class="header-btn" onclick="togglePanel()">详情面板</button>
-      </div>
-    </div>
-
-    <div class="messages" id="messages">
-      <div class="welcome" id="welcome">
-        <div class="welcome-icon">🤖</div>
-        <h2>你好，我是 Office Agent</h2>
-        <p>你的智能办公助手，可以帮你处理邮件、日程、任务、文档、图表、计算等办公任务</p>
-        <div class="welcome-features">
-          <div class="welcome-feature" onclick="sendQuick('帮我计算 123 * 456')">
-            <div class="feat-icon">🧮</div>
-            <div class="feat-title">智能计算</div>
-            <div class="feat-desc">公式计算、统计分析</div>
-          </div>
-          <div class="welcome-feature" onclick="sendQuick('查看今天的日程安排')">
-            <div class="feat-icon">📅</div>
-            <div class="feat-title">日程管理</div>
-            <div class="feat-desc">查询日程、创建会议</div>
-          </div>
-          <div class="welcome-feature" onclick="sendQuick('生成一个柱状图，数据是10,20,30,40')">
-            <div class="feat-icon">📊</div>
-            <div class="feat-title">图表生成</div>
-            <div class="feat-desc">折线图、柱状图、饼图</div>
-          </div>
-          <div class="welcome-feature" onclick="sendQuick('搜索邮件 项目')">
-            <div class="feat-icon">📧</div>
-            <div class="feat-title">邮件管理</div>
-            <div class="feat-desc">发送、搜索、阅读邮件</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="input-area">
-      <div class="input-wrapper">
-        <textarea id="userInput" placeholder="输入你的指令，如：计算 100+200、查看日程、生成图表..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
-        <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
-      </div>
-      <div class="quick-actions">
-        <button class="quick-action" onclick="sendQuick('计算 99 * 88')">计算</button>
-        <button class="quick-action" onclick="sendQuick('查看今天的日程')">日程</button>
-        <button class="quick-action" onclick="sendQuick('创建任务 完成报告')">任务</button>
-        <button class="quick-action" onclick="sendQuick('搜索邮件 项目')">邮件</button>
-        <button class="quick-action" onclick="sendQuick('100美元换人民币')">汇率</button>
-        <button class="quick-action" onclick="sendQuick('生成柱状图 数据10,20,30')">图表</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="right-panel" id="rightPanel">
-    <div class="panel-tabs">
-      <button class="panel-tab active" onclick="switchTab('trace')">执行追踪</button>
-      <button class="panel-tab" onclick="switchTab('tools')">工具列表</button>
-    </div>
-    <div class="panel-content" id="panelContent">
-      <div id="tracePanel">
-        <div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:13px;">
-          发送消息后将显示执行追踪
-        </div>
-      </div>
-      <div id="toolsPanel" style="display:none;"></div>
-    </div>
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <div class="page-container" id="pageContainer"></div>
   </div>
 </div>
 
 <script>
-const API_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000'
-  : '';
+// ========== CONSTANTS ==========
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
+const CAPABILITIES = [
+  {
+    id: 'calc', icon: '🧮', title: '智能计算', desc: '公式计算、统计分析、货币换算、单位转换、日期计算',
+    tools: ['calculate', 'statistics', 'currency_convert', 'unit_convert', 'date_diff']
+  },
+  {
+    id: 'calendar', icon: '📅', title: '日程管理', desc: '查询日程安排、创建会议、设置提醒',
+    tools: ['check_calendar', 'schedule_meeting']
+  },
+  {
+    id: 'task', icon: '✅', title: '任务管理', desc: '创建任务、更新状态、查看任务列表',
+    tools: ['create_task', 'list_tasks', 'update_task']
+  },
+  {
+    id: 'email', icon: '📧', title: '邮件管理', desc: '发送邮件、搜索邮件、阅读邮件',
+    tools: ['send_email', 'search_emails', 'read_email']
+  },
+  {
+    id: 'document', icon: '📄', title: '文档处理', desc: '读取文档、写入文档、搜索文档、文档摘要',
+    tools: ['read_document', 'write_document', 'search_documents', 'summarize_document']
+  },
+  {
+    id: 'chart', icon: '📊', title: '图表生成', desc: '柱状图、折线图、饼图、雷达图、散点图',
+    tools: ['create_bar_chart', 'create_line_chart', 'create_pie_chart', 'create_radar_chart', 'create_scatter_plot']
+  },
+  {
+    id: 'ppt', icon: '📽️', title: 'PPT生成', desc: '创建PPT、添加幻灯片、嵌入图表、保存PPT',
+    tools: ['create_ppt', 'add_slide', 'add_chart_to_ppt', 'save_ppt']
+  },
+  {
+    id: 'knowledge', icon: '📚', title: '知识库', desc: '知识检索、文档问答、添加文档、文档列表',
+    tools: ['search_knowledge', 'query_knowledge', 'add_document', 'list_documents']
+  },
+];
+
+const PLATFORMS = [
+  { id: 'dashscope', name: '阿里百炼', desc: 'qwen-plus', models: ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-flash'] },
+  { id: 'openai', name: 'OpenAI', desc: 'GPT-4系列', models: ['gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'] },
+  { id: 'anthropic', name: 'Claude', desc: 'Claude系列', models: ['claude-3-5-sonnet', 'claude-3-opus', 'claude-3-sonnet'] },
+  { id: 'gemini', name: 'Gemini', desc: 'Google AI', models: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'] },
+  { id: 'zhipu', name: '智谱AI', desc: 'GLM系列', models: ['glm-4', 'glm-4-plus', 'glm-3-turbo'] },
+  { id: 'spark', name: '讯飞星火', desc: 'Spark系列', models: ['spark-4.0', 'spark-3.5', 'spark-3.0'] },
+  { id: 'ernie', name: '文心一言', desc: 'ERNIE系列', models: ['ernie-4.0', 'ernie-3.5'] },
+  { id: 'doubao', name: '豆包', desc: '字节火山', models: ['doubao-pro', 'doubao-lite'] },
+];
+
+const EXAMPLES = {
+  calc: ['计算 123 + 456', '100美元换人民币', '统计 [1,2,3,4,5] 的平均值', '100米转英尺'],
+  calendar: ['查看今天的日程', '安排明天下午3点会议', '查看这周的所有会议'],
+  task: ['创建任务 完成报告 优先级高', '列出所有待办任务', '把 task_001 标记为完成'],
+  email: ['搜索包含"项目"的邮件', '发送邮件给张三 主题是会议通知', '查看最新的邮件'],
+  document: ['读取文档 report.txt', '搜索包含"总结"的文档', '对文档进行摘要'],
+  chart: ['生成柱状图 数据10,20,30', '创建折线图展示趋势', '画一个饼图'],
+  ppt: ['创建PPT 项目汇报', '添加一页幻灯片', '在PPT里添加图表'],
+  knowledge: ['搜索"机器学习"相关内容', '添加文档到知识库', '列出知识库所有文档'],
+};
+
+// ========== STATE ==========
+let currentPage = 'capabilities';
 let currentSessionId = null;
 let sessions = [];
 let isLoading = false;
+let settings = {
+  platform: 'dashscope',
+  model: 'qwen-plus',
+  temperature: 0.7,
+  maxTokens: 2000
+};
 
-function generateId() {
-  return 'sess_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+// ========== INIT ==========
+function init() {
+  newChat();
+  showPage('capabilities');
+  loadSettings();
 }
 
+// ========== PAGES ==========
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[onclick="showPage('${page}')"]`);
+  if (navItem) navItem.classList.add('active');
+  
+  const container = document.getElementById('pageContainer');
+  
+  switch(page) {
+    case 'capabilities': renderCapabilitiesPage(container); break;
+    case 'tools': renderToolsPage(container); break;
+    case 'settings': renderSettingsPage(container); break;
+    case 'chat': renderChatPage(container); break;
+  }
+}
+
+function renderCapabilitiesPage(container) {
+  container.innerHTML = `
+    <div class="welcome-page">
+      <div class="welcome-hero">
+        <div class="welcome-icon">🤖</div>
+        <h2>Office Agent 智能助手</h2>
+        <p>你的智能办公助手，支持 8 大功能模块，31 个工具能力</p>
+      </div>
+      
+      <div class="capabilities-grid">
+        ${CAPABILITIES.map(cap => `
+          <div class="capability-card" onclick="showCapability('${cap.id}')">
+            <div class="capability-icon">${cap.icon}</div>
+            <div class="capability-title">${cap.title}</div>
+            <div class="capability-desc">${cap.desc}</div>
+            <div class="capability-tools">
+              ${cap.tools.map(t => `<span>${t}</span>`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function showCapability(id) {
+  const cap = CAPABILITIES.find(c => c.id === id);
+  if (!cap) return;
+  
+  const examples = EXAMPLES[id] || [];
+  const input = document.getElementById('userInput');
+  if (input) {
+    input.value = examples[0] || '';
+    input.focus();
+    showPage('chat');
+  }
+}
+
+function renderToolsPage(container) {
+  container.innerHTML = `
+    <div class="tools-page">
+      <div class="tools-header">
+        <h2>🛠️ 工具列表</h2>
+        <span style="color:var(--text-muted);font-size:13px;">共 31 个工具</span>
+      </div>
+      
+      <div class="tools-grid">
+        ${CAPABILITIES.flatMap(cap => 
+          cap.tools.map(tool => `
+            <div class="tool-card">
+              <div class="tool-header">
+                <span class="tool-icon">${cap.icon}</span>
+                <span class="tool-name">${tool}</span>
+                <span class="tool-plugin">${cap.id}</span>
+              </div>
+              <div class="tool-desc">${getToolDescription(tool)}</div>
+              <div class="tool-example">
+                <strong>示例：</strong><code>${getToolExample(tool)}</code>
+              </div>
+            </div>
+          `)
+        ).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function getToolDescription(tool) {
+  const descriptions = {
+    calculate: '计算数学表达式，支持加减乘除、括号、函数',
+    statistics: '对一组数值进行统计分析（平均值、中位数等）',
+    currency_convert: '货币换算，支持 USD/CNY/EUR 等主流货币',
+    unit_convert: '单位转换，长度、重量、温度等',
+    date_diff: '计算两个日期之间的差值',
+    check_calendar: '查看指定日期的日程安排',
+    schedule_meeting: '创建新会议，设置时间、时长、参与人',
+    create_task: '创建新任务，设置标题、描述、优先级',
+    list_tasks: '列出所有任务，可按状态筛选',
+    update_task: '更新任务状态、优先级或截止日期',
+    send_email: '发送邮件，设置收件人、主题、内容',
+    search_emails: '根据关键词搜索邮件',
+    read_email: '阅读指定邮件的完整内容',
+    read_document: '读取文档文件内容',
+    write_document: '写入内容到文档文件',
+    search_documents: '搜索文档内容',
+    summarize_document: '对文档进行智能摘要',
+    create_bar_chart: '创建柱状图，展示分类数据对比',
+    create_line_chart: '创建折线图，展示数据趋势',
+    create_pie_chart: '创建饼图，展示占比分布',
+    create_radar_chart: '创建雷达图，展示多维数据',
+    create_scatter_plot: '创建散点图，展示数据分布',
+    create_ppt: '创建新的PPT演示文稿',
+    add_slide: '在PPT中添加新幻灯片',
+    add_chart_to_ppt: '将图表嵌入到PPT中',
+    save_ppt: '保存PPT文件',
+    search_knowledge: '在知识库中搜索相关内容',
+    query_knowledge: '基于知识库进行问答',
+    add_document: '向知识库添加新文档',
+    list_documents: '列出知识库中的所有文档',
+  };
+  return descriptions[tool] || '工具描述';
+}
+
+function getToolExample(tool) {
+  const examples = {
+    calculate: '计算 99 * 88',
+    statistics: '统计 [10, 20, 30] 的平均值',
+    currency_convert: '100 USD to CNY',
+    unit_convert: '100 米 to 英尺',
+    date_diff: '计算 2025-01-01 到 2025-01-15 的天数',
+    check_calendar: '查看今天的日程',
+    schedule_meeting: '安排明天下午3点的会议',
+    create_task: '创建任务 完成报告 优先级高',
+    list_tasks: '列出所有待办任务',
+    update_task: '把 task_001 标记为完成',
+    send_email: '发送邮件给 zhangsan@company.com',
+    search_emails: '搜索 包含"项目" 的邮件',
+    read_document: '读取文档 report.txt',
+    write_document: '写入内容到文件',
+    search_documents: '搜索包含"总结"的文档',
+    summarize_document: '对文档进行摘要',
+    create_bar_chart: '创建柱状图 数据:10,20,30',
+    create_line_chart: '创建折线图 数据:1月,2月,3月',
+    create_pie_chart: '创建饼图 数据:30%,40%,30%',
+    create_radar_chart: '创建雷达图 数据:技能分析',
+    create_scatter_plot: '创建散点图 数据:x,y坐标',
+    create_ppt: '创建PPT 项目汇报',
+    add_slide: '添加一页幻灯片',
+    add_chart_to_ppt: '添加图表到PPT',
+    save_ppt: '保存PPT文件',
+    search_knowledge: '搜索"机器学习"相关内容',
+    query_knowledge: '知识库问答',
+    add_document: '添加文档到知识库',
+    list_documents: '列出知识库文档',
+  };
+  return examples[tool] || tool;
+}
+
+function renderSettingsPage(container) {
+  const selectedPlatform = PLATFORMS.find(p => p.id === settings.platform);
+  
+  container.innerHTML = `
+    <div class="settings-page">
+      <h2 style="margin-bottom:20px;font-size:20px;">⚙️ 设置</h2>
+      
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="icon">🔧</span>
+          <h3>AI 平台选择</h3>
+        </div>
+        <div class="settings-section-body">
+          <div class="platform-grid">
+            ${PLATFORMS.map(p => `
+              <div class="platform-option ${settings.platform === p.id ? 'active' : ''}" onclick="selectPlatform('${p.id}')">
+                <div class="name">${p.name}</div>
+                <div class="desc">${p.desc}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="icon">🤖</span>
+          <h3>模型配置</h3>
+        </div>
+        <div class="settings-section-body">
+          <div class="form-group">
+            <label class="form-label">当前平台</label>
+            <input type="text" class="form-input" value="${selectedPlatform?.name || '-'}" readonly style="opacity:0.7">
+          </div>
+          <div class="form-group">
+            <label class="form-label">选择模型</label>
+            <select class="form-select" id="modelSelect">
+              ${(selectedPlatform?.models || []).map(m => `
+                <option value="${m}" ${settings.model === m ? 'selected' : ''}>${m}</option>
+              `).join('')}
+            </select>
+            <div class="form-hint">不同模型有不同的能力和价格</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="icon">📊</span>
+          <h3>生成参数</h3>
+        </div>
+        <div class="settings-section-body">
+          <div class="form-group">
+            <label class="form-label">Temperature（创造性）: <span id="tempValue">${settings.temperature}</span></label>
+            <input type="range" min="0" max="1" step="0.1" value="${settings.temperature}" 
+              class="form-input" style="padding:0" onchange="updateSetting('temperature', this.value)">
+            <div class="form-hint">较低值更确定性，较高值更有创造性</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">最大Token数</label>
+            <input type="number" class="form-input" value="${settings.maxTokens}" 
+              onchange="updateSetting('maxTokens', parseInt(this.value))">
+            <div class="form-hint">单次回复的最大长度限制</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="icon">🔑</span>
+          <h3>API 配置</h3>
+        </div>
+        <div class="settings-section-body">
+          <div class="form-group">
+            <label class="form-label">API 地址</label>
+            <input type="text" class="form-input" value="${getApiBase(settings.platform)}" readonly style="opacity:0.7">
+            <div class="form-hint">API 地址由所选平台决定</div>
+          </div>
+        </div>
+      </div>
+      
+      <button class="save-btn" onclick="saveSettings()">保存设置</button>
+    </div>
+  `;
+}
+
+function getApiBase(platform) {
+  const bases = {
+    dashscope: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    openai: 'https://api.openai.com/v1',
+    anthropic: 'https://api.anthropic.com',
+    gemini: 'https://generativelanguage.googleapis.com/v1beta',
+    zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+    spark: 'https://spark-api.xf-yun.com/v3.5/chat',
+    ernie: 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1',
+    doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  };
+  return bases[platform] || '';
+}
+
+function selectPlatform(id) {
+  settings.platform = id;
+  const platform = PLATFORMS.find(p => p.id === id);
+  settings.model = platform?.models[0] || '';
+  renderSettingsPage(document.getElementById('pageContainer'));
+}
+
+function updateSetting(key, value) {
+  settings[key] = value;
+  if (key === 'temperature') {
+    document.getElementById('tempValue').textContent = value;
+  }
+}
+
+function loadSettings() {
+  const saved = localStorage.getItem('office_agent_settings');
+  if (saved) {
+    try {
+      settings = { ...settings, ...JSON.parse(saved) };
+    } catch(e) {}
+  }
+}
+
+function saveSettings() {
+  settings.model = document.getElementById('modelSelect')?.value || settings.model;
+  localStorage.setItem('office_agent_settings', JSON.stringify(settings));
+  alert('设置已保存！');
+}
+
+function renderChatPage(container) {
+  container.innerHTML = `
+    <div class="chat-page">
+      <div class="messages" id="messages">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--text-muted);">
+          <div style="font-size:48px;margin-bottom:16px;">🤖</div>
+          <div style="font-size:16px;font-weight:500;">开始对话</div>
+          <div style="font-size:13px;margin-top:8px;">输入你的问题，或点击左侧功能了解能力</div>
+        </div>
+      </div>
+      
+      <div class="input-area">
+        <div class="input-wrapper">
+          <textarea id="userInput" placeholder="输入你的指令，如：计算 100+200、查看日程、生成图表..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>
+        <div class="quick-actions">
+          <button class="quick-action" onclick="sendQuick('计算 99 * 88')">🧮 计算</button>
+          <button class="quick-action" onclick="sendQuick('查看今天的日程')">📅 日程</button>
+          <button class="quick-action" onclick="sendQuick('创建任务 完成报告')">✅ 任务</button>
+          <button class="quick-action" onclick="sendQuick('搜索邮件 项目')">📧 邮件</button>
+          <button class="quick-action" onclick="sendQuick('100美元换人民币')">💱 汇率</button>
+          <button class="quick-action" onclick="sendQuick('生成柱状图 数据10,20,30')">📊 图表</button>
+          <button class="quick-action" onclick="sendQuick('创建PPT 项目汇报')">📽️ PPT</button>
+          <button class="quick-action" onclick="sendQuick('搜索"机器学习"相关内容')">📚 知识库</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('userInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+}
+
+// ========== CHAT ==========
 function newChat() {
-  currentSessionId = generateId();
+  currentSessionId = 'sess_' + Date.now().toString(36);
   sessions.unshift({
     id: currentSessionId,
     title: '新对话',
-    time: new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})
+    time: new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'})
   });
   renderSessions();
-  clearMessages();
-  document.getElementById('userInput').focus();
 }
 
 function renderSessions() {
@@ -713,60 +1050,63 @@ function switchSession(id) {
   renderSessions();
 }
 
-function clearChat() {
-  clearMessages();
-  document.getElementById('welcome').style.display = 'flex';
-}
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || isLoading) return;
 
-function clearMessages() {
-  const msgs = document.getElementById('messages');
-  msgs.innerHTML = '';
-}
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  input.value = '';
+  input.style.height = 'auto';
 
-function togglePanel() {
-  const panel = document.getElementById('rightPanel');
-  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-}
+  addMessage('user', text);
 
-function switchTab(tab) {
-  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('tracePanel').style.display = tab === 'trace' ? 'block' : 'none';
-  document.getElementById('toolsPanel').style.display = tab === 'tools' ? 'block' : 'none';
-  if (tab === 'tools') loadTools();
-}
+  showTyping();
 
-async function loadTools() {
-  try {
-    const res = await fetch(`${API_URL}/tools`);
-    const data = await res.json();
-    const panel = document.getElementById('toolsPanel');
-    panel.innerHTML = data.tools.map(t => `
-      <div class="tool-card">
-        <div class="tool-name">${t.name}</div>
-        <div class="tool-desc">${t.description}</div>
-        <span class="tool-plugin">${t.plugin}</span>
-      </div>
-    `).join('');
-  } catch(e) {
-    document.getElementById('toolsPanel').innerHTML = '<div style="color:var(--error);text-align:center;padding:20px;">无法加载工具列表</div>';
-  }
+  fetch(`${API_URL}/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: text, session_id: currentSessionId })
+  })
+  .then(res => res.json())
+  .then(data => {
+    hideTyping();
+    addMessage('bot', data.response, {
+      intent: data.intent,
+      tool: data.tool_used,
+      confidence: data.confidence,
+      duration: data.duration_ms
+    });
+  })
+  .catch(e => {
+    hideTyping();
+    addMessage('bot', '❌ 连接失败，请检查后端服务是否启动。\n\n错误: ' + e.message);
+  })
+  .finally(() => {
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+  });
 }
 
 function addMessage(role, content, meta = {}) {
-  const welcome = document.getElementById('welcome');
-  if (welcome) welcome.style.display = 'none';
-
   const msgs = document.getElementById('messages');
+  if (!msgs) {
+    renderChatPage(document.getElementById('pageContainer'));
+    var newMsgs = document.getElementById('messages');
+  } else {
+    var newMsgs = msgs;
+  }
+  
   const div = document.createElement('div');
   div.className = `message ${role}`;
-
+  
   const avatar = role === 'user' ? '👤' : '🤖';
   const metaHtml = meta.intent ? `
     <div class="message-meta">
       <span class="tag">${meta.intent}</span>
       ${meta.tool ? `<span class="tag">${meta.tool}</span>` : ''}
-      ${meta.confidence ? `<span>${Math.round(meta.confidence * 100)}% 置信度</span>` : ''}
+      ${meta.confidence ? `<span>${Math.round(meta.confidence * 100)}%</span>` : ''}
       ${meta.duration ? `<span>${meta.duration}ms</span>` : ''}
     </div>
   ` : '';
@@ -778,28 +1118,24 @@ function addMessage(role, content, meta = {}) {
       ${metaHtml}
     </div>
   `;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+  newMsgs.appendChild(div);
+  newMsgs.scrollTop = newMsgs.scrollHeight;
 }
 
 function formatContent(text) {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>')
     .replace(/`([^`]+)`/g, '<code style="background:var(--bg-hover);padding:2px 6px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:12px;">$1</code>');
 }
 
 function showTyping() {
   const msgs = document.getElementById('messages');
+  if (!msgs) return;
   const div = document.createElement('div');
   div.className = 'message bot';
   div.id = 'typing';
-  div.innerHTML = `
-    <div class="message-avatar">🤖</div>
-    <div class="typing-indicator"><span></span><span></span><span></span></div>
-  `;
+  div.innerHTML = `<div class="message-avatar">🤖</div><div class="typing-indicator"><span></span><span></span><span></span></div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
 }
@@ -809,73 +1145,15 @@ function hideTyping() {
   if (el) el.remove();
 }
 
-async function sendMessage() {
-  const input = document.getElementById('userInput');
-  const text = input.value.trim();
-  if (!text || isLoading) return;
-
-  if (!currentSessionId) newChat();
-
-  isLoading = true;
-  document.getElementById('sendBtn').disabled = true;
-  input.value = '';
-  input.style.height = 'auto';
-
-  addMessage('user', text);
-
-  const session = sessions.find(s => s.id === currentSessionId);
-  if (session && session.title === '新对话') {
-    session.title = text.slice(0, 20) + (text.length > 20 ? '...' : '');
-    renderSessions();
-  }
-
-  showTyping();
-
-  try {
-    const res = await fetch(`${API_URL}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: text,
-        session_id: currentSessionId
-      })
-    });
-
-    const data = await res.json();
-    hideTyping();
-    addMessage('bot', data.response, {
-      intent: data.intent,
-      tool: data.tool_used,
-      confidence: data.confidence,
-      duration: data.duration_ms
-    });
-
-    updateTracePanel(data.trace_id);
-  } catch(e) {
-    hideTyping();
-    addMessage('bot', '❌ 连接失败，请检查后端服务是否启动。\n\n错误信息: ' + e.message);
-  }
-
-  isLoading = false;
-  document.getElementById('sendBtn').disabled = false;
-  input.focus();
-}
-
-async function updateTracePanel(traceId) {
-  if (!traceId) return;
-  try {
-    const res = await fetch(`${API_URL}/trace/${traceId}`);
-    const data = await res.json();
-    const panel = document.getElementById('tracePanel');
-    panel.innerHTML = `<div class="trace-step"><div class="step-header"><span class="step-name">追踪ID</span></div><div class="step-detail">${data.content || '无追踪数据'}</div></div>`;
-  } catch(e) {
-    // ignore
-  }
-}
-
 function sendQuick(text) {
-  document.getElementById('userInput').value = text;
-  sendMessage();
+  showPage('chat');
+  setTimeout(() => {
+    const input = document.getElementById('userInput');
+    if (input) {
+      input.value = text;
+      sendMessage();
+    }
+  }, 100);
 }
 
 function handleKeyDown(e) {
@@ -885,14 +1163,8 @@ function handleKeyDown(e) {
   }
 }
 
-// Auto-resize textarea
-document.getElementById('userInput').addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
-
-// Init
-newChat();
+// ========== START ==========
+init();
 </script>
 </body>
 </html>
