@@ -4,12 +4,16 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import uvicorn
 import asyncio
-from langchain_office_assistant.agents import (
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from agents import (
     create_office_agent,
     run_office_assistant,
     TraceRecorder,
 )
-from langchain_office_assistant.utils.config import config
+from utils.config import config
 
 app = FastAPI(title="Office Agent API", version="1.0.0")
 
@@ -66,7 +70,7 @@ async def chat(request: ChatRequest):
 @app.get("/chat/{session_id}")
 async def get_session_history(session_id: str):
     try:
-        from langchain_office_assistant.agents import MemoryManager
+        from agents import MemoryManager
         memory_manager = MemoryManager(config.redis_url)
         history = memory_manager.get_chat_history(session_id)
         messages = history.messages
@@ -77,7 +81,7 @@ async def get_session_history(session_id: str):
 @app.delete("/chat/{session_id}")
 async def delete_session(session_id: str):
     try:
-        from langchain_office_assistant.agents import MemoryManager
+        from agents import MemoryManager
         memory_manager = MemoryManager(config.redis_url)
         memory_manager.delete_session(session_id)
         return {"status": "success", "message": "Session deleted"}
