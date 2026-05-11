@@ -575,16 +575,73 @@ body {
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
-  .app { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
+  .app { grid-template-columns: 280px 1fr; }
+  .sidebar { display: flex; position: fixed; left: 0; top: 0; height: 100vh; z-index: 200; transform: translateX(-100%); transition: transform 0.3s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .hamburger { display: flex; }
+  .overlay { display: block; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+}
+
+/* ===== HAMBURGER MENU ===== */
+.hamburger {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 300;
+  width: 44px;
+  height: 44px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: var(--transition);
+}
+.hamburger:hover { background: var(--bg-hover); }
+.hamburger span {
+  width: 20px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 1px;
+  transition: var(--transition);
+}
+.hamburger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ===== OVERLAY ===== */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 150;
 }
 </style>
 </head>
 <body>
 
+<!-- HAMBURGER MENU -->
+<button class="hamburger" onclick="toggleSidebar()" id="hamburgerBtn">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
 <div class="app">
   <!-- SIDEBAR -->
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <h1><span class="logo">🤖</span> Office Agent</h1>
       <button class="new-chat-btn" onclick="newChat()">+ 新建对话</button>
@@ -705,21 +762,6 @@ function init() {
 }
 
 // ========== PAGES ==========
-function showPage(page) {
-  currentPage = page;
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  const navItem = document.querySelector(`.nav-item[onclick="showPage('${page}')"]`);
-  if (navItem) navItem.classList.add('active');
-  
-  const container = document.getElementById('pageContainer');
-  
-  switch(page) {
-    case 'capabilities': renderCapabilitiesPage(container); break;
-    case 'tools': renderToolsPage(container); break;
-    case 'settings': renderSettingsPage(container); break;
-    case 'chat': renderChatPage(container); break;
-  }
-}
 
 function renderCapabilitiesPage(container) {
   container.innerHTML = `
@@ -1160,6 +1202,44 @@ function handleKeyDown(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
+  }
+}
+
+// ========== SIDEBAR TOGGLE ==========
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const hamburger = document.getElementById('hamburgerBtn');
+  const overlay = document.getElementById('overlay');
+  
+  sidebar.classList.toggle('open');
+  hamburger.classList.toggle('active');
+  overlay.classList.toggle('show');
+}
+
+// Close sidebar when clicking a nav item on mobile
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[onclick="showPage('${page}')"]`);
+  if (navItem) navItem.classList.add('active');
+  
+  // Close sidebar on mobile after navigation
+  if (window.innerWidth <= 1024) {
+    const sidebar = document.getElementById('sidebar');
+    const hamburger = document.getElementById('hamburgerBtn');
+    const overlay = document.getElementById('overlay');
+    sidebar.classList.remove('open');
+    hamburger.classList.remove('active');
+    overlay.classList.remove('show');
+  }
+  
+  const container = document.getElementById('pageContainer');
+  
+  switch(page) {
+    case 'capabilities': renderCapabilitiesPage(container); break;
+    case 'tools': renderToolsPage(container); break;
+    case 'settings': renderSettingsPage(container); break;
+    case 'chat': renderChatPage(container); break;
   }
 }
 
