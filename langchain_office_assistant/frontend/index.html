@@ -35,13 +35,14 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
-  overflow: hidden;
 }
 
 /* ===== LAYOUT ===== */
 .admin-layout {
   display: flex;
   min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ===== SIDEBAR ===== */
@@ -97,6 +98,8 @@ body {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-section {
@@ -206,9 +209,11 @@ body {
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-width);
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 /* ===== HEADER ===== */
@@ -299,6 +304,8 @@ body {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== CARDS ===== */
@@ -744,13 +751,16 @@ input:checked + .toggle-slider:before {
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 80px);
+  height: 100%;
+  min-height: 0;
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chat-message {
@@ -1036,6 +1046,18 @@ input:checked + .toggle-slider:before {
   .chat-bubble {
     max-width: 85%;
   }
+}
+
+/* Touch and scroll optimizations for mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.page,
+.card,
+.nav-item,
+.btn {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== SCROLLBAR ===== */
@@ -1933,6 +1955,12 @@ function showPage(page) {
   const pageEl = document.getElementById('page-' + page);
   if (pageEl) {
     pageEl.classList.remove('hidden');
+  }
+  
+  // Scroll to top of page
+  const pageContent = document.getElementById('pageContent');
+  if (pageContent) {
+    pageContent.scrollTop = 0;
   }
   
   // Load page data
