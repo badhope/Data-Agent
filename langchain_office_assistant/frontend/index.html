@@ -1847,6 +1847,12 @@ input:checked + .toggle-slider:before {
 // API URL
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
+// State
+let currentSessionId = null;
+let sessions = [];
+let availableTools = [];
+let isLoading = false;
+
 // Page titles
 const PAGE_TITLES = {
   dashboard: '仪表盘',
@@ -1858,6 +1864,55 @@ const PAGE_TITLES = {
   logs: '运行日志',
   about: '关于系统'
 };
+
+// Initialize
+async function init() {
+  showPage('chat');
+  await loadTools();
+  await loadSessions();
+  checkHealth();
+}
+
+// Health check
+async function checkHealth() {
+  try {
+    const res = await fetch(`${API_URL}/health`);
+    const data = await res.json();
+    document.querySelector('.connection-status span').textContent = data.status === 'healthy' ? '系统运行正常' : '服务异常';
+    document.querySelector('.status-dot').style.background = data.status === 'healthy' ? 'var(--success)' : 'var(--error)';
+  } catch (e) {
+    document.querySelector('.connection-status span').textContent = '未连接后端';
+    document.querySelector('.status-dot').style.background = 'var(--error)';
+  }
+}
+
+// Load tools from API
+async function loadTools() {
+  try {
+    const res = await fetch(`${API_URL}/tools`);
+    const data = await res.json();
+    availableTools = data.tools || [];
+    renderPlugins();
+  } catch (e) {
+    console.log('Tools API not available, using defaults');
+  }
+}
+
+// Load sessions
+async function loadSessions() {
+  try {
+    // Get sessions from local storage for now
+    const saved = localStorage.getItem('office_sessions');
+    if (saved) {
+      sessions = JSON.parse(saved);
+    }
+  } catch (e) {}
+}
+
+// Save sessions
+function saveSessions() {
+  localStorage.setItem('office_sessions', JSON.stringify(sessions));
+}
 
 // Show page
 function showPage(page) {
@@ -1880,6 +1935,11 @@ function showPage(page) {
     pageEl.classList.remove('hidden');
   }
   
+  // Load page data
+  if (page === 'dashboard') loadDashboardData();
+  if (page === 'sessions') loadSessionsData();
+  if (page === 'logs') loadLogsData();
+  
   // Close mobile sidebar
   if (window.innerWidth <= 1024) {
     closeSidebar();
@@ -1901,7 +1961,7 @@ function closeSidebar() {
   overlay.classList.remove('active');
 }
 
-// Chat functions
+// ===== CHAT FUNCTIONS =====
 function handleChatKeydown(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
@@ -1914,19 +1974,66 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 150) + 'px';
 }
 
-function sendMessage() {
+async function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
-  if (!text) return;
+  if (!text || isLoading) return;
+  
+  // Create session if not exists
+  if (!currentSessionId) {
+    currentSessionId = 'sess_' + Date.now().toString(36);
+    sessions.unshift({
+      id: currentSessionId,
+      title: text.substring(0, 30),
+      time: new Date().toLocaleString('zh-CN'),
+      messages: 0
+    });
+    saveSessions();
+  }
   
   addChatMessage('user', text);
   input.value = '';
   input.style.height = 'auto';
+  isLoading = true;
+  showTyping();
   
-  // Simulate bot response
-  setTimeout(() => {
-    addChatMessage('bot', `收到你的消息: "${text}"\n\n正在处理中...`);
-  }, 500);
+  try {
+    const res = await fetch(`${API_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        message: text, 
+        session_id: currentSessionId 
+      })
+    });
+    
+    hideTyping();
+    
+    if (res.ok) {
+      const data = await res.json();
+      addChatMessage('bot', data.response, {
+        intent: data.intent,
+        tool: data.tool_used,
+        confidence: data.confidence,
+        duration: data.duration_ms
+      });
+      
+      // Update session
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (session) {
+        session.messages = (session.messages || 0) + 2;
+      }
+      saveSessions();
+    } else {
+      const error = await res.json();
+      addChatMessage('bot', `❌ 请求失败: ${error.detail || '未知错误'}\n\n请检查 API 配置是否正确。`);
+    }
+  } catch (e) {
+    hideTyping();
+    addChatMessage('bot', `❌ 连接失败: ${e.message}\n\n请确保后端服务正在运行 (http://localhost:8000)`);
+  } finally {
+    isLoading = false;
+  }
 }
 
 function sendQuick(text) {
@@ -1937,16 +2044,50 @@ function sendQuick(text) {
   }, 100);
 }
 
-function addChatMessage(role, content) {
+function addChatMessage(role, content, meta = {}) {
   const container = document.getElementById('chatMessages');
   const div = document.createElement('div');
   div.className = 'chat-message ' + role;
+  
+  const metaHtml = meta.intent ? `
+    <div class="chat-meta">
+      <span>${meta.intent}</span>
+      ${meta.tool ? `<span>工具: ${meta.tool}</span>` : ''}
+      ${meta.confidence ? `<span>置信度: ${Math.round(meta.confidence * 100)}%</span>` : ''}
+      ${meta.duration ? `<span>耗时: ${meta.duration}ms</span>` : ''}
+    </div>
+  ` : '';
+  
   div.innerHTML = `
     <div class="chat-avatar">${role === 'user' ? '👤' : '🤖'}</div>
     <div>
-      <div class="chat-bubble">${content.replace(/\n/g, '<br>')}</div>
-      <div class="chat-meta">
-        <span>刚刚</span>
+      <div class="chat-bubble">${formatContent(content)}</div>
+      ${metaHtml}
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function formatContent(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+    .replace(/`([^`]+)`/g, '<code style="background:var(--bg-card);padding:2px 6px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:12px;">$1</code>');
+}
+
+function showTyping() {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-message bot';
+  div.id = 'typing';
+  div.innerHTML = `
+    <div class="chat-avatar">🤖</div>
+    <div>
+      <div class="chat-bubble" style="display:flex;gap:4px;align-items:center;">
+        <span style="width:8px;height:8px;background:var(--text-muted);border-radius:50%;animation:typing 1s infinite;"></span>
+        <span style="width:8px;height:8px;background:var(--text-muted);border-radius:50%;animation:typing 1s infinite 0.2s;"></span>
+        <span style="width:8px;height:8px;background:var(--text-muted);border-radius:50%;animation:typing 1s infinite 0.4s;"></span>
       </div>
     </div>
   `;
@@ -1954,39 +2095,184 @@ function addChatMessage(role, content) {
   container.scrollTop = container.scrollHeight;
 }
 
-// API config
+function hideTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+// ===== DASHBOARD =====
+async function loadDashboardData() {
+  // Update stats
+  const totalMessages = sessions.reduce((sum, s) => sum + (s.messages || 0), 0);
+  document.querySelector('.stat-value')?.parentElement?.querySelector('.stat-value');
+  
+  // Try to get real stats
+  try {
+    const res = await fetch(`${API_URL}/tools`);
+    if (res.ok) {
+      const data = await res.json();
+      const activePlugins = data.tools?.length || 0;
+      document.querySelectorAll('.stat-card')[2].querySelector('.stat-value').textContent = `${activePlugins}/8`;
+    }
+  } catch (e) {}
+}
+
+// ===== PLUGINS =====
+function renderPlugins() {
+  const grid = document.querySelector('#page-plugins .plugin-grid');
+  if (!grid) return;
+  
+  const defaultPlugins = [
+    { id: 'calc', name: '计算插件', desc: '提供数学计算、统计分析、货币换算、单位转换、日期计算等能力。', icon: '🧮', color: 'rgba(59, 130, 246, 0.15)' },
+    { id: 'calendar', name: '日程管理', desc: '查看日程安排、创建会议、设置提醒、管理时间表。', icon: '📅', color: 'rgba(34, 197, 94, 0.15)' },
+    { id: 'task', name: '任务管理', desc: '创建任务、更新状态、设置优先级、跟踪进度。', icon: '✅', color: 'rgba(168, 85, 247, 0.15)' },
+    { id: 'email', name: '邮件管理', desc: '发送邮件、搜索邮件、阅读邮件、管理收件箱。', icon: '📧', color: 'rgba(245, 158, 11, 0.15)' },
+    { id: 'document', name: '文档处理', desc: '读取文档、写入文档、搜索文档、智能摘要。', icon: '📄', color: 'rgba(239, 68, 68, 0.15)' },
+    { id: 'chart', name: '图表生成', desc: '生成柱状图、折线图、饼图、雷达图、散点图。', icon: '📊', color: 'rgba(59, 130, 246, 0.15)' },
+    { id: 'ppt', name: 'PPT 生成', desc: '创建 PPT 演示文稿、添加幻灯片、嵌入图表。', icon: '📽️', color: 'rgba(34, 197, 94, 0.15)' },
+    { id: 'knowledge', name: '知识库', desc: '向量检索、智能问答、文档管理、语义搜索。', icon: '📚', color: 'rgba(168, 85, 247, 0.15)' },
+  ];
+  
+  // Merge with API tools if available
+  const tools = availableTools.length > 0 ? availableTools : defaultPlugins;
+  
+  grid.innerHTML = tools.map(tool => `
+    <div class="plugin-card">
+      <div class="plugin-header">
+        <div class="plugin-icon" style="background: ${tool.color || 'rgba(59, 130, 246, 0.15)'}">${tool.icon || '🔧'}</div>
+        <div class="plugin-info">
+          <h4>${tool.name}</h4>
+          <span>${tool.id || tool.name}</span>
+        </div>
+      </div>
+      <div class="plugin-desc">${tool.desc || ''}</div>
+      <div class="plugin-footer">
+        <label class="toggle-switch">
+          <input type="checkbox" checked onchange="togglePlugin('${tool.id}', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="configurePlugin('${tool.id}')">配置</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function togglePlugin(id, enabled) {
+  showToast(`${id} ${enabled ? '已启用' : '已禁用'}`);
+}
+
+function configurePlugin(id) {
+  showToast(`打开 ${id} 配置...`);
+}
+
+// ===== SESSIONS =====
+async function loadSessionsData() {
+  const tbody = document.querySelector('#page-sessions .table tbody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = sessions.length > 0 
+    ? sessions.map(s => `
+        <tr onclick="loadSession('${s.id}')" style="cursor:pointer;">
+          <td>${s.id}</td>
+          <td>${s.time}</td>
+          <td>${s.messages || 0}</td>
+          <td>刚刚</td>
+          <td><span class="badge badge-success">活跃</span></td>
+          <td><button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation();deleteSession('${s.id}')">删除</button></td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">暂无会话记录</td></tr>';
+}
+
+function loadSession(id) {
+  currentSessionId = id;
+  showPage('chat');
+  showToast('加载会话: ' + id);
+}
+
+async function deleteSession(id) {
+  try {
+    await fetch(`${API_URL}/chat/${id}`, { method: 'DELETE' });
+  } catch (e) {}
+  
+  sessions = sessions.filter(s => s.id !== id);
+  saveSessions();
+  loadSessionsData();
+  showToast('会话已删除');
+}
+
+// ===== LOGS =====
+async function loadLogsData() {
+  if (!currentSessionId) return;
+  
+  const viewer = document.getElementById('logViewer');
+  if (!viewer) return;
+  
+  try {
+    const res = await fetch(`${API_URL}/traces/${currentSessionId}`);
+    if (res.ok) {
+      const data = await res.json();
+      viewer.innerHTML = data.traces.map(t => `
+        <div class="log-line">
+          <span class="log-time">${new Date(t.created_at).toLocaleTimeString()}</span>
+          <span class="log-type info">TRACE</span>
+          <span class="log-message">${t.user_input}</span>
+        </div>
+      `).join('') || '<div class="log-line"><span class="log-message">暂无日志记录</span></div>';
+    }
+  } catch (e) {
+    viewer.innerHTML = '<div class="log-line"><span class="log-type error">ERROR</span><span class="log-message">无法加载日志: ' + e.message + '</span></div>';
+  }
+}
+
+// ===== API CONFIG =====
 function switchApiTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
-  showToast('已切换到 ' + tab + ' 配置');
 }
 
 function saveApiConfig() {
+  const apiKey = document.querySelector('input[type="password"]').value;
+  localStorage.setItem('office_api_key', apiKey);
   showToast('API 配置已保存');
 }
 
-function testApiConnection() {
+async function testApiConnection() {
   showToast('正在测试连接...');
-  setTimeout(() => {
-    showToast('连接测试成功！');
-  }, 1500);
+  try {
+    const res = await fetch(`${API_URL}/health`);
+    if (res.ok) {
+      showToast('✅ 连接成功！');
+    } else {
+      showToast('❌ 连接失败');
+    }
+  } catch (e) {
+    showToast('❌ 无法连接到后端: ' + e.message);
+  }
 }
 
-// Parameters
+// ===== PARAMETERS =====
 function updateTempValue(val) {
   document.getElementById('tempValue').textContent = val;
 }
 
 function saveParams() {
+  const temp = document.getElementById('tempSlider')?.value || 0.7;
+  const maxTokens = document.querySelector('#page-parameters input[type="number"]')?.value || 2000;
+  
+  localStorage.setItem('office_params', JSON.stringify({ temp, maxTokens }));
   showToast('参数已保存');
 }
 
-// Refresh
-function refreshData() {
+// ===== REFRESH =====
+async function refreshData() {
+  await loadTools();
+  await loadSessionsData();
+  await checkHealth();
   showToast('数据已刷新');
 }
 
-// Toast notification
+// ===== TOAST =====
 function showToast(message) {
   const toast = document.getElementById('toast');
   const toastMessage = document.getElementById('toastMessage');
@@ -1997,10 +2283,8 @@ function showToast(message) {
   }, 3000);
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  showPage('chat');
-});
+// Start
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
