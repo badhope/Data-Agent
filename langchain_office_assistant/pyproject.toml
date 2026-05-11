@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "langchain-office-assistant"
+version = "1.0.0"
+description = "Office automation agent built on LangChain + LangGraph"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
+    "langchain-community>=0.1.0",
+    "langgraph>=0.1.0",
+    "langchain-openai>=0.1.0",
+    "langchain-ollama>=0.1.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-docx>=0.8.11",
+    "openpyxl>=3.0.0",
+    "PyPDF2>=3.0.0",
+    "python-pptx>=0.6.21",
+    "matplotlib>=3.7.0",
+    "plotly>=5.15.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "redis>=5.0.0",
+    "python-dotenv>=1.0.0",
+    "icalendar>=4.0.0",
+    "faiss-cpu>=1.7.4",
+]
+
+[project.scripts]
+office-agent = "langchain_office_assistant.cli.main:cli"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
