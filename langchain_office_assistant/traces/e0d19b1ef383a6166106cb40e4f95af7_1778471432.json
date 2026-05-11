@@ -1,0 +1,53 @@
+{
+  "trace_id": "e0d19b1ef383a6166106cb40e4f95af7_1778471432",
+  "session_id": "e0d19b1ef383a6166106cb40e4f95af7",
+  "user_input": "计算 10 + 20 * 3",
+  "intent": "calc",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:50:32.661334",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "计算 10 + 20 * 3"
+      },
+      "output": "calc",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.95
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:50:32.661694",
+      "action": "tool_selection",
+      "tool_name": "calculate",
+      "input_params": {
+        "user_input": "计算 10 + 20 * 3",
+        "params": {
+          "expression": " 10 + 20 * 3"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:50:32.662733",
+      "action": "tool_execution",
+      "tool_name": "calculate",
+      "input_params": {
+        "expression": " 10 + 20 * 3"
+      },
+      "output": "🧮 Calculation Result:\n\n 10 + 20 * 3 = 70",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "🧮 Calculation Result:\n\n 10 + 20 * 3 = 70",
+  "total_duration_ms": 2720,
+  "created_at": "2026-05-11T03:50:32.661061"
+}

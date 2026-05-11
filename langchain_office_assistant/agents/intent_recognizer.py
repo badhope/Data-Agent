@@ -46,23 +46,17 @@ class IntentRecognizer:
             system_msg = """你是一个意图识别专家，需要分析用户的输入并识别其意图。
 
 可用的意图类型：
-- email：邮件相关操作（发送、搜索、阅读邮件）
-- calendar：日历相关操作（查询日程、创建会议、提醒）
-- task：任务相关操作（创建、更新、列表、完成任务）
-- document：文档相关操作（读取、写入、转换Word/Excel/PDF）
-- ppt：PPT相关操作（创建演示文稿、添加幻灯片、图表嵌入）
-- knowledge：知识库相关操作（搜索、问答、文档上传、知识管理）
-- chart：图表相关操作（生成折线图、柱状图、雷达图等）
-- calc：计算相关操作（公式计算、统计分析、单位转换）
-- chat：普通对话，不需要调用工具
+- email：邮件相关操作
+- calendar：日历相关操作（查询日程、创建会议）
+- task：任务相关操作
+- document：文档相关操作
+- ppt：PPT相关操作
+- knowledge：知识库相关操作
+- chart：图表相关操作
+- calc：计算相关操作
 
-重要：请输出完整的JSON格式，必须包含以下所有字段：
-- intent：意图类型
-- confidence：置信度（0到1之间的数字）
-- entities：实体信息对象
-- requires_tool：是否需要工具（true或false）
-
-示例：{"intent": "email", "confidence": 0.95, "entities": {}, "requires_tool": true}"""
+重要：必须输出纯JSON格式，不要任何其他文字，例如：
+{"intent": "calendar", "confidence": 0.95, "entities": {}, "requires_tool": true}"""
 
             messages = [
                 SystemMessage(content=system_msg),
@@ -80,26 +74,38 @@ class IntentRecognizer:
             return self._fallback_recognize(user_input)
 
     def _parse_json_response(self, content: str) -> IntentResult:
-        try:
-            json_match = re.search(r'\{[^}]+\}', content, re.DOTALL)
+        content = content.strip()
+
+        content = re.sub(r'^```json\s*', '', content)
+        content = re.sub(r'^```\s*', '', content)
+        content = re.sub(r'\s*```$', '', content)
+
+        json_patterns = [
+            r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',
+        ]
+
+        for pattern in json_patterns:
+            json_match = re.search(pattern, content, re.DOTALL)
             if json_match:
-                json_str = json_match.group()
-                data = json.loads(json_str)
+                try:
+                    json_str = json_match.group()
+                    data = json.loads(json_str)
 
-                if "intent" in data:
-                    intent = data["intent"]
-                    confidence = data.get("confidence", 0.9)
-                    entities = data.get("entities", {})
-                    requires_tool = data.get("requires_tool", True)
+                    if "intent" in data:
+                        intent = data["intent"]
+                        confidence = data.get("confidence", 0.9)
+                        entities = data.get("entities", {})
+                        requires_tool = data.get("requires_tool", True)
 
-                    return IntentResult(
-                        intent=intent,
-                        confidence=confidence,
-                        entities=entities,
-                        requires_tool=requires_tool
-                    )
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.debug(f"JSON parse error: {e}")
+                        if intent in [e.value for e in IntentType]:
+                            return IntentResult(
+                                intent=intent,
+                                confidence=confidence,
+                                entities=entities,
+                                requires_tool=requires_tool
+                            )
+                except (json.JSONDecodeError, KeyError, TypeError) as e:
+                    logger.debug(f"JSON parse error: {e}")
 
         return self._fallback_recognize(content)
 

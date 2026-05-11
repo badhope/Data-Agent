@@ -1,0 +1,48 @@
+{
+  "trace_id": "42100eb53e7e84beefdab8f762b7c2c7_1778471113",
+  "session_id": "42100eb53e7e84beefdab8f762b7c2c7",
+  "user_input": "1千克等于多少磅",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:45:13.379634",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "1千克等于多少磅"
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:45:13.379837",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "1千克等于多少磅"
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:45:17.027505",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "要将千克（kg）转换为磅（lb），我们可以使用单位转换的公式。1千克等于约2.20462磅。\n\n所以，1千克 = 2.20462磅。\n\n如果你需要更精确的数值或是进行其他单位之间的转换，请告诉我！",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "要将千克（kg）转换为磅（lb），我们可以使用单位转换的公式。1千克等于约2.20462磅。\n\n所以，1千克 = 2.20462磅。\n\n如果你需要更精确的数值或是进行其他单位之间的转换，请告诉我！",
+  "total_duration_ms": 5719,
+  "created_at": "2026-05-11T03:45:13.379319"
+}
