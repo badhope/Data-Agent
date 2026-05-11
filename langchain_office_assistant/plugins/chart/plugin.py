@@ -4,8 +4,21 @@ from langchain_office_assistant.plugins.base import BasePlugin
 from langchain_office_assistant.utils.logger import get_logger
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.font_manager as fm
 
-matplotlib.rcParams['font.family'] = ['DejaVu Sans', 'SimHei', 'Arial Unicode MS', 'sans-serif']
+font_paths = [
+    '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+    '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
+]
+chinese_font = None
+for fp in font_paths:
+    try:
+        chinese_font = fm.FontProperties(fname=fp)
+        break
+    except:
+        continue
+
+matplotlib.rcParams['font.family'] = ['WenQuanYi Zen Hei', 'WenQuanYi Micro Hei', 'DejaVu Sans', 'sans-serif']
 matplotlib.rcParams['axes.unicode_minus'] = False
 
 logger = get_logger(__name__)
@@ -53,10 +66,16 @@ def create_bar_chart(
         plt.figure(figsize=(10, 6))
         bars = plt.bar(labels, values, color=color)
 
-        plt.title(title, fontsize=14)
-        plt.xlabel("Categories", fontsize=12)
-        plt.ylabel("Values", fontsize=12)
-        plt.xticks(rotation=45)
+        if chinese_font:
+            plt.title(title, fontsize=14, fontproperties=chinese_font)
+            plt.xlabel("Categories", fontsize=12, fontproperties=chinese_font)
+            plt.ylabel("Values", fontsize=12, fontproperties=chinese_font)
+            plt.xticks(rotation=45, fontproperties=chinese_font)
+        else:
+            plt.title(title, fontsize=14)
+            plt.xlabel("Categories", fontsize=12)
+            plt.ylabel("Values", fontsize=12)
+            plt.xticks(rotation=45)
 
         for bar in bars:
             height = bar.get_height()

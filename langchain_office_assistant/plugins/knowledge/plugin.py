@@ -3,7 +3,6 @@ from langchain_core.tools import tool
 from langchain_office_assistant.plugins.base import BasePlugin
 from langchain_office_assistant.utils.logger import get_logger
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 import os
 
@@ -25,9 +24,13 @@ class KnowledgePlugin(BasePlugin):
 
     def _init_vector_store(self):
         try:
-            embeddings = OpenAIEmbeddings(
-                api_key=self.config.get("openai_api_key"),
-                model="text-embedding-3-small"
+            from langchain_office_assistant.utils.dashscope_embeddings import DashScopeEmbeddings
+            
+            api_key = self.config.get("openai_api_key")
+            
+            embeddings = DashScopeEmbeddings(
+                api_key=api_key,
+                model="text-embedding-v3"
             )
 
             if os.path.exists("knowledge_db"):
@@ -38,12 +41,15 @@ class KnowledgePlugin(BasePlugin):
                 )
             else:
                 self.vector_store = FAISS.from_texts(
-                    ["Welcome to the knowledge base"],
+                    ["欢迎使用知识库"],
                     embeddings
                 )
                 self.vector_store.save_local("knowledge_db")
+                
+            logger.info("Vector store initialized successfully")
         except Exception as e:
             logger.warning(f"Failed to initialize vector store: {e}")
+            self.vector_store = None
 
     def get_tools(self) -> List:
         return [add_document, search_knowledge, query_knowledge, list_documents]
