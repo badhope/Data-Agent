@@ -41,8 +41,12 @@ dev = [
     "pytest-asyncio>=0.21.0",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "."}
+
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["langchain_office_assistant*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

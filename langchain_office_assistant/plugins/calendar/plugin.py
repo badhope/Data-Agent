@@ -30,10 +30,10 @@ class MockCalendarStore:
             }
         ]
         self.next_id = 3
-    
+
     def get_meetings(self, date: str) -> List[dict]:
         return [m for m in self.meetings if m["date"] == date]
-    
+
     def create_meeting(self, data: dict) -> dict:
         meeting = {
             "id": f"meet_{self.next_id:03d}",
@@ -47,38 +47,39 @@ class MockCalendarStore:
 class CalendarPlugin(BasePlugin):
     name = "calendar"
     description = "日历管理插件 - 查询日程、创建会议"
-    
+
     def __init__(self):
         super().__init__()
         self.calendar_store = MockCalendarStore()
-    
+
     def initialize(self, config: Dict) -> None:
         self.config = config
         logger.info(f"CalendarPlugin initialized")
-    
+
     def get_tools(self) -> List:
         return [check_calendar, schedule_meeting]
-    
+
     async def execute(self, tool_name: str, **kwargs) -> Any:
         tools_map = {
             "check_calendar": check_calendar,
             "schedule_meeting": schedule_meeting,
         }
-        
+
         if tool_name not in tools_map:
             return f"❌ Tool not found: {tool_name}"
-        
+
         tool_func = tools_map[tool_name]
         return tool_func(**kwargs)
 
 @tool
 def check_calendar(date: str) -> str:
+    """Check the calendar for a specific date."""
     calendar_store = MockCalendarStore()
     meetings = calendar_store.get_meetings(date)
-    
+
     if not meetings:
         return f"No meetings scheduled for {date}"
-    
+
     output = f"📅 Meetings on {date}:\n\n"
     for m in meetings:
         output += (
@@ -86,7 +87,7 @@ def check_calendar(date: str) -> str:
             f"   Duration: {m['duration']} minutes | Location: {m['location']}\n"
             f"   Attendees: {', '.join(m['participants'])}\n\n"
         )
-    
+
     return output
 
 @tool
@@ -98,8 +99,9 @@ def schedule_meeting(
     participants: List[str],
     location: Optional[str] = None,
 ) -> str:
+    """Schedule a new meeting on the calendar."""
     calendar_store = MockCalendarStore()
-    
+
     meeting = calendar_store.create_meeting({
         "title": title,
         "date": date,
@@ -108,7 +110,7 @@ def schedule_meeting(
         "participants": participants,
         "location": location or "Online"
     })
-    
+
     return (
         f"✅ Meeting scheduled successfully!\n\n"
         f"📌 Title: {title}\n"

@@ -32,7 +32,7 @@ class MockEmailStore:
             }
         ]
         self.next_id = 3
-    
+
     def send(self, to: List[str], subject: str, body: str) -> dict:
         new_email = {
             "id": f"email_{self.next_id:03d}",
@@ -47,7 +47,7 @@ class MockEmailStore:
         self.emails.append(new_email)
         self.next_id += 1
         return new_email
-    
+
     def search(self, keyword: str, max_results: int = 10) -> List[dict]:
         results = []
         for email_item in self.emails:
@@ -56,7 +56,7 @@ class MockEmailStore:
                 if len(results) >= max_results:
                     break
         return results
-    
+
     def get_email(self, email_id: str) -> Optional[dict]:
         for email_item in self.emails:
             if email_item["id"] == email_id:
@@ -66,41 +66,42 @@ class MockEmailStore:
 class EmailPlugin(BasePlugin):
     name = "email"
     description = "邮件管理插件 - 发送、搜索、阅读邮件"
-    
+
     def __init__(self):
         super().__init__()
         self.email_store = MockEmailStore()
         self.config = {}
-    
+
     def initialize(self, config: Dict) -> None:
         self.config = config
         logger.info(f"EmailPlugin initialized with config: {config}")
-    
+
     def get_tools(self) -> List:
         return [send_email, search_emails, read_email]
-    
+
     async def execute(self, tool_name: str, **kwargs) -> Any:
         tools_map = {
             "send_email": send_email,
             "search_emails": search_emails,
             "read_email": read_email,
         }
-        
+
         if tool_name not in tools_map:
             return f"❌ Tool not found: {tool_name}"
-        
+
         tool_func = tools_map[tool_name]
         return tool_func(**kwargs)
 
 @tool
 def send_email(to: List[str], subject: str, body: str) -> str:
+    """Send an email to the specified recipients."""
     for email_addr in to:
         if not validate_email(email_addr):
             return f"❌ Invalid email address: {email_addr}"
-    
+
     email_store = MockEmailStore()
     email_result = email_store.send(to, subject, body)
-    
+
     return (
         f"✅ Email sent successfully!\n\n"
         f"To: {', '.join(to)}\n"
@@ -110,12 +111,13 @@ def send_email(to: List[str], subject: str, body: str) -> str:
 
 @tool
 def search_emails(keyword: str, max_results: int = 10) -> str:
+    """Search emails by keyword."""
     email_store = MockEmailStore()
     results = email_store.search(keyword, max_results)
-    
+
     if not results:
         return f"No emails found matching '{keyword}'"
-    
+
     output = f"Found {len(results)} email(s):\n\n"
     for email_item in results:
         read_status = "✓" if email_item.get("read", False) else "○"
@@ -125,20 +127,21 @@ def search_emails(keyword: str, max_results: int = 10) -> str:
             f"   From: {email_item['from']} | {email_item['date']}\n"
             f"   Preview: {preview}...\n\n"
         )
-    
+
     return output
 
 @tool
 def read_email(email_id: str) -> str:
+    """Read an email by its ID."""
     email_store = MockEmailStore()
     email_item = email_store.get_email(email_id)
-    
+
     if not email_item:
         return f"❌ Email not found: {email_id}"
-    
+
     email_item["read"] = True
     cc_str = f"\n📑 CC: {', '.join(email_item['cc'])}" if email_item.get('cc') else ""
-    
+
     return (
         f"📧 Email Details\n"
         f"{'='*50}\n"

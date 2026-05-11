@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 class DocumentPlugin(BasePlugin):
     name = "document"
     description = "文档处理插件 - Word/Excel/PDF读写"
-    
+
     def __init__(self):
         super().__init__()
         self.documents = [
@@ -41,14 +41,14 @@ class DocumentPlugin(BasePlugin):
                 "modified": "2025-01-12"
             }
         ]
-    
+
     def initialize(self, config: Dict) -> None:
         self.config = config
         logger.info(f"DocumentPlugin initialized")
-    
+
     def get_tools(self) -> List:
         return [search_documents, summarize_document, read_document, write_document]
-    
+
     async def execute(self, tool_name: str, **kwargs) -> Any:
         tools_map = {
             "search_documents": search_documents,
@@ -56,15 +56,16 @@ class DocumentPlugin(BasePlugin):
             "read_document": read_document,
             "write_document": write_document,
         }
-        
+
         if tool_name not in tools_map:
             return f"❌ Tool not found: {tool_name}"
-        
+
         tool_func = tools_map[tool_name]
         return tool_func(**kwargs)
 
 @tool
 def search_documents(keyword: str) -> str:
+    """Search for documents containing the specified keyword."""
     mock_results = [
         {
             "id": "doc_001",
@@ -73,13 +74,13 @@ def search_documents(keyword: str) -> str:
             "preview": f"文档内容包含 '{keyword}' 相关章节..."
         },
         {
-            "id": "doc_002", 
+            "id": "doc_002",
             "name": "会议记录.pdf",
             "type": "pdf",
             "preview": f"会议讨论了与 '{keyword}' 相关的内容..."
         }
     ]
-    
+
     output = f"🔍 Search results for '{keyword}':\n\n"
     for doc in mock_results:
         output += (
@@ -87,14 +88,15 @@ def search_documents(keyword: str) -> str:
             f"   Preview: {doc['preview']}\n"
             f"   ID: {doc['id']}\n\n"
         )
-    
+
     return output
 
 @tool
 def summarize_document(file_path: str) -> str:
+    """Summarize the content of a document."""
     try:
         ext = file_path.split('.')[-1].lower()
-        
+
         if ext == 'docx':
             doc = docx.Document(file_path)
             content = '\n'.join([p.text for p in doc.paragraphs])
@@ -112,10 +114,10 @@ def summarize_document(file_path: str) -> str:
         else:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-        
+
         lines = content.split('\n')[:5]
         preview = '\n'.join(lines)
-        
+
         return (
             f"📄 Document Summary: {file_path}\n\n"
             f"Key Points:\n"
@@ -129,9 +131,10 @@ def summarize_document(file_path: str) -> str:
 
 @tool
 def read_document(file_path: str) -> str:
+    """Read the full content of a document."""
     try:
         ext = file_path.split('.')[-1].lower()
-        
+
         if ext == 'docx':
             doc = docx.Document(file_path)
             content = '\n'.join([p.text for p in doc.paragraphs])
@@ -149,16 +152,17 @@ def read_document(file_path: str) -> str:
         else:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-        
+
         return f"📄 Content of {file_path}:\n\n{content}"
     except Exception as e:
         return f"❌ Failed to read document: {str(e)}"
 
 @tool
 def write_document(file_path: str, content: str, format: str = "txt") -> str:
+    """Write content to a document file."""
     try:
         ext = format.lower()
-        
+
         if ext == 'docx':
             doc = docx.Document()
             doc.add_paragraph(content)
@@ -172,7 +176,7 @@ def write_document(file_path: str, content: str, format: str = "txt") -> str:
         else:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-        
+
         return f"✅ Document saved successfully!\n\n📄 File: {file_path}\n📊 Format: {format.upper()}"
     except Exception as e:
         return f"❌ Failed to write document: {str(e)}"
