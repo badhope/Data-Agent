@@ -1046,11 +1046,54 @@ input:checked + .toggle-slider:before {
   .chat-bubble {
     max-width: 85%;
   }
+  
+  .quick-actions {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  
+  .quick-actions::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-container {
+    height: calc(100vh - 60px);
+  }
+  
+  .chat-input-wrapper {
+    padding: 12px;
+  }
+  
+  .chat-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+  
+  .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .stat-card {
+    padding: 16px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+  
+  .card {
+    padding: 16px;
+  }
 }
 
 /* Touch and scroll optimizations for mobile */
 * {
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
 .page,
@@ -1058,6 +1101,27 @@ input:checked + .toggle-slider:before {
 .nav-item,
 .btn {
   -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  .admin-layout {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+  
+  .sidebar {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent zooming on iOS */
+@media (max-width: 1024px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 /* ===== SCROLLBAR ===== */
