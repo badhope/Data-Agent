@@ -1,0 +1,35 @@
+{
+  "trace_id": "test-session-1778487828_1778487865",
+  "session_id": "test-session-1778487828",
+  "user_input": "在知识库中搜索机器学习相关内容",
+  "intent": "knowledge",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T08:24:25.389504",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "在知识库中搜索机器学习相关内容"
+      },
+      "output": "knowledge",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.98
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T08:24:34.372046",
+      "action": "error",
+      "tool_name": null,
+      "input_params": {},
+      "output": null,
+      "duration_ms": null,
+      "error": "TraceRecorder.add_step() got an unexpected keyword argument 'reasoning'",
+      "confidence": null
+    }
+  ],
+  "final_response": null,
+  "total_duration_ms": null,
+  "created_at": "2026-05-11T08:24:25.388810"
+}

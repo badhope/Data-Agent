@@ -17,6 +17,7 @@ class TraceStep(BaseModel):
     duration_ms: Optional[int] = Field(description="执行耗时(毫秒)", default=None)
     error: Optional[str] = Field(description="错误信息", default=None)
     confidence: Optional[float] = Field(description="置信度", default=None)
+    reasoning: Optional[str] = Field(description="推理过程", default=None)
 
 class TraceRecord(BaseModel):
     trace_id: str = Field(description="追踪记录唯一标识")
@@ -52,7 +53,7 @@ class TraceRecorder:
     def add_step(self, trace_id: str, action: str, tool_name: Optional[str] = None,
                  input_params: Dict[str, Any] = None, output: Optional[str] = None,
                  duration_ms: Optional[int] = None, error: Optional[str] = None,
-                 confidence: Optional[float] = None) -> None:
+                 confidence: Optional[float] = None, reasoning: Optional[str] = None) -> None:
         record = self._load_record(trace_id)
         if not record:
             logger.warning(f"Trace record not found: {trace_id}")
@@ -67,7 +68,8 @@ class TraceRecorder:
             output=output,
             duration_ms=duration_ms,
             error=error,
-            confidence=confidence
+            confidence=confidence,
+            reasoning=reasoning
         )
         record.steps.append(step)
         self._save_record(record)

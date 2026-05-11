@@ -1,0 +1,56 @@
+{
+  "trace_id": "test-single_1778489063",
+  "session_id": "test-single",
+  "user_input": "计算 100 + 200",
+  "intent": "calc",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T08:44:23.946737",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "计算 100 + 200"
+      },
+      "output": "calc",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.98,
+      "reasoning": null
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T08:44:33.341780",
+      "action": "param_extraction",
+      "tool_name": "calculate",
+      "input_params": {
+        "user_input": "计算 100 + 200",
+        "extracted_params": {
+          "expression": "100 + 200"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": 1.0,
+      "reasoning": "用户请求计算一个简单的数学表达式，直接提供了完整的表达式'100 + 200'。这完全符合calculate工具的需求，因此置信度为1.0。"
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T08:44:33.343701",
+      "action": "tool_execution",
+      "tool_name": "calculate",
+      "input_params": {
+        "expression": "100 + 200"
+      },
+      "output": "🧮 Calculation Result:\n\n100 + 200 = 300",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null,
+      "reasoning": null
+    }
+  ],
+  "final_response": "🧮 Calculation Result:\n\n100 + 200 = 300",
+  "total_duration_ms": 12625,
+  "created_at": "2026-05-11T08:44:23.945869"
+}

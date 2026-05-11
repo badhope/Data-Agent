@@ -1,0 +1,48 @@
+{
+  "trace_id": "test-session-1778487828_1778488825",
+  "session_id": "test-session-1778487828",
+  "user_input": "Hello world, how are you?",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T08:40:25.403230",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "Hello world, how are you?"
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T08:40:25.403629",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "Hello world, how are you?"
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T08:40:28.110523",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "Hello! I'm just fine, thank you for asking. How can I assist you today? Whether it's managing your schedule, helping with emails, or working on documents and presentations, I'm here to help!",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "Hello! I'm just fine, thank you for asking. How can I assist you today? Whether it's managing your schedule, helping with emails, or working on documents and presentations, I'm here to help!",
+  "total_duration_ms": 3757,
+  "created_at": "2026-05-11T08:40:25.402537"
+}
