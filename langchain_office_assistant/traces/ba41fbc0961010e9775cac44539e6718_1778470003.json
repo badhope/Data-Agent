@@ -1,0 +1,53 @@
+{
+  "trace_id": "ba41fbc0961010e9775cac44539e6718_1778470003",
+  "session_id": "ba41fbc0961010e9775cac44539e6718",
+  "user_input": "创建一个新任务",
+  "intent": "task",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:26:43.135596",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "创建一个新任务"
+      },
+      "output": "task",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.7
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:26:43.136083",
+      "action": "tool_selection",
+      "tool_name": "create_task",
+      "input_params": {
+        "user_input": "创建一个新任务",
+        "params": {
+          "title": "一个新"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:26:43.137051",
+      "action": "tool_execution",
+      "tool_name": "create_task",
+      "input_params": {
+        "title": "一个新"
+      },
+      "output": "✅ Task created successfully!\n\n📌 Title: 一个新\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "✅ Task created successfully!\n\n📌 Title: 一个新\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+  "total_duration_ms": 899,
+  "created_at": "2026-05-11T03:26:43.135293"
+}

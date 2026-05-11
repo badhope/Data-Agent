@@ -1,11 +1,13 @@
 from typing import List, Dict, Any, Optional
 from enum import Enum
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_office_assistant.utils.logger import get_logger
 from langchain_office_assistant.utils.config import config
+import json
+import re
 
 logger = get_logger(__name__)
 
@@ -23,7 +25,7 @@ class IntentType(str, Enum):
 
 class IntentResult(BaseModel):
     intent: str = Field(description="识别的意图类型")
-    confidence: float = Field(description="置信度 (0-1)")
+    confidence: float = Field(description="置信度")
     entities: Dict[str, Any] = Field(description="提取的实体信息")
     requires_tool: bool = Field(description="是否需要调用工具")
 
@@ -39,56 +41,94 @@ class IntentRecognizer:
             base_url=self.api_base,
             temperature=0
         )
-        self.parser = JsonOutputParser(pydantic_object=IntentResult)
-        self.prompt = self._build_prompt()
-
-    def _build_prompt(self) -> ChatPromptTemplate:
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", """你是一个意图识别专家，需要分析用户的输入并识别其意图。
-
-可用的意图类型：
-- email: 邮件相关操作（发送、搜索、阅读邮件）
-- calendar: 日历相关操作（查询日程、创建会议、提醒）
-- task: 任务相关操作（创建、更新、列表、完成任务）
-- document: 文档相关操作（读取、写入、转换Word/Excel/PDF）
-- ppt: PPT相关操作（创建演示文稿、添加幻灯片、图表嵌入）
-- knowledge: 知识库相关操作（搜索、问答、文档上传）
-- chart: 图表相关操作（生成折线图、柱状图、雷达图等）
-- calc: 计算相关操作（公式计算、统计分析、单位转换）
-- chat: 普通对话，不需要调用工具
-- unknown: 无法识别的意图
-
-请输出JSON格式，包含以下字段：
-- intent: 识别的意图类型
-- confidence: 置信度 (0-1)
-- entities: 从输入中提取的关键实体信息
-- requires_tool: 是否需要调用工具
-
-示例：
-输入: "帮我发送一封邮件给张三"
-输出: {"intent": "email", "confidence": 0.95, "entities": {"action": "send", "recipient": "张三"}, "requires_tool": true}
-
-输入: "你好，今天天气怎么样？"
-输出: {"intent": "chat", "confidence": 0.9, "entities": {}, "requires_tool": false}"""),
-            ("human", "用户输入: {input}"),
-            ("human", "请按照JSON格式输出意图识别结果：")
-        ])
-        return prompt
 
     def recognize(self, user_input: str) -> IntentResult:
         try:
-            chain = self.prompt | self.llm | self.parser
-            result = chain.invoke({"input": user_input})
+            system_msg = """你是一个意图识别专家，需要分析用户的输入并识别其意图。
+
+可用的意图类型：
+- email：邮件相关操作（发送、搜索、阅读邮件）
+- calendar：日历相关操作（查询日程、创建会议、提醒）
+- task：任务相关操作（创建、更新、列表、完成任务）
+- document：文档相关操作（读取、写入、转换Word/Excel/PDF）
+- ppt：PPT相关操作（创建演示文稿、添加幻灯片、图表嵌入）
+- knowledge：知识库相关操作（搜索、问答、文档上传）
+- chart：图表相关操作（生成折线图、柱状图、雷达图等）
+- calc：计算相关操作（公式计算、统计分析、单位转换）
+- chat：普通对话，不需要调用工具
+- unknown：无法识别的意图
+
+请直接输出JSON格式，不需要其他说明"""
+
+            messages = [
+                SystemMessage(content=system_msg),
+                HumanMessage(content=f"用户输入：{user_input}")
+            ]
+
+            response = self.llm.invoke(messages)
+            content = response.content.strip()
+
+            result = self._parse_json_response(content)
             logger.debug(f"Intent recognition result: {result}")
             return result
         except Exception as e:
             logger.error(f"Intent recognition failed: {e}")
-            return IntentResult(
-                intent=IntentType.UNKNOWN,
-                confidence=0.0,
-                entities={},
-                requires_tool=False
-            )
+            return self._fallback_recognize(user_input)
+
+    def _parse_json_response(self, content: str) -> IntentResult:
+        try:
+            json_match = re.search(r'\{[^}]+\}', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                result = json.loads(json_str)
+                return IntentResult(**result)
+        except json.JSONDecodeError:
+            pass
+
+        if "email" in content.lower():
+            return IntentResult(intent="email", confidence=0.9, entities={}, requires_tool=True)
+        elif "日历" in content or "calendar" in content.lower() or "会议" in content:
+            return IntentResult(intent="calendar", confidence=0.9, entities={}, requires_tool=True)
+        elif "任务" in content or "task" in content.lower():
+            return IntentResult(intent="task", confidence=0.9, entities={}, requires_tool=True)
+        elif "文档" in content or "document" in content.lower():
+            return IntentResult(intent="document", confidence=0.9, entities={}, requires_tool=True)
+        elif "ppt" in content.lower() or "演示" in content:
+            return IntentResult(intent="ppt", confidence=0.9, entities={}, requires_tool=True)
+        elif "知识" in content or "knowledge" in content.lower() or "搜索" in content:
+            return IntentResult(intent="knowledge", confidence=0.9, entities={}, requires_tool=True)
+        elif "图表" in content or "chart" in content.lower() or "图" in content:
+            return IntentResult(intent="chart", confidence=0.9, entities={}, requires_tool=True)
+        elif "计算" in content or "calc" in content.lower() or "统计" in content or "转换" in content:
+            return IntentResult(intent="calc", confidence=0.9, entities={}, requires_tool=True)
+        else:
+            return IntentResult(intent="chat", confidence=0.9, entities={}, requires_tool=False)
+
+    def _fallback_recognize(self, user_input: str) -> IntentResult:
+        input_lower = user_input.lower()
+
+        keywords = {
+            "email": ["邮件", "email", "发送邮件", "搜索邮件"],
+            "calendar": ["日历", "会议", "calendar", "日程"],
+            "task": ["任务", "task", "todo"],
+            "document": ["文档", "文件", "document", "pdf", "word"],
+            "ppt": ["ppt", "演示", "幻灯片", "powerpoint"],
+            "knowledge": ["知识", "知识库", "search", "搜索"],
+            "chart": ["图表", "图", "chart", "柱状图", "折线图"],
+            "calc": ["计算", "统计", "转换", "公式", "等于", "多少"],
+        }
+
+        for intent, words in keywords.items():
+            for word in words:
+                if word in input_lower or word in user_input:
+                    return IntentResult(
+                        intent=intent,
+                        confidence=0.7,
+                        entities={"keyword": word},
+                        requires_tool=True
+                    )
+
+        return IntentResult(intent="chat", confidence=0.5, entities={}, requires_tool=False)
 
     def classify_intent(self, user_input: str) -> IntentType:
         result = self.recognize(user_input)

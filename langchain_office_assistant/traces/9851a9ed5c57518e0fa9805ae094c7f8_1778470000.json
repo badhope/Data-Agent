@@ -1,0 +1,57 @@
+{
+  "trace_id": "9851a9ed5c57518e0fa9805ae094c7f8_1778470000",
+  "session_id": "9851a9ed5c57518e0fa9805ae094c7f8",
+  "user_input": "100美元等于多少人民币",
+  "intent": "calc",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:26:40.068894",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "100美元等于多少人民币"
+      },
+      "output": "calc",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.7
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:26:40.069325",
+      "action": "tool_selection",
+      "tool_name": "currency_convert",
+      "input_params": {
+        "user_input": "100美元等于多少人民币",
+        "params": {
+          "amount": 100.0,
+          "from_currency": "USD",
+          "to_currency": "CNY"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:26:40.070729",
+      "action": "tool_execution",
+      "tool_name": "currency_convert",
+      "input_params": {
+        "amount": 100.0,
+        "from_currency": "USD",
+        "to_currency": "CNY"
+      },
+      "output": "💱 Currency Conversion:\n\n100.0 USD = 724.00 CNY",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "💱 Currency Conversion:\n\n100.0 USD = 724.00 CNY",
+  "total_duration_ms": 1420,
+  "created_at": "2026-05-11T03:26:40.068625"
+}

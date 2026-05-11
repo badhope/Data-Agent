@@ -2,41 +2,10 @@ from typing import List, Dict, Any, Optional
 from langchain_core.tools import tool
 from langchain_office_assistant.plugins.base import BasePlugin
 from langchain_office_assistant.utils.logger import get_logger
-import pandas as pd
 import numpy as np
 import math
-from datetime import datetime
 
 logger = get_logger(__name__)
-
-class CalcPlugin(BasePlugin):
-    name = "calc"
-    description = "计算插件 - 公式计算、数据统计"
-
-    def __init__(self):
-        super().__init__()
-
-    def initialize(self, config: Dict) -> None:
-        self.config = config
-        logger.info(f"CalcPlugin initialized")
-
-    def get_tools(self) -> List:
-        return [calculate, statistics, currency_convert, date_diff, unit_convert]
-
-    async def execute(self, tool_name: str, **kwargs) -> Any:
-        tools_map = {
-            "calculate": calculate,
-            "statistics": statistics,
-            "currency_convert": currency_convert,
-            "date_diff": date_diff,
-            "unit_convert": unit_convert,
-        }
-
-        if tool_name not in tools_map:
-            return f"❌ Tool not found: {tool_name}"
-
-        tool_func = tools_map[tool_name]
-        return tool_func(**kwargs)
 
 @tool
 def calculate(expression: str) -> str:
@@ -186,3 +155,32 @@ def unit_convert(value: float, from_unit: str, to_unit: str) -> str:
         return f"📏 Unit Conversion:\n\n{value} {from_unit} = {result:.4f} {to_unit}"
     except Exception as e:
         return f"❌ Conversion failed: {str(e)}"
+
+class CalcPlugin(BasePlugin):
+    name = "calc"
+    description = "计算插件 - 公式计算、数据统计"
+
+    def __init__(self):
+        super().__init__()
+
+    def initialize(self, config: Dict) -> None:
+        self.config = config
+        logger.info(f"CalcPlugin initialized")
+
+    def get_tools(self) -> List:
+        return [calculate, statistics, currency_convert, date_diff, unit_convert]
+
+    async def execute(self, tool_name: str, **kwargs) -> Any:
+        tools_map = {
+            "calculate": calculate,
+            "statistics": statistics,
+            "currency_convert": currency_convert,
+            "date_diff": date_diff,
+            "unit_convert": unit_convert,
+        }
+
+        if tool_name not in tools_map:
+            return f"❌ Tool not found: {tool_name}"
+
+        tool_func = tools_map[tool_name]
+        return tool_func.invoke(kwargs)

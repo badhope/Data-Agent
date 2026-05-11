@@ -90,7 +90,7 @@ class EmailPlugin(BasePlugin):
             return f"❌ Tool not found: {tool_name}"
 
         tool_func = tools_map[tool_name]
-        return tool_func(**kwargs)
+        return tool_func.invoke(kwargs)
 
 @tool
 def send_email(to: List[str], subject: str, body: str) -> str:

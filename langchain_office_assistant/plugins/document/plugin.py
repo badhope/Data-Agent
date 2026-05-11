@@ -61,7 +61,7 @@ class DocumentPlugin(BasePlugin):
             return f"❌ Tool not found: {tool_name}"
 
         tool_func = tools_map[tool_name]
-        return tool_func(**kwargs)
+        return tool_func.invoke(kwargs)
 
 @tool
 def search_documents(keyword: str) -> str:
