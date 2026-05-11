@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 from langchain_office_assistant.utils.logger import get_logger
+from langchain_office_assistant.utils.config import config
 
 logger = get_logger(__name__)
 
@@ -27,15 +28,23 @@ class IntentResult(BaseModel):
     requires_tool: bool = Field(description="是否需要调用工具")
 
 class IntentRecognizer:
-    def __init__(self, model_name: str = "gpt-4"):
-        self.llm = ChatOpenAI(model=model_name, temperature=0)
+    def __init__(self, model_name: str = None, api_key: str = None, api_base: str = None):
+        self.model_name = model_name or config.agent_model
+        self.api_key = api_key or config.openai_api_key
+        self.api_base = api_base or config.openai_api_base
+
+        self.llm = ChatOpenAI(
+            model=self.model_name,
+            api_key=self.api_key,
+            base_url=self.api_base,
+            temperature=0
+        )
         self.parser = JsonOutputParser(pydantic_object=IntentResult)
         self.prompt = self._build_prompt()
-    
+
     def _build_prompt(self) -> ChatPromptTemplate:
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """
-你是一个意图识别专家，需要分析用户的输入并识别其意图。
+            ("system", """你是一个意图识别专家，需要分析用户的输入并识别其意图。
 
 可用的意图类型：
 - email: 邮件相关操作（发送、搜索、阅读邮件）
@@ -60,13 +69,12 @@ class IntentRecognizer:
 输出: {"intent": "email", "confidence": 0.95, "entities": {"action": "send", "recipient": "张三"}, "requires_tool": true}
 
 输入: "你好，今天天气怎么样？"
-输出: {"intent": "chat", "confidence": 0.9, "entities": {}, "requires_tool": false}
-            """),
+输出: {"intent": "chat", "confidence": 0.9, "entities": {}, "requires_tool": false}"""),
             ("human", "用户输入: {input}"),
             ("human", "请按照JSON格式输出意图识别结果：")
         ])
         return prompt
-    
+
     def recognize(self, user_input: str) -> IntentResult:
         try:
             chain = self.prompt | self.llm | self.parser
@@ -81,11 +89,11 @@ class IntentRecognizer:
                 entities={},
                 requires_tool=False
             )
-    
+
     def classify_intent(self, user_input: str) -> IntentType:
         result = self.recognize(user_input)
         return IntentType(result.intent)
-    
+
     def get_intent_description(self, intent_type: IntentType) -> str:
         descriptions = {
             IntentType.EMAIL: "邮件管理",
