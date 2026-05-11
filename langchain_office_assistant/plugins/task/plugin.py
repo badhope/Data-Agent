@@ -5,6 +5,18 @@ from langchain_office_assistant.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+PRIORITY_MAP = {
+    "low": "low", "低": "low", "低优先级": "low",
+    "medium": "medium", "中": "medium", "中优先级": "medium", "普通": "medium",
+    "high": "high", "高": "high", "高优先级": "high", "重要": "high",
+    "urgent": "urgent", "紧急": "urgent", "急": "urgent", "特急": "urgent",
+}
+
+
+def _normalize_priority(priority: str) -> str:
+    return PRIORITY_MAP.get(priority.lower().strip(), "medium")
+
+
 class MockTaskStore:
     def __init__(self):
         self.tasks = [
@@ -49,6 +61,7 @@ class MockTaskStore:
                 return task
         return None
 
+
 class TaskPlugin(BasePlugin):
     name = "task"
     description = "任务管理插件 - 创建、列表、状态更新"
@@ -77,6 +90,7 @@ class TaskPlugin(BasePlugin):
         tool_func = tools_map[tool_name]
         return tool_func.invoke(kwargs)
 
+
 @tool
 def create_task(
     title: str,
@@ -85,25 +99,24 @@ def create_task(
     due_date: Optional[str] = None,
 ) -> str:
     """Create a new task."""
-    valid_priorities = ["low", "medium", "high", "urgent"]
-    if priority not in valid_priorities:
-        return f"❌ Invalid priority. Must be one of: {', '.join(valid_priorities)}"
+    normalized_priority = _normalize_priority(priority)
 
     task_store = MockTaskStore()
     task = task_store.create_task({
         "title": title,
         "description": description or "",
-        "priority": priority,
+        "priority": normalized_priority,
         "due_date": due_date,
     })
 
     return (
         f"✅ Task created successfully!\n\n"
         f"📌 Title: {title}\n"
-        f"🔔 Priority: {priority.upper()}\n"
+        f"🔔 Priority: {normalized_priority.upper()}\n"
         f"📅 Due Date: {due_date or 'Not set'}\n"
         f"🆔 Task ID: {task['id']}"
     )
+
 
 @tool
 def list_tasks(filter_status: Optional[Literal["pending", "in_progress", "completed"]] = None) -> str:
@@ -131,6 +144,7 @@ def list_tasks(filter_status: Optional[Literal["pending", "in_progress", "comple
 
     return output
 
+
 @tool
 def update_task(
     task_id: str,
@@ -145,10 +159,7 @@ def update_task(
     if status:
         updates["status"] = status
     if priority:
-        valid_priorities = ["low", "medium", "high", "urgent"]
-        if priority not in valid_priorities:
-            return f"❌ Invalid priority. Must be one of: {', '.join(valid_priorities)}"
-        updates["priority"] = priority
+        updates["priority"] = _normalize_priority(priority)
     if due_date:
         updates["due_date"] = due_date
 

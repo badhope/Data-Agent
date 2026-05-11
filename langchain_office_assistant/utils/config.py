@@ -3,14 +3,22 @@ from typing import Optional
 import os
 from pathlib import Path
 
+
 def find_env_file():
-    """Find .env file in current directory or parent directories."""
     current = Path.cwd()
-    for path in [current, current.parent, Path(__file__).parent]:
+    project_root = Path(__file__).parent.parent
+    search_paths = [
+        current,
+        current.parent,
+        project_root,
+        project_root.parent,
+    ]
+    for path in search_paths:
         env_path = path / ".env"
         if env_path.exists():
             return str(env_path)
     return None
+
 
 env_file_path = find_env_file()
 
@@ -26,7 +34,6 @@ class Config(BaseSettings):
     openai_api_base: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     ollama_base_url: str = "http://localhost:11434"
 
-    # 多平台支持
     openai_api_key_alt: Optional[str] = None
     openai_api_base_alt: Optional[str] = None
     anthropic_api_key: Optional[str] = None
@@ -35,7 +42,6 @@ class Config(BaseSettings):
     azure_openai_endpoint: Optional[str] = None
     azure_openai_api_version: str = "2024-02-01"
 
-    # 国产平台
     zhipu_api_key: Optional[str] = None
     zhipu_api_base: Optional[str] = None
 
@@ -50,7 +56,6 @@ class Config(BaseSettings):
     doubao_api_key: Optional[str] = None
     doubao_api_base: Optional[str] = None
 
-    # 自定义API
     custom_api_key: Optional[str] = None
     custom_api_base: Optional[str] = None
     custom_platform_name: Optional[str] = None
@@ -69,77 +74,62 @@ class Config(BaseSettings):
     smtp_password: Optional[str] = None
 
     def get_platform_config(self, platform: str) -> dict:
-        """获取指定平台的配置"""
         platform = platform.lower()
-
-        if platform == "dashscope":
-            return {
+        configs = {
+            "dashscope": {
                 "api_key": self.openai_api_key,
                 "api_base": self.openai_api_base or "https://dashscope.aliyuncs.com"
-            }
-        elif platform == "openai":
-            return {
+            },
+            "openai": {
                 "api_key": self.openai_api_key_alt or self.openai_api_key,
                 "api_base": self.openai_api_base_alt or "https://api.openai.com/v1"
-            }
-        elif platform == "anthropic":
-            return {
+            },
+            "anthropic": {
                 "api_key": self.anthropic_api_key,
                 "api_base": "https://api.anthropic.com/v1"
-            }
-        elif platform == "gemini":
-            return {
+            },
+            "gemini": {
                 "api_key": self.gemini_api_key,
                 "api_base": "https://generativelanguage.googleapis.com/v1beta"
-            }
-        elif platform == "azure":
-            return {
+            },
+            "azure": {
                 "api_key": self.azure_openai_key,
                 "api_base": self.azure_openai_endpoint,
                 "api_version": self.azure_openai_api_version
-            }
-        elif platform == "zhipu":
-            return {
+            },
+            "zhipu": {
                 "api_key": self.zhipu_api_key,
                 "api_base": self.zhipu_api_base or "https://open.bigmodel.cn/api/paas/v4"
-            }
-        elif platform == "spark":
-            return {
+            },
+            "spark": {
                 "api_key": self.spark_api_key,
                 "api_secret": self.spark_api_secret,
                 "api_base": self.spark_api_base or "https://spark-api.xf-yun.com/v3.5/chat"
-            }
-        elif platform == "ernie":
-            return {
+            },
+            "ernie": {
                 "api_key": self.ernie_api_key,
                 "secret_key": self.ernie_api_secret,
                 "api_base": self.ernie_api_base or "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat"
-            }
-        elif platform == "doubao":
-            return {
+            },
+            "doubao": {
                 "api_key": self.doubao_api_key,
                 "api_base": self.doubao_api_base or "https://ark.cn-beijing.volces.com/api/v3"
-            }
-        elif platform == "custom":
-            return {
+            },
+            "custom": {
                 "api_key": self.custom_api_key,
                 "api_base": self.custom_api_base or "http://localhost:8080/v1",
                 "platform_name": self.custom_platform_name,
                 "default_model": self.custom_default_model
-            }
-        else:
-            return {}
+            },
+        }
+        return configs.get(platform, {})
 
     def is_platform_configured(self, platform: str) -> bool:
-        """检查平台是否已配置"""
         platform = platform.lower()
-        config = self.get_platform_config(platform)
-
+        cfg = self.get_platform_config(platform)
         if platform in ["spark", "ernie"]:
-            # 需要双密钥的平台
-            return bool(config.get("api_key") and config.get("api_secret") or config.get("secret_key"))
-        else:
-            return bool(config.get("api_key"))
+            return bool(cfg.get("api_key") and (cfg.get("api_secret") or cfg.get("secret_key")))
+        return bool(cfg.get("api_key"))
 
 config = Config()
 
@@ -147,4 +137,3 @@ if config.openai_api_key:
     os.environ.setdefault("OPENAI_API_KEY", config.openai_api_key)
 if config.openai_api_base:
     os.environ.setdefault("OPENAI_API_BASE", config.openai_api_base)
-
