@@ -2,6 +2,7 @@ from .core import (
     OfficeAgent,
     create_office_agent,
     run_office_assistant,
+    get_agent,
     SYSTEM_PROMPT,
 )
 
@@ -21,10 +22,24 @@ from .trace_recorder import (
     TraceStep,
 )
 
+from .param_extractor import (
+    SmartParamExtractor,
+    ExtractedParams,
+)
+
+from .validators import (
+    ConfidenceHandler,
+    ConfidenceLevel,
+    LLMOutputValidator,
+    ValidationResult,
+    ErrorRecovery,
+)
+
 __all__ = [
     "OfficeAgent",
     "create_office_agent",
     "run_office_assistant",
+    "get_agent",
     "SYSTEM_PROMPT",
     "IntentRecognizer",
     "IntentType",
@@ -33,4 +48,11 @@ __all__ = [
     "TraceRecorder",
     "TraceRecord",
     "TraceStep",
+    "SmartParamExtractor",
+    "ExtractedParams",
+    "ConfidenceHandler",
+    "ConfidenceLevel",
+    "LLMOutputValidator",
+    "ValidationResult",
+    "ErrorRecovery",
 ]

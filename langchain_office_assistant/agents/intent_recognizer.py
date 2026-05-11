@@ -3,8 +3,8 @@ from enum import Enum
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_office_assistant.utils.logger import get_logger
-from langchain_office_assistant.utils.config import config
+from ..utils.logger import get_logger
+from ..utils.config import config
 import json
 import re
 

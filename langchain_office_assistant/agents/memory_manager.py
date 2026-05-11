@@ -5,7 +5,7 @@ from langchain_core.chat_history import BaseChatMessageHistory
 import redis
 import json
 import hashlib
-from langchain_office_assistant.utils.logger import get_logger
+from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
 

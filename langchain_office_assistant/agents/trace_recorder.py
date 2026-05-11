@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 import json
 import os
-from langchain_office_assistant.utils.logger import get_logger
+from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
 
