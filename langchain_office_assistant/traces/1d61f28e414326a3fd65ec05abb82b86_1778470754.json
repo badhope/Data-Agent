@@ -1,0 +1,54 @@
+{
+  "trace_id": "1d61f28e414326a3fd65ec05abb82b86_1778470754",
+  "session_id": "1d61f28e414326a3fd65ec05abb82b86",
+  "user_input": "创建一个会议标题是项目评审时间明天下午3点",
+  "intent": "calendar",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:39:14.841033",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "创建一个会议标题是项目评审时间明天下午3点"
+      },
+      "output": "calendar",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:39:14.841692",
+      "action": "tool_selection",
+      "tool_name": "schedule_meeting",
+      "input_params": {
+        "user_input": "创建一个会议标题是项目评审时间明天下午3点",
+        "params": {
+          "title": "一个标题是项目评审时间明天下午3点",
+          "date": "2026-05-11",
+          "time": "3:00",
+          "duration_minutes": 60
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:39:14.842391",
+      "action": "tool_execution",
+      "tool_name": "schedule_meeting",
+      "input_params": {},
+      "output": null,
+      "duration_ms": null,
+      "error": "1 validation error for schedule_meeting\nparticipants\n  Field required [type=missing, input_value={'title': '一个标题... 'duration_minutes': 60}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+      "confidence": null
+    }
+  ],
+  "final_response": "❌ 工具执行失败：1 validation error for schedule_meeting\nparticipants\n  Field required [type=missing, input_value={'title': '一个标题... 'duration_minutes': 60}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+  "total_duration_ms": 660,
+  "created_at": "2026-05-11T03:39:14.840781"
+}

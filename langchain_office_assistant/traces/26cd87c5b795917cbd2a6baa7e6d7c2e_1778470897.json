@@ -1,0 +1,48 @@
+{
+  "trace_id": "26cd87c5b795917cbd2a6baa7e6d7c2e_1778470897",
+  "session_id": "26cd87c5b795917cbd2a6baa7e6d7c2e",
+  "user_input": "",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:41:37.390191",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": ""
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:41:37.390375",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": ""
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:41:40.232277",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "您好！看起来您的消息可能没有发送完全。请告诉我您需要帮助的具体内容，比如安排会议、整理文档还是其他办公相关的需求？我会尽力提供支持。",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "您好！看起来您的消息可能没有发送完全。请告诉我您需要帮助的具体内容，比如安排会议、整理文档还是其他办公相关的需求？我会尽力提供支持。",
+  "total_duration_ms": 3739,
+  "created_at": "2026-05-11T03:41:37.389921"
+}

@@ -1,0 +1,53 @@
+{
+  "trace_id": "7ef94f4c4e6a3add8bd70ae6c588d403_1778470873",
+  "session_id": "7ef94f4c4e6a3add8bd70ae6c588d403",
+  "user_input": "创建一个新任务标题是完成报告",
+  "intent": "task",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:41:13.329282",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "创建一个新任务标题是完成报告"
+      },
+      "output": "task",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:41:13.329858",
+      "action": "tool_selection",
+      "tool_name": "create_task",
+      "input_params": {
+        "user_input": "创建一个新任务标题是完成报告",
+        "params": {
+          "title": "一个新标题是完成报告"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:41:13.330839",
+      "action": "tool_execution",
+      "tool_name": "create_task",
+      "input_params": {
+        "title": "一个新标题是完成报告"
+      },
+      "output": "✅ Task created successfully!\n\n📌 Title: 一个新标题是完成报告\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "✅ Task created successfully!\n\n📌 Title: 一个新标题是完成报告\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+  "total_duration_ms": 577,
+  "created_at": "2026-05-11T03:41:13.329021"
+}

@@ -1,7 +1,6 @@
 from typing import List, Dict, Any, Optional
 from enum import Enum
 from langchain_openai import ChatOpenAI
-from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_office_assistant.utils.logger import get_logger
@@ -52,13 +51,18 @@ class IntentRecognizer:
 - task：任务相关操作（创建、更新、列表、完成任务）
 - document：文档相关操作（读取、写入、转换Word/Excel/PDF）
 - ppt：PPT相关操作（创建演示文稿、添加幻灯片、图表嵌入）
-- knowledge：知识库相关操作（搜索、问答、文档上传）
+- knowledge：知识库相关操作（搜索、问答、文档上传、知识管理）
 - chart：图表相关操作（生成折线图、柱状图、雷达图等）
 - calc：计算相关操作（公式计算、统计分析、单位转换）
 - chat：普通对话，不需要调用工具
-- unknown：无法识别的意图
 
-请直接输出JSON格式，不需要其他说明"""
+重要：请输出完整的JSON格式，必须包含以下所有字段：
+- intent：意图类型
+- confidence：置信度（0到1之间的数字）
+- entities：实体信息对象
+- requires_tool：是否需要工具（true或false）
+
+示例：{"intent": "email", "confidence": 0.95, "entities": {}, "requires_tool": true}"""
 
             messages = [
                 SystemMessage(content=system_msg),
@@ -80,53 +84,124 @@ class IntentRecognizer:
             json_match = re.search(r'\{[^}]+\}', content, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
-                result = json.loads(json_str)
-                return IntentResult(**result)
-        except json.JSONDecodeError:
-            pass
+                data = json.loads(json_str)
 
-        if "email" in content.lower():
-            return IntentResult(intent="email", confidence=0.9, entities={}, requires_tool=True)
-        elif "日历" in content or "calendar" in content.lower() or "会议" in content:
-            return IntentResult(intent="calendar", confidence=0.9, entities={}, requires_tool=True)
-        elif "任务" in content or "task" in content.lower():
-            return IntentResult(intent="task", confidence=0.9, entities={}, requires_tool=True)
-        elif "文档" in content or "document" in content.lower():
-            return IntentResult(intent="document", confidence=0.9, entities={}, requires_tool=True)
-        elif "ppt" in content.lower() or "演示" in content:
-            return IntentResult(intent="ppt", confidence=0.9, entities={}, requires_tool=True)
-        elif "知识" in content or "knowledge" in content.lower() or "搜索" in content:
-            return IntentResult(intent="knowledge", confidence=0.9, entities={}, requires_tool=True)
-        elif "图表" in content or "chart" in content.lower() or "图" in content:
-            return IntentResult(intent="chart", confidence=0.9, entities={}, requires_tool=True)
-        elif "计算" in content or "calc" in content.lower() or "统计" in content or "转换" in content:
-            return IntentResult(intent="calc", confidence=0.9, entities={}, requires_tool=True)
-        else:
-            return IntentResult(intent="chat", confidence=0.9, entities={}, requires_tool=False)
+                if "intent" in data:
+                    intent = data["intent"]
+                    confidence = data.get("confidence", 0.9)
+                    entities = data.get("entities", {})
+                    requires_tool = data.get("requires_tool", True)
+
+                    return IntentResult(
+                        intent=intent,
+                        confidence=confidence,
+                        entities=entities,
+                        requires_tool=requires_tool
+                    )
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            logger.debug(f"JSON parse error: {e}")
+
+        return self._fallback_recognize(content)
 
     def _fallback_recognize(self, user_input: str) -> IntentResult:
         input_lower = user_input.lower()
 
-        keywords = {
-            "email": ["邮件", "email", "发送邮件", "搜索邮件"],
-            "calendar": ["日历", "会议", "calendar", "日程"],
-            "task": ["任务", "task", "todo"],
-            "document": ["文档", "文件", "document", "pdf", "word"],
-            "ppt": ["ppt", "演示", "幻灯片", "powerpoint"],
-            "knowledge": ["知识", "知识库", "search", "搜索"],
-            "chart": ["图表", "图", "chart", "柱状图", "折线图"],
-            "calc": ["计算", "统计", "转换", "公式", "等于", "多少"],
-        }
+        knowledge_patterns = ["知识库", "知识管理", "添加到知识", "上传到知识"]
+        if any(p in user_input for p in knowledge_patterns):
+            return IntentResult(
+                intent="knowledge",
+                confidence=0.9,
+                entities={"keyword": "知识库"},
+                requires_tool=True
+            )
 
-        for intent, words in keywords.items():
-            for word in words:
-                if word in input_lower or word in user_input:
-                    return IntentResult(
-                        intent=intent,
-                        confidence=0.7,
-                        entities={"keyword": word},
-                        requires_tool=True
-                    )
+        if "搜索" in user_input and "知识" in user_input:
+            return IntentResult(
+                intent="knowledge",
+                confidence=0.9,
+                entities={"keyword": "搜索知识"},
+                requires_tool=True
+            )
+
+        if "搜索" in user_input and ("邮件" in user_input or "email" in input_lower):
+            return IntentResult(
+                intent="email",
+                confidence=0.9,
+                entities={"keyword": "邮件搜索"},
+                requires_tool=True
+            )
+
+        if "创建" in user_input and "任务" in user_input:
+            return IntentResult(
+                intent="task",
+                confidence=0.9,
+                entities={"keyword": "创建任务"},
+                requires_tool=True
+            )
+
+        if "任务" in user_input:
+            return IntentResult(
+                intent="task",
+                confidence=0.85,
+                entities={},
+                requires_tool=True
+            )
+
+        if "日历" in user_input or "会议" in user_input or "日程" in user_input:
+            return IntentResult(
+                intent="calendar",
+                confidence=0.9,
+                entities={},
+                requires_tool=True
+            )
+
+        if "ppt" in input_lower or "演示" in user_input or "幻灯片" in user_input:
+            return IntentResult(
+                intent="ppt",
+                confidence=0.9,
+                entities={},
+                requires_tool=True
+            )
+
+        if any(p in user_input for p in ["柱状图", "折线图", "饼图", "雷达图", "散点图"]):
+            return IntentResult(
+                intent="chart",
+                confidence=0.9,
+                entities={},
+                requires_tool=True
+            )
+
+        if "图表" in user_input:
+            return IntentResult(
+                intent="chart",
+                confidence=0.85,
+                entities={},
+                requires_tool=True
+            )
+
+        if any(p in user_input for p in ["计算", "统计", "转换", "等于多少", "货币"]):
+            return IntentResult(
+                intent="calc",
+                confidence=0.9,
+                entities={},
+                requires_tool=True
+            )
+
+        if "邮件" in user_input or "email" in input_lower:
+            return IntentResult(
+                intent="email",
+                confidence=0.9,
+                entities={},
+                requires_tool=True
+            )
+
+        if "文档" in user_input or "文件" in user_input:
+            return IntentResult(
+                intent="document",
+                confidence=0.8,
+                entities={},
+                requires_tool=True
+            )
 
         return IntentResult(intent="chat", confidence=0.5, entities={}, requires_tool=False)
 

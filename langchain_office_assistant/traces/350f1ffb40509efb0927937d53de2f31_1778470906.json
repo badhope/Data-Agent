@@ -1,0 +1,48 @@
+{
+  "trace_id": "350f1ffb40509efb0927937d53de2f31_1778470906",
+  "session_id": "350f1ffb40509efb0927937d53de2f31",
+  "user_input": "hello world",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:41:46.040570",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "hello world"
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:41:46.040773",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "hello world"
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:41:47.426832",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "Hello! How can I assist you with your tasks today? Whether it's managing emails, setting up meetings, creating documents, or any other office-related work, feel free to let me know what you need help with.",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "Hello! How can I assist you with your tasks today? Whether it's managing emails, setting up meetings, creating documents, or any other office-related work, feel free to let me know what you need help with.",
+  "total_duration_ms": 2040,
+  "created_at": "2026-05-11T03:41:46.040275"
+}

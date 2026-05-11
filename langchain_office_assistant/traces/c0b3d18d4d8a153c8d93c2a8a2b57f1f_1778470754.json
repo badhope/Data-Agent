@@ -1,0 +1,53 @@
+{
+  "trace_id": "c0b3d18d4d8a153c8d93c2a8a2b57f1f_1778470754",
+  "session_id": "c0b3d18d4d8a153c8d93c2a8a2b57f1f",
+  "user_input": "查看明天的日程",
+  "intent": "calendar",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:39:14.180135",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "查看明天的日程"
+      },
+      "output": "calendar",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:39:14.180502",
+      "action": "tool_selection",
+      "tool_name": "check_calendar",
+      "input_params": {
+        "user_input": "查看明天的日程",
+        "params": {
+          "date": "2026-05-11"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:39:14.181405",
+      "action": "tool_execution",
+      "tool_name": "check_calendar",
+      "input_params": {
+        "date": "2026-05-11"
+      },
+      "output": "No meetings scheduled for 2026-05-11",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "No meetings scheduled for 2026-05-11",
+  "total_duration_ms": 800,
+  "created_at": "2026-05-11T03:39:14.179874"
+}

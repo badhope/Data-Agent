@@ -1,0 +1,53 @@
+{
+  "trace_id": "3989247239f515a702b1b85edbd5ce5d_1778470674",
+  "session_id": "3989247239f515a702b1b85edbd5ce5d",
+  "user_input": "读取文档内容",
+  "intent": "document",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:37:54.274151",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "读取文档内容"
+      },
+      "output": "document",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.7
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:37:54.274351",
+      "action": "tool_selection",
+      "tool_name": "read_document",
+      "input_params": {
+        "user_input": "读取文档内容",
+        "params": {
+          "file_path": "document.txt"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:37:54.275333",
+      "action": "tool_execution",
+      "tool_name": "read_document",
+      "input_params": {
+        "file_path": "document.txt"
+      },
+      "output": "❌ Failed to read document: [Errno 2] No such file or directory: 'document.txt'",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "❌ Failed to read document: [Errno 2] No such file or directory: 'document.txt'",
+  "total_duration_ms": 1059,
+  "created_at": "2026-05-11T03:37:54.273884"
+}

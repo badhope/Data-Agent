@@ -1,0 +1,53 @@
+{
+  "trace_id": "9bbd6f087a02e0f6bb3f8c00622bdb18_1778470761",
+  "session_id": "9bbd6f087a02e0f6bb3f8c00622bdb18",
+  "user_input": "创建任务标题是代码评审描述是检查新功能",
+  "intent": "task",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:39:21.064030",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "创建任务标题是代码评审描述是检查新功能"
+      },
+      "output": "task",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:39:21.064523",
+      "action": "tool_selection",
+      "tool_name": "create_task",
+      "input_params": {
+        "user_input": "创建任务标题是代码评审描述是检查新功能",
+        "params": {
+          "title": "创建任务标题是代码评审描述是检查新功能"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:39:21.065500",
+      "action": "tool_execution",
+      "tool_name": "create_task",
+      "input_params": {
+        "title": "创建任务标题是代码评审描述是检查新功能"
+      },
+      "output": "✅ Task created successfully!\n\n📌 Title: 创建任务标题是代码评审描述是检查新功能\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "✅ Task created successfully!\n\n📌 Title: 创建任务标题是代码评审描述是检查新功能\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+  "total_duration_ms": 506,
+  "created_at": "2026-05-11T03:39:21.063767"
+}

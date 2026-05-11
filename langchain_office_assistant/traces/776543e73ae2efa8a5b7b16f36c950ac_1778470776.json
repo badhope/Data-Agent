@@ -1,0 +1,51 @@
+{
+  "trace_id": "776543e73ae2efa8a5b7b16f36c950ac_1778470776",
+  "session_id": "776543e73ae2efa8a5b7b16f36c950ac",
+  "user_input": "生成一个饼图",
+  "intent": "chart",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:39:36.285127",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "生成一个饼图"
+      },
+      "output": "chart",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:39:36.285347",
+      "action": "tool_selection",
+      "tool_name": "create_pie_chart",
+      "input_params": {
+        "user_input": "生成一个饼图",
+        "params": {
+          "title": "图表"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:39:36.286213",
+      "action": "tool_execution",
+      "tool_name": "create_pie_chart",
+      "input_params": {},
+      "output": null,
+      "duration_ms": null,
+      "error": "2 validation errors for create_pie_chart\nlabels\n  Field required [type=missing, input_value={'title': '图表'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nvalues\n  Field required [type=missing, input_value={'title': '图表'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+      "confidence": null
+    }
+  ],
+  "final_response": "❌ 工具执行失败：2 validation errors for create_pie_chart\nlabels\n  Field required [type=missing, input_value={'title': '图表'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nvalues\n  Field required [type=missing, input_value={'title': '图表'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+  "total_duration_ms": 818,
+  "created_at": "2026-05-11T03:39:36.284863"
+}
