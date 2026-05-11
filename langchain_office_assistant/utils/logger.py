@@ -1,9 +1,9 @@
 import logging
 from typing import Optional
-from langchain_office_assistant.utils.config import config
 
 def get_logger(name: str, level: Optional[str] = None) -> logging.Logger:
-    log_level = level or config.log_level
+    from langchain_office_assistant.utils.config import config
+    log_level = level or getattr(config, 'log_level', 'INFO')
     logger = logging.getLogger(name)
     logger.setLevel(log_level)
     

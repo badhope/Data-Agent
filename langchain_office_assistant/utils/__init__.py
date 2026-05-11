@@ -1,6 +1,6 @@
-from langchain_office_assistant.utils.config import Config, config
-from langchain_office_assistant.utils.logger import get_logger
-from langchain_office_assistant.utils.helpers import (
+from .config import Config, config
+from .logger import get_logger
+from .helpers import (
     format_datetime,
     validate_email,
     generate_session_id,
