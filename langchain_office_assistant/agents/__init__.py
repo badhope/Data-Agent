@@ -35,6 +35,34 @@ from .validators import (
     ErrorRecovery,
 )
 
+from .chain_manager import ChainManager
+
+from .plugin_manager import (
+    PluginManager,
+    PluginLoadStrategy,
+)
+
+from .config_validator import (
+    ConfigValidator,
+    ConfigLevel,
+    ConfigValidationResult,
+)
+
+from .cache_manager import (
+    CacheManager,
+    MemoryCache,
+    CacheManager as GlobalCacheManager,
+    get_cache_manager,
+)
+
+from .performance import (
+    PerformanceMonitor,
+    ConcurrencyLimiter,
+    RequestMetrics,
+    get_performance_monitor,
+    get_concurrency_limiter,
+)
+
 __all__ = [
     "OfficeAgent",
     "create_office_agent",
@@ -55,4 +83,19 @@ __all__ = [
     "LLMOutputValidator",
     "ValidationResult",
     "ErrorRecovery",
+    "ChainManager",
+    "PluginManager",
+    "PluginLoadStrategy",
+    "ConfigValidator",
+    "ConfigLevel",
+    "ConfigValidationResult",
+    "CacheManager",
+    "MemoryCache",
+    "GlobalCacheManager",
+    "get_cache_manager",
+    "PerformanceMonitor",
+    "ConcurrencyLimiter",
+    "RequestMetrics",
+    "get_performance_monitor",
+    "get_concurrency_limiter",
 ]
