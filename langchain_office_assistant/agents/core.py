@@ -338,7 +338,10 @@ class OfficeAgent:
             params["file_path"] = "output.pptx"
 
         elif tool_name == "search_knowledge":
-            params["query"] = user_input.replace("搜索", "").replace("知识库", "").strip()
+            query = user_input
+            for keyword in ["搜索", "知识库", "在", "中"]:
+                query = query.replace(keyword, "")
+            params["query"] = query.strip()
 
         elif tool_name == "add_document":
             params["content"] = user_input
@@ -348,34 +351,98 @@ class OfficeAgent:
             pass
 
         elif tool_name in ["create_line_chart", "create_bar_chart", "create_pie_chart", "create_radar_chart", "create_scatter_plot"]:
-            params["title"] = "图表"
+            title_match = re.search(r'([^数据图表]+)(?:数据|图表)', user_input)
+            params["title"] = title_match.group(1).strip() if title_match else "数据图表"
+
             numbers = re.findall(r'\d+\.?\d*', user_input)
-            if tool_name == "create_line_chart":
-                params["x_data"] = [f"点{i+1}" for i in range(len(numbers))]
-                params["y_data"] = [float(n) for n in numbers[:10]]
+            if len(numbers) >= 4:
+                labels = []
+                values = []
+                if "季度" in user_input:
+                    labels = ["Q1", "Q2", "Q3", "Q4"]
+                    values = [float(n) for n in numbers[:4]]
+                elif "月" in user_input:
+                    labels = [f"月{i+1}" for i in range(len(numbers))]
+                    values = [float(n) for n in numbers]
+                else:
+                    labels = [f"类别{i+1}" for i in range(len(numbers))]
+                    values = [float(n) for n in numbers]
+
+                if tool_name == "create_line_chart":
+                    params["x_data"] = labels
+                    params["y_data"] = values
+                else:
+                    params["labels"] = labels
+                    params["values"] = values
             else:
-                params["labels"] = [f"类别{i+1}" for i in range(len(numbers))]
-                params["values"] = [float(n) for n in numbers[:10]]
+                default_labels = ["A", "B", "C", "D"]
+                default_values = [10.0, 20.0, 30.0, 40.0]
+                if tool_name == "create_line_chart":
+                    params["x_data"] = default_labels
+                    params["y_data"] = default_values
+                else:
+                    params["labels"] = default_labels
+                    params["values"] = default_values
 
         elif tool_name == "calculate":
-            calc_match = re.search(r'[\d\s\+\-\*\/\(\)\.]+', user_input.replace('计算', ''))
-            params["expression"] = calc_match.group() if calc_match else "2+2"
+            calc_match = re.search(r'[\d\s\+\-\*\/\(\)\.]+', user_input.replace('计算', '').replace('等于', '').replace('多少', ''))
+            params["expression"] = calc_match.group().strip() if calc_match else "2+2"
 
         elif tool_name == "statistics":
             numbers = re.findall(r'\d+\.?\d*', user_input)
             params["numbers"] = [float(n) for n in numbers] if numbers else [1, 2, 3, 4, 5]
 
         elif tool_name == "currency_convert":
-            amount_match = re.findall(r'(\d+\.?\d*)\s*([A-Za-z]{3})', user_input)
-            if len(amount_match) >= 2:
-                params["amount"] = float(amount_match[0][0])
-                params["from_currency"] = amount_match[0][1].upper()
-                params["to_currency"] = amount_match[1][1].upper()
+            currency_map = {
+                "美元": "USD", "dollar": "USD", "dollars": "USD",
+                "欧元": "EUR", "euro": "EUR", "euros": "EUR",
+                "英镑": "GBP", "pound": "GBP", "pounds": "GBP",
+                "日元": "JPY", "yen": "JPY",
+                "人民币": "CNY", "rmb": "CNY",
+                "澳元": "AUD",
+                "加元": "CAD",
+            }
+
+            amount_match = re.findall(r'(\d+\.?\d*)', user_input)
+            params["amount"] = float(amount_match[0]) if amount_match else 100
+
+            found_currencies = []
+            for cn_name, code in currency_map.items():
+                if cn_name in user_input:
+                    found_currencies.append((user_input.find(cn_name), code))
+
+            found_currencies.sort(key=lambda x: x[0])
+
+            if len(found_currencies) >= 2:
+                params["from_currency"] = found_currencies[0][1]
+                params["to_currency"] = found_currencies[1][1]
+            elif len(found_currencies) == 1:
+                code = found_currencies[0][1]
+                if "等于" in user_input or "换算" in user_input or "多少" in user_input:
+                    pos_等于 = user_input.find("等于")
+                    pos_多少 = user_input.find("多少")
+                    pos_target = max(pos_等于 if pos_等于 >= 0 else 0, pos_多少 if pos_多少 >= 0 else 0)
+                    if found_currencies[0][0] < pos_target:
+                        params["from_currency"] = code
+                        if "美元" in user_input or "dollar" in user_input.lower():
+                            params["to_currency"] = "USD"
+                        elif "欧元" in user_input or "euro" in user_input.lower():
+                            params["to_currency"] = "EUR"
+                        elif "英镑" in user_input:
+                            params["to_currency"] = "GBP"
+                        elif "日元" in user_input:
+                            params["to_currency"] = "JPY"
+                        else:
+                            params["to_currency"] = "CNY"
+                    else:
+                        params["to_currency"] = code
+                        params["from_currency"] = "USD"
+                else:
+                    params["from_currency"] = code
+                    params["to_currency"] = "CNY"
             else:
-                amount_match = re.findall(r'(\d+\.?\d*)', user_input)
-                params["amount"] = float(amount_match[0]) if amount_match else 100
-                params["from_currency"] = "USD" if "美元" in input_lower or "usd" in input_lower else "CNY"
-                params["to_currency"] = "CNY" if "人民币" in input_lower or "cny" in input_lower else "USD"
+                params["from_currency"] = "USD"
+                params["to_currency"] = "CNY"
 
         elif tool_name == "unit_convert":
             params["value"] = 1.0

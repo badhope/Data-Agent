@@ -74,11 +74,15 @@ def currency_convert(amount: float, from_currency: str, to_currency: str) -> str
             "CAD": 1.36,
         }
 
-        from_rate = rates.get(from_currency.upper())
-        to_rate = rates.get(to_currency.upper())
+        from_currency = from_currency.upper()
+        to_currency = to_currency.upper()
+
+        from_rate = rates.get(from_currency)
+        to_rate = rates.get(to_currency)
 
         if not from_rate or not to_rate:
-            return f"❌ Unsupported currency. Supported: {', '.join(rates.keys())}"
+            available = ', '.join(rates.keys())
+            return f"❌ Unsupported currency. Supported: {available}"
 
         result = (amount / from_rate) * to_rate
 

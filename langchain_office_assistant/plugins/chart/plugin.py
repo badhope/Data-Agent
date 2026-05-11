@@ -3,10 +3,10 @@ from langchain_core.tools import tool
 from langchain_office_assistant.plugins.base import BasePlugin
 from langchain_office_assistant.utils.logger import get_logger
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-import plotly.io as pio
-import pandas as pd
-import numpy as np
+import matplotlib
+
+matplotlib.rcParams['font.family'] = ['DejaVu Sans', 'SimHei', 'Arial Unicode MS', 'sans-serif']
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 logger = get_logger(__name__)
 
@@ -128,6 +128,9 @@ def create_radar_chart(
 ) -> str:
     """Create a radar chart with the given data."""
     try:
+        import plotly.graph_objects as go
+        import plotly.io as pio
+
         fig = go.Figure()
 
         fig.add_trace(go.Scatterpolar(
@@ -163,6 +166,8 @@ def create_scatter_plot(
 ) -> str:
     """Create a scatter plot with the given data."""
     try:
+        import numpy as np
+
         plt.figure(figsize=(10, 6))
         plt.scatter(x_data, y_data, color=color, s=100, alpha=0.7)
 
