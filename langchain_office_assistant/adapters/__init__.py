@@ -12,6 +12,11 @@ from .openai import OpenAIAdapter
 from .anthropic import AnthropicAdapter
 from .gemini import GoogleAdapter
 from .azure import AzureAdapter
+from .zhipu import ZhipuAdapter
+from .spark import SparkAdapter
+from .ernie import ErnieAdapter
+from .doubao import DoubaoAdapter
+from .custom import CustomAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +28,11 @@ class PlatformType(Enum):
     ANTHROPIC = "anthropic"
     GEMINI = "gemini"
     AZURE = "azure"
+    ZHIPU = "zhipu"
+    SPARK = "spark"
+    ERNIE = "ernie"
+    DOUBAO = "doubao"
+    CUSTOM = "custom"
 
 
 class AdapterManager:
@@ -34,6 +44,11 @@ class AdapterManager:
         PlatformType.ANTHROPIC: AnthropicAdapter,
         PlatformType.GEMINI: GoogleAdapter,
         PlatformType.AZURE: AzureAdapter,
+        PlatformType.ZHIPU: ZhipuAdapter,
+        PlatformType.SPARK: SparkAdapter,
+        PlatformType.ERNIE: ErnieAdapter,
+        PlatformType.DOUBAO: DoubaoAdapter,
+        PlatformType.CUSTOM: CustomAdapter,
     }
 
     _platform_configs: Dict[PlatformType, Dict[str, Any]] = {
@@ -72,6 +87,41 @@ class AdapterManager:
             "website": "https://azure.microsoft.com/services/cognitive-services/openai",
             "features": ["企业级安全", "合规性", "私有部署", "SLA保障"]
         },
+        PlatformType.ZHIPU: {
+            "name": "智谱AI (Zhipu AI)",
+            "description": "智谱AI GLM系列模型，GLM-4、GLM-3.5等",
+            "default_api_base": "https://open.bigmodel.cn/api/paas/v4",
+            "website": "https://bigmodel.cn",
+            "features": ["文本生成", "长上下文", "函数调用", "多模态"]
+        },
+        PlatformType.SPARK: {
+            "name": "讯飞星火 (iFlyTek Spark)",
+            "description": "科大讯飞星火大模型，Spark-4.0、3.5等",
+            "default_api_base": "https://spark-api.xf-yun.com/v3.5/chat",
+            "website": "https://www.xfyun.cn",
+            "features": ["文本生成", "长上下文", "函数调用", "多模态"]
+        },
+        PlatformType.ERNIE: {
+            "name": "文心一言 (ERNIE)",
+            "description": "百度文心一言，ERNIE-4.0、3.5等",
+            "default_api_base": "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat",
+            "website": "https://cloud.baidu.com/product/wenxinworkshop",
+            "features": ["文本生成", "长上下文", "函数调用", "企业级"]
+        },
+        PlatformType.DOUBAO: {
+            "name": "豆包 (Doubao)",
+            "description": "字节跳动豆包大模型，火山引擎ARK",
+            "default_api_base": "https://ark.cn-beijing.volces.com/api/v3",
+            "website": "https://www.volcengine.com/product/ark",
+            "features": ["文本生成", "长上下文", "函数调用", "高性价比"]
+        },
+        PlatformType.CUSTOM: {
+            "name": "自定义API (Custom)",
+            "description": "支持任意OpenAI兼容的第三方API",
+            "default_api_base": "http://localhost:8080/v1",
+            "website": "",
+            "features": ["灵活配置", "API兼容", "本地部署", "第三方平台"]
+        },
     }
 
     def __init__(self):
@@ -103,6 +153,16 @@ class AdapterManager:
             kwargs.setdefault("api_base", "https://api.anthropic.com/v1")
         elif platform == PlatformType.GEMINI:
             kwargs.setdefault("api_base", "https://generativelanguage.googleapis.com/v1beta")
+        elif platform == PlatformType.ZHIPU:
+            kwargs.setdefault("api_base", "https://open.bigmodel.cn/api/paas/v4")
+        elif platform == PlatformType.SPARK:
+            kwargs.setdefault("api_base", "https://spark-api.xf-yun.com/v3.5/chat")
+        elif platform == PlatformType.ERNIE:
+            kwargs.setdefault("api_base", "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat")
+        elif platform == PlatformType.DOUBAO:
+            kwargs.setdefault("api_base", "https://ark.cn-beijing.volces.com/api/v3")
+        elif platform == PlatformType.CUSTOM:
+            kwargs.setdefault("api_base", "http://localhost:8080/v1")
 
         adapter = adapter_class(api_key, **kwargs)
         self._active_adapters[platform] = adapter
