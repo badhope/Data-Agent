@@ -1022,6 +1022,132 @@ input:checked + .toggle-slider:before {
   40% { transform: scale(1); opacity: 1; }
 }
 
+.code-editor-section {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.code-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.code-editor-lang {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.code-editor-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.code-run-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.code-run-btn:hover {
+  background: #16a34a;
+}
+
+.code-run-btn:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.code-run-btn.running {
+  background: #f59e0b;
+}
+
+.code-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px;
+  border: none;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  tab-size: 4;
+}
+
+.code-output-section {
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.code-output-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.code-output-content {
+  padding: 12px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+  color: var(--text-primary);
+}
+
+.code-output-content.error {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.code-chart-output {
+  padding: 12px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.code-chart-output img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.code-duration {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border-top: 1px solid var(--border);
+  text-align: right;
+}
+
 .chat-action-btn {
   display: flex;
   align-items: center;
@@ -1645,6 +1771,7 @@ input:checked + .toggle-slider:before {
               <button class="quick-action" onclick="sendQuick('100美元换人民币')">💱 汇率</button>
               <button class="quick-action" onclick="sendQuick('生成柱状图')">📊 图表</button>
               <button class="quick-action" onclick="sendQuick('搜索"机器学习"相关内容')">📚 知识库</button>
+              <button class="quick-action" onclick="sendQuick('帮我写一段Python代码生成柱状图')">💻 代码沙箱</button>
             </div>
           </div>
         </div>
@@ -2347,12 +2474,18 @@ async function sendMessage() {
       if (isErrorResponse) {
         addErrorMessage(data.response);
       } else {
-        addChatMessage('bot', data.response, {
-          intent: data.intent,
-          tool: data.tool_used,
-          confidence: data.confidence,
-          duration: data.duration_ms
-        }, data.thinking);
+        const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+        let hasCode = codeBlockRegex.test(data.response);
+        if (hasCode && (data.intent === 'sandbox' || data.intent === 'calculator' || data.intent === 'chart')) {
+          renderCodeResponse(data.response, data.thinking);
+        } else {
+          addChatMessage('bot', data.response, {
+            intent: data.intent,
+            tool: data.tool_used,
+            confidence: data.confidence,
+            duration: data.duration_ms
+          }, data.thinking);
+        }
       }
       
       // Update session
@@ -2495,6 +2628,155 @@ function toggleChain(msgId) {
   if (toggle && content) {
     toggle.classList.toggle('expanded');
     content.classList.toggle('expanded');
+  }
+}
+
+function addCodeMessage(code, language, result) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-message bot';
+  const msgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+  div.id = msgId;
+  const msgIdx = messageIndexCounter++;
+  div.dataset.msgIndex = msgIdx;
+  div.dataset.role = 'bot';
+  div.dataset.rawContent = code;
+
+  const copySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const deleteSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+  const playSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+
+  const langLabel = language === 'python' ? 'Python' : language === 'javascript' ? 'JavaScript' : language;
+  const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  let outputHtml = '';
+  if (result) {
+    if (result.output) {
+      outputHtml += `<div class="code-output-section"><div class="code-output-header">📋 输出</div><div class="code-output-content">${result.output.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`;
+    }
+    if (result.error) {
+      outputHtml += `<div class="code-output-section"><div class="code-output-header">❌ 错误</div><div class="code-output-content error">${result.error.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`;
+    }
+    if (result.images && result.images.length > 0) {
+      for (const img of result.images) {
+        outputHtml += `<div class="code-chart-output"><img src="${img}" alt="chart"></div>`;
+      }
+    }
+    if (result.duration_ms) {
+      outputHtml += `<div class="code-duration">⏱ 执行耗时: ${result.duration_ms}ms</div>`;
+    }
+  }
+
+  div.innerHTML = `
+    <div class="chat-avatar">💻</div>
+    <div>
+      <div class="code-editor-section">
+        <div class="code-editor-header">
+          <div class="code-editor-lang">💻 ${langLabel}</div>
+          <div class="code-editor-actions">
+            <button class="code-run-btn" onclick="runCode('${msgId}', '${language}')" id="run-${msgId}">${playSvg}<span>运行</span></button>
+          </div>
+        </div>
+        <textarea class="code-textarea" id="code-${msgId}" spellcheck="false" onkeydown="handleCodeKeydown(event, '${msgId}')">${escapedCode}</textarea>
+        ${outputHtml}
+      </div>
+      <div class="chat-actions">
+        <button class="chat-action-btn copy" onclick="copyMessage('${msgId}', this)" title="复制">${copySvg}<span>复制</span></button>
+        <button class="chat-action-btn delete" onclick="deleteMessage('${msgId}')" title="删除">${deleteSvg}<span>删除</span></button>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function runCode(msgId, language) {
+  const textarea = document.getElementById('code-' + msgId);
+  const btn = document.getElementById('run-' + msgId);
+  const code = textarea.value;
+  if (!code.trim()) return;
+
+  btn.classList.add('running');
+  btn.disabled = true;
+  btn.querySelector('span').textContent = '运行中...';
+
+  try {
+    const res = await fetch(`${API_URL}/sandbox/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, language, session_id: currentSessionId })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const editorSection = textarea.closest('.code-editor-section');
+      const oldOutputs = editorSection.querySelectorAll('.code-output-section, .code-chart-output, .code-duration');
+      oldOutputs.forEach(el => el.remove());
+
+      let outputHtml = '';
+      if (data.output) {
+        outputHtml += `<div class="code-output-section"><div class="code-output-header">📋 输出</div><div class="code-output-content">${data.output.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`;
+      }
+      if (data.error) {
+        outputHtml += `<div class="code-output-section"><div class="code-output-header">❌ 错误</div><div class="code-output-content error">${data.error.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`;
+      }
+      if (data.images && data.images.length > 0) {
+        for (const img of data.images) {
+          outputHtml += `<div class="code-chart-output"><img src="${img}" alt="chart"></div>`;
+        }
+      }
+      outputHtml += `<div class="code-duration">⏱ 执行耗时: ${data.duration_ms}ms</div>`;
+      textarea.insertAdjacentHTML('afterend', outputHtml);
+    } else {
+      const err = await res.json().catch(() => ({ detail: '未知错误' }));
+      textarea.insertAdjacentHTML('afterend', `<div class="code-output-section"><div class="code-output-header">❌ 请求失败</div><div class="code-output-content error">${err.detail || '未知错误'}</div></div>`);
+    }
+  } catch (e) {
+    textarea.insertAdjacentHTML('afterend', `<div class="code-output-section"><div class="code-output-header">❌ 网络错误</div><div class="code-output-content error">无法连接到沙箱服务: ${e.message}</div></div>`);
+  } finally {
+    btn.classList.remove('running');
+    btn.disabled = false;
+    btn.querySelector('span').textContent = '运行';
+  }
+}
+
+function handleCodeKeydown(e, msgId) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + '    ' + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + 4;
+  }
+}
+
+function renderCodeResponse(response, thinking) {
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = codeBlockRegex.exec(response)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', content: response.slice(lastIndex, match.index) });
+    }
+    const lang = (match[1] || 'python').toLowerCase();
+    const langMap = { py: 'python', js: 'javascript', ts: 'javascript' };
+    parts.push({ type: 'code', language: langMap[lang] || lang, content: match[2].trim() });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < response.length) {
+    parts.push({ type: 'text', content: response.slice(lastIndex) });
+  }
+
+  for (const part of parts) {
+    if (part.type === 'text' && part.content.trim()) {
+      addChatMessage('bot', part.content.trim(), {}, thinking);
+      thinking = null;
+    } else if (part.type === 'code') {
+      addCodeMessage(part.content, part.language, null);
+    }
   }
 }
 
