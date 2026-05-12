@@ -818,6 +818,62 @@ input:checked + .toggle-slider:before {
   border-bottom-right-radius: 4px;
 }
 
+.chat-bubble.error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+.chat-bubble.error .error-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #fecaca;
+}
+
+.chat-bubble.error .error-body {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.chat-bubble.error .error-section {
+  margin: 8px 0;
+}
+
+.chat-bubble.error .error-section-title {
+  font-weight: 600;
+  color: #7f1d1d;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.chat-bubble.error .error-solution {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #fca5a5;
+}
+
+.chat-bubble.error .error-solution-title {
+  font-weight: 600;
+  color: #166534;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.chat-bubble.error .error-solution ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.chat-bubble.error .error-solution li {
+  margin: 4px 0;
+  font-size: 12px;
+}
+
 .chat-meta {
   margin-top: 8px;
   font-size: 11px;
@@ -2287,12 +2343,17 @@ async function sendMessage() {
     
     if (res.ok) {
       const data = await res.json();
-      addChatMessage('bot', data.response, {
-        intent: data.intent,
-        tool: data.tool_used,
-        confidence: data.confidence,
-        duration: data.duration_ms
-      }, data.thinking);
+      const isErrorResponse = data.response && data.response.startsWith('❌');
+      if (isErrorResponse) {
+        addErrorMessage(data.response);
+      } else {
+        addChatMessage('bot', data.response, {
+          intent: data.intent,
+          tool: data.tool_used,
+          confidence: data.confidence,
+          duration: data.duration_ms
+        }, data.thinking);
+      }
       
       // Update session
       const session = sessions.find(s => s.id === currentSessionId);
@@ -2301,15 +2362,44 @@ async function sendMessage() {
       }
       saveSessions();
     } else {
-      const error = await res.json();
-      addChatMessage('bot', `❌ 请求失败: ${error.detail || '未知错误'}\n\n请检查 API 配置是否正确。`);
+      const error = await res.json().catch(() => ({ detail: '无法解析错误响应' }));
+      const errorMsg = error.detail || error.message || JSON.stringify(error) || '未知错误';
+      addErrorMessage(errorMsg);
     }
   } catch (e) {
     hideTyping();
-    addChatMessage('bot', `❌ 连接失败: ${e.message}\n\n请确保后端服务正在运行 (http://localhost:8000)`);
+    addErrorMessage(`❌ 【网络连接失败】\n\n原因：无法连接到后端服务器\n\n错误详情：${e.message}\n\n解决方案：\n1. 确保后端服务正在运行\n2. 检查网络连接\n3. 刷新页面重试`);
   } finally {
     isLoading = false;
   }
+}
+
+function addErrorMessage(errorText) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-message bot';
+  const msgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+  div.id = msgId;
+  const msgIdx = messageIndexCounter++;
+  div.dataset.msgIndex = msgIdx;
+  div.dataset.role = 'bot';
+  div.dataset.rawContent = errorText;
+  
+  const copySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const deleteSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+  
+  div.innerHTML = `
+    <div class="chat-avatar">⚠️</div>
+    <div>
+      <div class="chat-bubble error">${formatError(errorText)}</div>
+      <div class="chat-actions">
+        <button class="chat-action-btn copy" onclick="copyMessage('${msgId}', this)" title="复制错误信息">${copySvg}<span>复制</span></button>
+        <button class="chat-action-btn delete" onclick="deleteMessage('${msgId}')" title="删除">${deleteSvg}<span>删除</span></button>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
 }
 
 function sendQuick(text) {
@@ -2413,6 +2503,49 @@ function formatContent(text) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>')
     .replace(/`([^`]+)`/g, '<code style="background:var(--bg-card);padding:2px 6px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:12px;">$1</code>');
+}
+
+function formatError(text) {
+  const parts = text.split('\n\n');
+  let title = '❌ 发生错误';
+  let body = '';
+  let solutions = [];
+  
+  for (let part of parts) {
+    part = part.trim();
+    if (!part) continue;
+    
+    if (part.startsWith('❌')) {
+      title = part.split('\n')[0].replace('❌', '').trim();
+    } else if (part.startsWith('原因：') || part.startsWith('错误详情：') || part.startsWith('错误类型：')) {
+      body = part;
+    } else if (part.startsWith('解决方案：') || part.startsWith('解决：')) {
+      const items = part.split('\n').filter(line => line.match(/^\d+\./));
+      solutions = items.map(item => item.replace(/^\d+\.\s*/, ''));
+    }
+  }
+  
+  if (!body && parts.length > 1) {
+    body = parts[1];
+  }
+  
+  let html = `<div class="error-title">${title}</div>`;
+  html += `<div class="error-body">`;
+  
+  if (body) {
+    html += `<div class="error-section"><div class="error-section-title">📋 错误详情</div>${body.replace(/\n/g, '<br>')}</div>`;
+  }
+  
+  if (solutions.length > 0) {
+    html += `<div class="error-solution"><div class="error-solution-title">💡 解决方法</div><ol>`;
+    for (let sol of solutions) {
+      html += `<li>${sol}</li>`;
+    }
+    html += `</ol></div>`;
+  }
+  
+  html += `</div>`;
+  return html;
 }
 
 function copyMessage(msgId, btn) {

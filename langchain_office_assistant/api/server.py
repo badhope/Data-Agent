@@ -208,15 +208,33 @@ async def call_dashscope_api(messages: list) -> str:
                 data = response.json()
                 return data["choices"][0]["message"]["content"]
             else:
-                error_data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
-                error_msg = error_data.get("error", {}).get("message", response.text)
-                return f"❌ API调用失败 (HTTP {response.status_code}): {error_msg}"
+                error_data = {}
+                try:
+                    error_data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+                except:
+                    pass
+                
+                error_msg = error_data.get("error", {}).get("message", error_data.get("message", ""))
+                error_code = error_data.get("error", {}).get("code", error_data.get("code", ""))
+                
+                if response.status_code == 401:
+                    return f"❌ 【API认证失败】(HTTP 401)\n\n原因：API Key无效或已过期\n\n解决方案：\n1. 请检查「API 配置」页面中的API Key是否正确\n2. 如果API Key已过期，请到阿里云百炼平台重新获取\n3. 确保API Key格式正确（以sk-开头）"
+                elif response.status_code == 403:
+                    return f"❌ 【API访问被拒绝】(HTTP 403)\n\n原因：没有权限访问该资源，可能是：\n1. API Key没有开通对应服务\n2. 账户余额不足或额度用完\n3. 请求频率超出限制\n\n错误详情：{error_msg or '无'}\n\n解决方案：\n1. 登录阿里云百炼平台检查账户余额和额度\n2. 确认已开通 qwen-flash 模型服务\n3. 等待一段时间后重试（如果是频率限制）"
+                elif response.status_code == 429:
+                    return f"❌ 【API请求过于频繁】(HTTP 429)\n\n原因：请求频率超出API限制\n\n解决方案：\n1. 降低请求频率\n2. 等待几秒后再重试\n3. 考虑升级API套餐以获得更高配额"
+                elif response.status_code >= 500:
+                    return f"❌ 【API服务器内部错误】(HTTP {response.status_code})\n\n原因：阿里云百炼服务器暂时不可用\n\n错误详情：{error_msg or response.text[:200]}\n\n解决方案：\n1. 这是服务端问题，请稍后重试\n2. 可以访问阿里云状态页面查看服务状态"
+                else:
+                    return f"❌ 【API调用失败】(HTTP {response.status_code})\n\n错误代码：{error_code or '无'}\n错误详情：{error_msg or response.text[:500]}\n\n请检查API请求参数是否正确，或联系阿里云技术支持。"
     except httpx.TimeoutException:
-        return "❌ API请求超时，请稍后重试。"
-    except httpx.ConnectError:
-        return "❌ 无法连接到API服务器，请检查网络连接。"
+        return f"❌ 【请求超时】\n\n原因：API请求在60秒内未收到响应\n\n可能原因：\n1. 网络连接不稳定\n2. 服务器响应缓慢\n3. 请求内容过长\n\n解决方案：\n1. 检查网络连接\n2. 尝试简化问题或减少上下文\n3. 稍后重试"
+    except httpx.ConnectError as e:
+        return f"❌ 【网络连接失败】\n\n原因：无法连接到阿里云API服务器\n\n错误详情：{str(e)}\n\n可能原因：\n1. 网络被防火墙阻止\n2. DNS解析失败\n3. 网络代理配置问题\n\n解决方案：\n1. 检查网络连接\n2. 检查防火墙和代理设置\n3. 尝试使用VPN"
+    except httpx.RequestError as e:
+        return f"❌ 【网络请求错误】\n\n错误类型：{type(e).__name__}\n错误详情：{str(e)}\n\n解决方案：\n1. 检查网络连接\n2. 稍后重试"
     except Exception as e:
-        return f"❌ API调用异常: {str(e)}"
+        return f"❌ 【API调用异常】\n\n错误类型：{type(e).__name__}\n错误详情：{str(e)}\n\n这是一个意外错误，请记录错误信息并联系开发者。"
 
 def generate_thinking_chain(user_message: str, intent: str, confidence: float) -> List[Dict[str, Any]]:
     """生成思维链"""
