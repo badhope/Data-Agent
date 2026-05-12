@@ -7,10 +7,11 @@ import time
 import uuid
 import os
 import sys
+import json
+import httpx
 from datetime import datetime
 from pathlib import Path
 
-# Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 app = FastAPI(title="Office Agent API", version="1.0.0")
@@ -23,7 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory storage
 sessions = {}
 traces = []
 system_config = {
@@ -34,7 +34,6 @@ system_config = {
     "max_tokens": 2000,
 }
 
-# Tool definitions
 TOOLS = [
     {"id": "calculator", "name": "计算工具", "desc": "数学计算和货币换算", "icon": "🧮", "color": "blue"},
     {"id": "calendar", "name": "日程管理", "desc": "查看和安排日程", "icon": "📅", "color": "green"},
@@ -46,10 +45,26 @@ TOOLS = [
     {"id": "knowledge", "name": "知识库", "desc": "智能问答", "icon": "📚", "color": "purple"},
 ]
 
-# Plugin settings
-plugin_settings = {
-    tool["id"]: {"enabled": True} for tool in TOOLS
-}
+plugin_settings = {tool["id"]: {"enabled": True} for tool in TOOLS}
+
+SYSTEM_PROMPT = """你是一个专业的办公智能体，具备多种办公能力：
+
+可用工具：
+- 🧮 计算工具：数学计算、统计分析、货币换算、单位转换
+- 📅 日程管理：查看日程、创建会议、设置提醒
+- ✅ 任务管理：创建任务、更新状态、设置优先级
+- 📧 邮件管理：发送邮件、搜索邮件、阅读邮件
+- 📄 文档处理：读取文档、写入文档、智能摘要
+- 📊 图表生成：生成折线图、柱状图、饼图、雷达图等
+- 📽️ PPT生成：创建演示文稿、添加幻灯片
+- 📚 知识库：向量检索、文档问答
+
+回复规则：
+- 使用友好、专业的中文语言
+- 对于复杂查询，提供详细的步骤说明
+- 如果需要调用工具，说明调用了什么工具
+- 直接回答用户的问题，不要重复用户的问题
+"""
 
 class ChatRequest(BaseModel):
     message: str
@@ -99,47 +114,52 @@ def get_intent(message: str) -> tuple:
     else:
         return ("chat", 0.6)
 
-def calculate_response(expression: str) -> str:
-    """模拟计算功能"""
-    try:
-        if "加" in expression or "+" in expression:
-            parts = expression.replace("加", "+").split("+")
-            result = sum(float(p.strip()) for p in parts if p.strip())
-            return f"计算结果：{result}"
-        elif "减" in expression or "-" in expression:
-            parts = expression.split("减") if "减" in expression else expression.split("-")
-            if len(parts) >= 2:
-                result = float(parts[0].strip()) - sum(float(p.strip()) for p in parts[1:])
-                return f"计算结果：{result}"
-        elif "乘" in expression or "*" in expression or "x" in expression:
-            return "乘法运算完成（演示）"
-        elif "除" in expression or "/" in expression:
-            return "除法运算完成（演示）"
-        else:
-            return f"已收到计算请求：{expression}（演示模式）"
-    except:
-        return f"计算请求已收到：{expression}（演示模式）"
-
-def generate_response(message: str, intent: str) -> str:
-    responses = {
-        "calculator": f"好的，让我为您计算一下：{message}\n\n{calculate_response(message)}\n\n💡 提示：这是演示版本，完整功能需要配置真实API。",
-        "calendar": f"📅 日程请求已收到：{message}\n\n📌 已为您安排日程（演示模式）\n\n💡 提示：完整功能支持与日历API集成。",
-        "task": f"✅ 任务管理请求：{message}\n\n📝 任务已记录到您的待办列表（演示模式）\n\n💡 提示：完整功能支持任务优先级、提醒、进度跟踪。",
-        "email": f"📧 邮件处理请求：{message}\n\n✉️ 邮件已准备发送（演示模式）\n\n💡 提示：完整功能支持邮件模板、批量发送、附件管理。",
-        "document": f"📄 文档处理请求：{message}\n\n📖 文档已分析完成（演示模式）\n\n💡 提示：完整功能支持Word/Excel/PDF处理、OCR识别。",
-        "chart": f"📊 图表生成请求：{message}\n\n📈 图表已生成（演示模式）\n\n💡 提示：完整功能支持10+图表类型、数据导入、样式定制。",
-        "ppt": f"📽️ PPT生成请求：{message}\n\n🎯 演示文稿已创建（演示模式）\n\n💡 提示：完整功能支持模板、智能排版、动画效果。",
-        "knowledge": f"📚 知识库查询：{message}\n\n🔍 正在检索相关文档...（演示模式）\n\n💡 提示：完整功能支持向量检索、语义搜索、多文档问答。",
-        "chat": f"您好！我收到了您的消息：{message}\n\n🤖 我是Office Agent，我可以帮助您：\n- 🧮 数学计算、单位换算\n- 📅 日程管理、会议安排\n- ✅ 任务跟踪、待办管理\n- 📧 邮件处理、自动回复\n- 📄 文档处理、智能摘要\n- 📊 图表生成、数据分析\n- 📽️ PPT自动生成\n- 📚 知识库问答\n\n有什么我可以帮您的吗？"
+async def call_dashscope_api(messages: list) -> str:
+    api_key = system_config.get("api_key", "")
+    if not api_key:
+        return "❌ API Key 未配置，请在设置页面配置API Key后再试。"
+    
+    model = system_config.get("model", "qwen-plus")
+    temperature = system_config.get("temperature", 0.7)
+    max_tokens = system_config.get("max_tokens", 2000)
+    
+    url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
     }
-    return responses.get(intent, responses["chat"])
+    
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+            else:
+                error_data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+                error_msg = error_data.get("error", {}).get("message", response.text)
+                return f"❌ API调用失败 (HTTP {response.status_code}): {error_msg}"
+    except httpx.TimeoutException:
+        return "❌ API请求超时，请稍后重试。"
+    except httpx.ConnectError:
+        return "❌ 无法连接到API服务器，请检查网络连接。"
+    except Exception as e:
+        return f"❌ API调用异常: {str(e)}"
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
         start_time = time.time()
         
-        # Get or create session
         if not request.session_id:
             request.session_id = str(uuid.uuid4())
         if request.session_id not in sessions:
@@ -148,19 +168,28 @@ async def chat(request: ChatRequest):
                 "messages": []
             }
         
-        # Get intent
         intent, confidence = get_intent(request.message)
         
-        # Check if plugin is enabled
         if intent != "chat" and not plugin_settings.get(intent, {}).get("enabled", True):
             response = f"抱歉，{intent} 插件当前已禁用。您可以在设置中启用此功能。"
             tool_used = None
+        elif system_config.get("api_key"):
+            api_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            
+            for msg in sessions[request.session_id]["messages"][-10:]:
+                api_messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
+            
+            api_messages.append({"role": "user", "content": request.message})
+            
+            response = await call_dashscope_api(api_messages)
+            tool_used = intent if intent != "chat" else None
         else:
-            # Generate response
-            response = generate_response(request.message, intent)
+            response = generate_mock_response(request.message, intent)
             tool_used = intent if intent != "chat" else None
         
-        # Store trace
         trace_id = str(uuid.uuid4())
         trace = {
             "trace_id": trace_id,
@@ -171,7 +200,6 @@ async def chat(request: ChatRequest):
         }
         traces.append(trace)
         
-        # Update session
         sessions[request.session_id]["messages"].append({
             "role": "user",
             "content": request.message
@@ -194,6 +222,9 @@ async def chat(request: ChatRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def generate_mock_response(message: str, intent: str) -> str:
+    return f"⚠️ API Key 未配置，当前为演示模式。\n\n您发送的消息：{message}\n识别意图：{intent}\n\n请在「API 配置」页面配置 API Key 后使用完整功能。"
 
 @app.get("/chat/{session_id}")
 async def get_session_history(session_id: str):
@@ -236,10 +267,7 @@ async def get_trace(trace_id: str):
         trace = next((t for t in traces if t["trace_id"] == trace_id), None)
         if not trace:
             raise HTTPException(status_code=404, detail="Trace not found")
-        return {
-            "trace_id": trace_id,
-            "content": f"Trace details for {trace_id}: {trace}"
-        }
+        return {"trace_id": trace_id, "content": f"Trace details: {trace}"}
     except HTTPException:
         raise
     except Exception as e:
@@ -249,17 +277,13 @@ async def get_trace(trace_id: str):
 async def get_session_traces(session_id: str):
     try:
         session_traces = [t for t in traces if t["session_id"] == session_id]
-        return {
-            "session_id": session_id,
-            "traces": session_traces
-        }
+        return {"session_id": session_id, "traces": session_traces}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/tools", response_model=ToolListResponse)
 async def get_tools():
     try:
-        # Combine TOOLS with enabled status
         tools_with_status = []
         for tool in TOOLS:
             tool_data = tool.copy()
@@ -271,12 +295,10 @@ async def get_tools():
 
 @app.get("/config")
 async def get_config():
-    try:
-        return {
-            "config": system_config
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    safe_config = system_config.copy()
+    if safe_config.get("api_key"):
+        safe_config["api_key"] = safe_config["api_key"][:8] + "****" + safe_config["api_key"][-4:]
+    return {"config": safe_config}
 
 @app.post("/config")
 async def update_config(config_req: ConfigRequest):
@@ -292,11 +314,10 @@ async def update_config(config_req: ConfigRequest):
         if config_req.max_tokens is not None:
             system_config["max_tokens"] = config_req.max_tokens
         
-        return {
-            "status": "success",
-            "message": "Config updated",
-            "config": system_config
-        }
+        safe_config = system_config.copy()
+        if safe_config.get("api_key"):
+            safe_config["api_key"] = safe_config["api_key"][:8] + "****" + safe_config["api_key"][-4:]
+        return {"status": "success", "message": "Config updated", "config": safe_config}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -306,7 +327,6 @@ async def update_plugin_settings(settings_req: PluginSettingsRequest):
         if settings_req.plugin_id not in plugin_settings:
             plugin_settings[settings_req.plugin_id] = {}
         plugin_settings[settings_req.plugin_id]["enabled"] = settings_req.enabled
-        
         return {
             "status": "success",
             "message": "Plugin settings updated",
@@ -323,7 +343,8 @@ async def health_check():
         "service": "office-agent-api",
         "sessions": len(sessions),
         "traces": len(traces),
-        "plugins": len(TOOLS)
+        "plugins": len(TOOLS),
+        "api_configured": bool(system_config.get("api_key"))
     }
 
 @app.get("/stats")
