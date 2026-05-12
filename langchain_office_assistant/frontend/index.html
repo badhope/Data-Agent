@@ -826,6 +826,53 @@ input:checked + .toggle-slider:before {
   gap: 12px;
 }
 
+.chat-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chat-message:hover .chat-actions {
+  opacity: 1;
+}
+
+.chat-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.chat-action-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.chat-action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.chat-action-btn.copied {
+  color: #22c55e;
+}
+
+.chat-action-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .chat-input-area {
   padding: 16px 20px;
   background: var(--bg-secondary);
@@ -1045,6 +1092,10 @@ input:checked + .toggle-slider:before {
   
   .chat-bubble {
     max-width: 85%;
+  }
+  
+  .chat-actions {
+    opacity: 1;
   }
   
   .quick-actions {
@@ -1362,7 +1413,7 @@ input:checked + .toggle-slider:before {
       <div id="page-chat" class="page hidden">
         <div class="chat-container">
           <div class="chat-messages" id="chatMessages">
-            <div class="chat-message bot">
+            <div class="chat-message bot" id="msg-welcome" data-raw-content="👋 你好！我是 Office Agent 智能助手。我可以帮你完成以下任务：&#10;&#10;• 🧮 智能计算 - 数学运算、统计分析、单位换算&#10;• 📅 日程管理 - 查看和安排日程&#10;• ✅ 任务管理 - 创建和跟踪任务&#10;• 📧 邮件处理 - 发送和搜索邮件&#10;• 📄 文档处理 - 读取、写入、摘要文档&#10;• 📊 图表生成 - 柱状图、折线图、饼图等&#10;• 📽️ PPT 生成 - 自动创建演示文稿&#10;• 📚 知识库 - 智能问答和文档检索&#10;&#10;请输入你的问题或指令！">
               <div class="chat-avatar">🤖</div>
               <div>
                 <div class="chat-bubble">
@@ -1389,6 +1440,10 @@ input:checked + .toggle-slider:before {
                 <div class="chat-meta">
                   <span>刚刚</span>
                   <span>意图识别: 问候</span>
+                </div>
+                <div class="chat-actions">
+                  <button class="chat-action-btn copy" onclick="copyMessage('msg-welcome', this)" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span></button>
+                  <button class="chat-action-btn delete" onclick="deleteMessage('msg-welcome')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>删除</span></button>
                 </div>
               </div>
             </div>
@@ -2140,6 +2195,8 @@ function addChatMessage(role, content, meta = {}) {
   const container = document.getElementById('chatMessages');
   const div = document.createElement('div');
   div.className = 'chat-message ' + role;
+  const msgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+  div.id = msgId;
   
   const metaHtml = meta.intent ? `
     <div class="chat-meta">
@@ -2149,14 +2206,22 @@ function addChatMessage(role, content, meta = {}) {
       ${meta.duration ? `<span>耗时: ${meta.duration}ms</span>` : ''}
     </div>
   ` : '';
+
+  const copySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const deleteSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
   
   div.innerHTML = `
     <div class="chat-avatar">${role === 'user' ? '👤' : '🤖'}</div>
     <div>
       <div class="chat-bubble">${formatContent(content)}</div>
       ${metaHtml}
+      <div class="chat-actions">
+        <button class="chat-action-btn copy" onclick="copyMessage('${msgId}', this)" title="复制">${copySvg}<span>复制</span></button>
+        <button class="chat-action-btn delete" onclick="deleteMessage('${msgId}')" title="删除">${deleteSvg}<span>删除</span></button>
+      </div>
     </div>
   `;
+  div.dataset.rawContent = content;
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 }
@@ -2166,6 +2231,57 @@ function formatContent(text) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>')
     .replace(/`([^`]+)`/g, '<code style="background:var(--bg-card);padding:2px 6px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:12px;">$1</code>');
+}
+
+function copyMessage(msgId, btn) {
+  const msgEl = document.getElementById(msgId);
+  if (!msgEl) return;
+  const rawContent = msgEl.dataset.rawContent || msgEl.querySelector('.chat-bubble')?.innerText || '';
+  navigator.clipboard.writeText(rawContent).then(() => {
+    btn.classList.add('copied');
+    const span = btn.querySelector('span');
+    const origText = span.textContent;
+    span.textContent = '已复制';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      span.textContent = origText;
+    }, 1500);
+  }).catch(() => {
+    const textarea = document.createElement('textarea');
+    textarea.value = rawContent;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    btn.classList.add('copied');
+    const span = btn.querySelector('span');
+    const origText = span.textContent;
+    span.textContent = '已复制';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      span.textContent = origText;
+    }, 1500);
+  });
+}
+
+function deleteMessage(msgId) {
+  const msgEl = document.getElementById(msgId);
+  if (!msgEl) return;
+  msgEl.style.transition = 'all 0.3s ease';
+  msgEl.style.opacity = '0';
+  msgEl.style.transform = 'translateX(20px)';
+  msgEl.style.maxHeight = msgEl.scrollHeight + 'px';
+  setTimeout(() => {
+    msgEl.style.maxHeight = '0';
+    msgEl.style.marginBottom = '0';
+    msgEl.style.padding = '0';
+    msgEl.style.overflow = 'hidden';
+  }, 150);
+  setTimeout(() => {
+    msgEl.remove();
+  }, 400);
 }
 
 function showTyping() {
