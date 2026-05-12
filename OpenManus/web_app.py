@@ -99,88 +99,64 @@ async def run_agent_with_thinking(websocket: WebSocket, message: str, agent_type
         }
 
         agent_class = agent_map.get(agent_type, Data)
-        agent = await agent_class.create()
 
         await ws_send(websocket, "thinking", {
             "phase": "init",
-            "title": "🚀 初始化代理",
-            "content": f"正在创建 {agent_class.__name__} 代理实例...",
+            "title": "🤔 理解问题",
+            "content": message[:200],
         })
 
-        await ws_send(websocket, "thinking", {
-            "phase": "intent",
-            "title": "🎯 意图识别",
-            "content": f"分析用户输入: \"{message[:100]}\"",
-        })
+        agent = await agent_class.create()
+        agent.max_steps = 5
 
         if message:
             agent.update_memory("user", message)
 
-        step_count = 0
-        max_steps = agent.max_steps
+        should_act = await agent.think()
 
-        while step_count < max_steps and agent.state.value != "FINISHED":
-            step_count += 1
+        if agent.tool_calls:
+            tool_names = [tc.function.name for tc in agent.tool_calls]
+            tool_args = []
+            for tc in agent.tool_calls:
+                try:
+                    args = json.loads(tc.function.arguments or "{}")
+                    tool_args.append(args)
+                except Exception:
+                    tool_args.append({})
 
             await ws_send(websocket, "thinking", {
-                "phase": "think",
-                "title": f"💭 思考步骤 {step_count}/{max_steps}",
-                "content": "正在分析当前状态，决定下一步行动...",
+                "phase": "tool_select",
+                "title": "🛠️ 使用工具",
+                "content": ", ".join(tool_names),
+                "tools": [{"name": n, "args": a} for n, a in zip(tool_names, tool_args)],
             })
-
-            should_act = await agent.think()
-
-            if agent.tool_calls:
-                tool_names = [tc.function.name for tc in agent.tool_calls]
-                tool_args = []
-                for tc in agent.tool_calls:
-                    try:
-                        args = json.loads(tc.function.arguments or "{}")
-                        tool_args.append(args)
-                    except Exception:
-                        tool_args.append({})
-
-                await ws_send(websocket, "thinking", {
-                    "phase": "tool_select",
-                    "title": f"🛠️ 选择工具 (步骤 {step_count})",
-                    "content": f"选择了 {len(tool_names)} 个工具: {', '.join(tool_names)}",
-                    "tools": [{"name": n, "args": a} for n, a in zip(tool_names, tool_args)],
-                })
-
-            last_assistant_msg = None
-            for msg in reversed(agent.memory.messages):
-                if msg.role == "assistant" and msg.content:
-                    last_assistant_msg = msg.content
-                    break
-
-            if last_assistant_msg:
-                await ws_send(websocket, "thinking", {
-                    "phase": "reasoning",
-                    "title": f"🧠 推理过程 (步骤 {step_count})",
-                    "content": last_assistant_msg[:500],
-                })
-
-            if not should_act:
-                await ws_send(websocket, "thinking", {
-                    "phase": "think_complete",
-                    "title": "✅ 思考完成",
-                    "content": "无需进一步操作",
-                })
-                break
 
             act_result = await agent.act()
 
             await ws_send(websocket, "thinking", {
                 "phase": "tool_result",
-                "title": f"🎯 执行结果 (步骤 {step_count})",
-                "content": act_result[:500] if act_result else "无输出",
+                "title": "📋 执行结果",
+                "content": act_result[:300] if act_result else "完成",
             })
 
-            if agent.is_stuck():
+            step_count = 1
+            while step_count < agent.max_steps and agent.state.value != "FINISHED":
+                step_count += 1
+                should_act = await agent.think()
+                if not should_act:
+                    break
+                if agent.tool_calls:
+                    names = [tc.function.name for tc in agent.tool_calls]
+                    await ws_send(websocket, "thinking", {
+                        "phase": "tool_select",
+                        "title": f"🛠️ 继续使用工具",
+                        "content": ", ".join(names),
+                    })
+                act_result = await agent.act()
                 await ws_send(websocket, "thinking", {
-                    "phase": "warning",
-                    "title": "⚠️ 检测到循环",
-                    "content": "代理可能陷入循环，尝试调整策略...",
+                    "phase": "tool_result",
+                    "title": "📋 执行结果",
+                    "content": act_result[:300] if act_result else "完成",
                 })
 
         final_response = ""
@@ -192,12 +168,6 @@ async def run_agent_with_thinking(websocket: WebSocket, message: str, agent_type
 
         if not final_response:
             final_response = "✅ 任务已完成！"
-
-        await ws_send(websocket, "thinking", {
-            "phase": "complete",
-            "title": "🏁 任务完成",
-            "content": f"共执行 {step_count} 步",
-        })
 
         await ws_send(websocket, "response", {"content": final_response})
 
@@ -501,15 +471,9 @@ HTML_TEMPLATE = """
             font-weight: 700;
             text-transform: uppercase;
         }
-        .step-phase.init { background: #1E40AF; color: #93C5FD; }
-        .step-phase.intent { background: #7C3AED; color: #DDD6FE; }
-        .step-phase.think { background: #4338CA; color: #C7D2FE; }
-        .step-phase.reasoning { background: #6D28D9; color: #DDD6FE; }
+        .step-phase.init { background: #4338CA; color: #C7D2FE; }
         .step-phase.tool_select { background: #B45309; color: #FDE68A; }
         .step-phase.tool_result { background: #047857; color: #A7F3D0; }
-        .step-phase.warning { background: #B91C1C; color: #FECACA; }
-        .step-phase.complete { background: #059669; color: #A7F3D0; }
-        .step-phase.think_complete { background: #2563EB; color: #BFDBFE; }
 
         .step-title { color: #E2E8F0; font-size: 11px; font-weight: 600; }
         .step-content {
