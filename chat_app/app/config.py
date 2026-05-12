@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Optional
+import os
 
 
 @dataclass
@@ -20,8 +21,8 @@ class AgentConfig:
     """Configuration for the agent."""
     
     name: str = "Data"
-    description: str = "A versatile AI assistant that can help with various tasks"
-    system_prompt: str = """You are Data, a versatile AI assistant that can help users with various tasks.
+    description: str = "A versatile AI assistant"
+    system_prompt: str = """You are Data, a versatile AI assistant.
 
 Capabilities:
 - Web browsing and information retrieval
@@ -34,8 +35,22 @@ Guidelines:
 - Always use the available tools to complete tasks
 - Ask for clarification when user requests are ambiguous
 - Provide clear, structured responses
-- Confirm important actions before executing them
 """
+
+
+@dataclass
+class AppConfig:
+    """Application-level configuration."""
+    
+    # Logging settings
+    log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
+    log_file: str = "./logs/data_agent.log"
+    enable_file_logging: bool = True
+    
+    # UI settings
+    theme: str = "light"
+    show_tool_calls: bool = True
+    enable_streaming: bool = True
 
 
 def load_config() -> LLMConfig:
@@ -43,3 +58,10 @@ def load_config() -> LLMConfig:
     return LLMConfig(
         api_key="sk-b8669932bc524dd191a14fc417079e8e",
     )
+
+
+def ensure_log_directory():
+    """Ensure log directory exists."""
+    log_dir = "./logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
