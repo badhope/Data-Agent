@@ -1,6 +1,6 @@
 """DataAgent Web Interface with Sandbox & Thinking Chain Visualization"""
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 import asyncio
 import json
@@ -18,6 +18,64 @@ active_connections: Dict[str, WebSocket] = {}
 
 SANDBOX_DIR = Path(tempfile.mkdtemp(prefix="dataagent_sandbox_"))
 SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
+
+# Config Management
+CONFIG_PATH = Path(__file__).parent / "config" / "web_config.json"
+
+
+def load_settings():
+    if CONFIG_PATH.exists():
+        try:
+            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            pass
+    return get_default_settings()
+
+
+def save_settings(settings):
+    CONFIG_PATH.parent.mkdir(exist_ok=True)
+    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+        json.dump(settings, f, ensure_ascii=False, indent=2)
+
+
+def get_default_settings():
+    return {
+        "llm": {
+            "model": "qwen-plus-latest",
+            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "api_key": "",
+            "max_tokens": 4096,
+            "temperature": 0.7,
+            "api_type": "Openai"
+        },
+        "search": {
+            "engine": "Google",
+            "lang": "zh",
+            "country": "cn"
+        },
+        "browser": {
+            "headless": False,
+            "max_content_length": 2000
+        },
+        "sandbox": {
+            "use_sandbox": False,
+            "timeout": 300,
+            "network_enabled": False
+        },
+        "prompts": {
+            "data_agent": "",
+            "browser_agent": "",
+            "swe_agent": "",
+            "analysis_agent": ""
+        },
+        "agent": {
+            "max_steps": 5
+        }
+    }
+
+
+current_settings = load_settings()
 
 
 class SandboxExecutor:
@@ -107,7 +165,7 @@ async def run_agent_with_thinking(websocket: WebSocket, message: str, agent_type
         })
 
         agent = await agent_class.create()
-        agent.max_steps = 5
+        agent.max_steps = current_settings.get("agent", {}).get("max_steps", 5)
 
         if message:
             agent.update_memory("user", message)
@@ -184,7 +242,41 @@ async def ws_send(websocket: WebSocket, msg_type: str, data: dict):
         pass
 
 
-HTML_TEMPLATE = """
+# Settings API Endpoints
+@app.get("/api/settings")
+async def get_settings_endpoint():
+    return JSONResponse(current_settings)
+
+
+@app.post("/api/settings")
+async def update_settings_endpoint(request: Request):
+    global current_settings
+    new_settings = await request.json()
+    current_settings = new_settings
+    save_settings(current_settings)
+    return JSONResponse({"success": True, "settings": current_settings})
+
+
+# WebSocket Endpoint
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            message = data.get("content", "")
+            agent_type = data.get("agent", "data")
+            await run_agent_with_thinking(websocket, message, agent_type)
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        pass
+
+
+# HTML Endpoint
+@app.get("/")
+async def get():
+    html_content = """
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -290,6 +382,28 @@ HTML_TEMPLATE = """
             font-size: 10px;
             color: white;
             margin-top: 6px;
+        }
+
+        /* ===== Settings Button ===== */
+        .settings-btn-sidebar {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .settings-btn-sidebar:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(79,70,229,0.4);
         }
 
         /* ===== Main Content ===== */
@@ -614,6 +728,194 @@ HTML_TEMPLATE = """
         }
         .overlay.show { display: block; }
 
+        /* ===== Settings Modal ===== */
+        .settings-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .settings-modal-overlay.show { display: flex; }
+        
+        .settings-modal {
+            background: #1E293B;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            border: 1px solid #334155;
+        }
+        
+        .settings-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+        }
+        .settings-modal-title {
+            color: #E2E8F0;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .settings-modal-close {
+            background: none;
+            border: none;
+            color: #94A3B8;
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .settings-modal-close:hover { color: #E2E8F0; }
+        
+        .settings-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: #0F172A;
+            border-bottom: 1px solid #334155;
+            overflow-x: auto;
+        }
+        .settings-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: #94A3B8;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .settings-tab:hover {
+            background: rgba(79,70,229,0.15);
+            color: #E2E8F0;
+        }
+        .settings-tab.active {
+            background: #4F46E5;
+            color: white;
+        }
+        
+        .settings-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+        }
+        
+        .settings-tab-content {
+            display: none;
+        }
+        .settings-tab-content.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .setting-group {
+            margin-bottom: 20px;
+        }
+        .setting-row {
+            display: flex;
+            gap: 16px;
+        }
+        .setting-row .setting-group { flex: 1; }
+        .flex-1 { flex: 1; }
+        
+        .setting-label {
+            color: #E2E8F0;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .setting-desc {
+            color: #64748B;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        .setting-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0F172A;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            color: #E2E8F0;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .setting-input:focus {
+            outline: none;
+            border-color: #4F46E5;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.2);
+        }
+        .setting-textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .setting-checkbox-group {
+            background: rgba(79,70,229,0.05);
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(79,70,229,0.2);
+        }
+        .setting-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .setting-checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #4F46E5;
+            cursor: pointer;
+        }
+        .setting-checkbox-label span {
+            color: #E2E8F0;
+            font-size: 14px;
+        }
+        
+        .settings-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #334155;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #0F172A;
+        }
+        .settings-btn {
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .settings-btn-primary {
+            background: #4F46E5;
+            color: white;
+        }
+        .settings-btn-primary:hover { background: #4338CA; }
+        .settings-btn-secondary {
+            background: #334155;
+            color: #E2E8F0;
+        }
+        .settings-btn-secondary:hover { background: #475569; }
+
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
@@ -660,12 +962,202 @@ HTML_TEMPLATE = """
                     <span>📊 系统信息</span><span class="arrow">▶</span>
                 </div>
                 <div class="collapse-body"><div class="collapse-body-inner" style="color:#94A3B8;font-size:11px;line-height:1.8;">
-                    <p>模型: qwen-plus-latest</p>
+                    <p>模型: <span id="setting-model">qwen-plus-latest</span></p>
                     <p>API: 阿里百炼</p>
                     <p>沙箱: 已启用</p>
                     <p>Python: 已配置</p>
                     <p>状态: <span id="sys-status">正常运行</span></p>
                 </div></div>
+            </div>
+            
+            <div style="padding-top: 12px;">
+                <button class="settings-btn-sidebar" onclick="openSettings()">
+                    ⚙️ 设置
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="settings-modal-overlay" id="settings-modal">
+        <div class="settings-modal">
+            <div class="settings-modal-header">
+                <div class="settings-modal-title">⚙️ 设置</div>
+                <button class="settings-modal-close" onclick="closeSettings()">×</button>
+            </div>
+            
+            <div class="settings-tabs">
+                <button class="settings-tab active" onclick="switchSettingTab('llm')" data-tab="llm">模型配置</button>
+                <button class="settings-tab" onclick="switchSettingTab('prompts')" data-tab="prompts">提示词</button>
+                <button class="settings-tab" onclick="switchSettingTab('search')" data-tab="search">搜索配置</button>
+                <button class="settings-tab" onclick="switchSettingTab('browser')" data-tab="browser">浏览器</button>
+                <button class="settings-tab" onclick="switchSettingTab('sandbox')" data-tab="sandbox">沙箱</button>
+                <button class="settings-tab" onclick="switchSettingTab('agent')" data-tab="agent">智能体</button>
+            </div>
+            
+            <div class="settings-content" id="settings-content">
+                <!-- LLM Settings Tab -->
+                <div class="settings-tab-content active" data-tab="llm">
+                    <div class="setting-group">
+                        <div class="setting-label">模型名称</div>
+                        <div class="setting-desc">选择要使用的 LLM 模型</div>
+                        <select class="setting-input" id="setting-llm-model">
+                            <option value="qwen-plus-latest">qwen-plus-latest (阿里百炼)</option>
+                            <option value="qwen-turbo-latest">qwen-turbo-latest (阿里百炼)</option>
+                            <option value="gpt-4o">gpt-4o (OpenAI)</option>
+                            <option value="gpt-4">gpt-4 (OpenAI)</option>
+                            <option value="gpt-3.5-turbo">gpt-3.5-turbo (OpenAI)</option>
+                            <option value="claude-3-opus">claude-3-opus (Anthropic)</option>
+                            <option value="claude-3-sonnet">claude-3-sonnet (Anthropic)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">API Base URL</div>
+                        <div class="setting-desc">API 端点地址</div>
+                        <input type="text" class="setting-input" id="setting-llm-base-url" placeholder="https://api.example.com/v1">
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">API Key</div>
+                        <div class="setting-desc">您的 API 密钥（将安全存储）</div>
+                        <input type="password" class="setting-input" id="setting-llm-api-key" placeholder="sk-...">
+                    </div>
+                    
+                    <div class="setting-row">
+                        <div class="setting-group flex-1">
+                            <div class="setting-label">最大 Token 数</div>
+                            <input type="number" class="setting-input" id="setting-llm-max-tokens" value="4096" min="256" max="128000">
+                        </div>
+                        <div class="setting-group flex-1">
+                            <div class="setting-label">温度</div>
+                            <input type="number" class="setting-input" id="setting-llm-temperature" value="0.7" min="0" max="2" step="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">API 类型</div>
+                        <select class="setting-input" id="setting-llm-api-type">
+                            <option value="Openai">OpenAI 兼容</option>
+                            <option value="Azure">Azure OpenAI</option>
+                            <option value="Ollama">Ollama (本地)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Prompts Settings Tab -->
+                <div class="settings-tab-content" data-tab="prompts">
+                    <div class="setting-group">
+                        <div class="setting-label">Data 通用代理提示词</div>
+                        <div class="setting-desc">自定义 Data 代理的系统提示词</div>
+                        <textarea class="setting-input setting-textarea" id="setting-prompt-data" placeholder="输入自定义系统提示词..."></textarea>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">浏览器代理提示词</div>
+                        <div class="setting-desc">自定义浏览器代理的系统提示词</div>
+                        <textarea class="setting-input setting-textarea" id="setting-prompt-browser" placeholder="输入自定义系统提示词..."></textarea>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">SWE 软件工程代理提示词</div>
+                        <div class="setting-desc">自定义 SWE 代理的系统提示词</div>
+                        <textarea class="setting-input setting-textarea" id="setting-prompt-swe" placeholder="输入自定义系统提示词..."></textarea>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">数据分析代理提示词</div>
+                        <div class="setting-desc">自定义数据分析代理的系统提示词</div>
+                        <textarea class="setting-input setting-textarea" id="setting-prompt-analysis" placeholder="输入自定义系统提示词..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Search Settings Tab -->
+                <div class="settings-tab-content" data-tab="search">
+                    <div class="setting-group">
+                        <div class="setting-label">默认搜索引擎</div>
+                        <select class="setting-input" id="setting-search-engine">
+                            <option value="Google">Google</option>
+                            <option value="DuckDuckGo">DuckDuckGo</option>
+                            <option value="Baidu">百度</option>
+                            <option value="Bing">Bing</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <div class="setting-group flex-1">
+                            <div class="setting-label">搜索语言</div>
+                            <select class="setting-input" id="setting-search-lang">
+                                <option value="zh">中文</option>
+                                <option value="en">English</option>
+                                <option value="ja">日本語</option>
+                                <option value="ko">한국어</option>
+                            </select>
+                        </div>
+                        <div class="setting-group flex-1">
+                            <div class="setting-label">搜索地区</div>
+                            <select class="setting-input" id="setting-search-country">
+                                <option value="cn">中国</option>
+                                <option value="us">美国</option>
+                                <option value="jp">日本</option>
+                                <option value="kr">韩国</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Browser Settings Tab -->
+                <div class="settings-tab-content" data-tab="browser">
+                    <div class="setting-group setting-checkbox-group">
+                        <label class="setting-checkbox-label">
+                            <input type="checkbox" id="setting-browser-headless">
+                            <span>无头模式（不显示浏览器窗口）</span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">最大内容长度</div>
+                        <div class="setting-desc">单次获取网页内容的最大字符数</div>
+                        <input type="number" class="setting-input" id="setting-browser-max-content" value="2000" min="500" max="10000">
+                    </div>
+                </div>
+                
+                <!-- Sandbox Settings Tab -->
+                <div class="settings-tab-content" data-tab="sandbox">
+                    <div class="setting-group setting-checkbox-group">
+                        <label class="setting-checkbox-label">
+                            <input type="checkbox" id="setting-sandbox-enabled">
+                            <span>启用沙箱环境</span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">执行超时（秒）</div>
+                        <div class="setting-desc">沙箱命令执行的超时时间</div>
+                        <input type="number" class="setting-input" id="setting-sandbox-timeout" value="300" min="10" max="3600">
+                    </div>
+                    
+                    <div class="setting-group setting-checkbox-group">
+                        <label class="setting-checkbox-label">
+                            <input type="checkbox" id="setting-sandbox-network">
+                            <span>允许网络访问（谨慎开启）</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Agent Settings Tab -->
+                <div class="settings-tab-content" data-tab="agent">
+                    <div class="setting-group">
+                        <div class="setting-label">最大执行步数</div>
+                        <div class="setting-desc">智能体执行的最大循环步数</div>
+                        <input type="number" class="setting-input" id="setting-agent-max-steps" value="5" min="1" max="50">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-modal-footer">
+                <button class="settings-btn settings-btn-secondary" onclick="resetSettings()">重置默认</button>
+                <button class="settings-btn settings-btn-primary" onclick="saveSettings()">保存设置</button>
             </div>
         </div>
     </div>
@@ -698,7 +1190,7 @@ HTML_TEMPLATE = """
                         • Python 代码安全执行<br>
                         • 图表可视化输出<br>
                         • Bash 命令执行<br><br>
-                        请输入您的需求开始体验！
+                        点击侧边栏的 <strong>⚙️ 设置</strong> 按钮来配置 API 和其他选项！
                     </div>
                 </div>
             </div>
@@ -730,6 +1222,7 @@ HTML_TEMPLATE = """
         let isProcessing = false;
         let currentThinkingChain = null;
         let thinkingStepCount = 0;
+        let appSettings = null;
 
         // ===== WebSocket =====
         function connectWS() {
@@ -966,79 +1459,217 @@ HTML_TEMPLATE = """
         function newChat() {
             messagesDiv.innerHTML = '';
             currentThinkingChain = null;
-            addMessage('👋 你好！我是 <strong>Data</strong>，您的智能助手。请描述您的需求！', 'assistant');
+            addMessage('👋 你好！我是 <strong>Data</strong>，您的智能助手。', 'assistant');
         }
 
         // ===== Sidebar =====
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('overlay').classList.toggle('show');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
         }
 
-        function toggleSection(headerEl) {
-            headerEl.parentElement.classList.toggle('open');
+        function toggleSection(header) {
+            const section = header.parentElement;
+            section.classList.toggle('open');
         }
 
         function selectAgent(agent) {
             currentAgent = agent;
-            const names = { 'data': 'Data 通用代理', 'browser': '浏览器代理', 'swe': 'SWE 软件工程代理', 'analysis': '数据分析代理' };
-            currentAgentSpan.textContent = names[agent];
-            document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('active'));
-            const el = document.getElementById('agent-' + agent);
-            if (el) el.classList.add('active');
-            addMessage('已切换到 <strong>' + names[agent] + '</strong>', 'system');
+            document.querySelectorAll('.agent-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.getElementById('agent-' + agent).classList.add('active');
+            
+            const agentNames = {
+                'data': 'Data 通用代理',
+                'browser': '浏览器代理',
+                'swe': 'SWE 软件工程代理',
+                'analysis': '数据分析代理'
+            };
+            currentAgentSpan.textContent = agentNames[agent];
         }
 
-        // ===== Quick Actions =====
-        function showConfig() {
-            addMessage('⚙️ <strong>当前配置：</strong><br><br>• 模型: qwen-plus-latest<br>• API: 阿里百炼<br>• 代理: ' + currentAgent + '<br>• 沙箱: 已启用<br>• 思维链: 可视化', 'assistant');
+        // ===== Settings =====
+        function openSettings() {
+            document.getElementById('settings-modal').classList.add('show');
+            loadSettings();
         }
 
-        selectAgent('data');
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('show');
+        }
+
+        function switchSettingTab(tabName) {
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.settings-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            document.querySelector('.settings-tab[data-tab="' + tabName + '"]').classList.add('active');
+            document.querySelector('.settings-tab-content[data-tab="' + tabName + '"]').classList.add('active');
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                appSettings = await response.json();
+                populateSettings(appSettings);
+            } catch(e) {
+                console.error('Failed to load settings:', e);
+            }
+        }
+
+        function populateSettings(settings) {
+            // LLM
+            document.getElementById('setting-llm-model').value = settings.llm.model;
+            document.getElementById('setting-llm-base-url').value = settings.llm.base_url;
+            document.getElementById('setting-llm-api-key').value = settings.llm.api_key;
+            document.getElementById('setting-llm-max-tokens').value = settings.llm.max_tokens;
+            document.getElementById('setting-llm-temperature').value = settings.llm.temperature;
+            document.getElementById('setting-llm-api-type').value = settings.llm.api_type;
+            
+            // Prompts
+            document.getElementById('setting-prompt-data').value = settings.prompts.data_agent;
+            document.getElementById('setting-prompt-browser').value = settings.prompts.browser_agent;
+            document.getElementById('setting-prompt-swe').value = settings.prompts.swe_agent;
+            document.getElementById('setting-prompt-analysis').value = settings.prompts.analysis_agent;
+            
+            // Search
+            document.getElementById('setting-search-engine').value = settings.search.engine;
+            document.getElementById('setting-search-lang').value = settings.search.lang;
+            document.getElementById('setting-search-country').value = settings.search.country;
+            
+            // Browser
+            document.getElementById('setting-browser-headless').checked = settings.browser.headless;
+            document.getElementById('setting-browser-max-content').value = settings.browser.max_content_length;
+            
+            // Sandbox
+            document.getElementById('setting-sandbox-enabled').checked = settings.sandbox.use_sandbox;
+            document.getElementById('setting-sandbox-timeout').value = settings.sandbox.timeout;
+            document.getElementById('setting-sandbox-network').checked = settings.sandbox.network_enabled;
+            
+            // Agent
+            document.getElementById('setting-agent-max-steps').value = settings.agent.max_steps;
+            
+            // Update UI
+            document.getElementById('setting-model').textContent = settings.llm.model;
+        }
+
+        async function saveSettings() {
+            const newSettings = {
+                llm: {
+                    model: document.getElementById('setting-llm-model').value,
+                    base_url: document.getElementById('setting-llm-base-url').value,
+                    api_key: document.getElementById('setting-llm-api-key').value,
+                    max_tokens: parseInt(document.getElementById('setting-llm-max-tokens').value),
+                    temperature: parseFloat(document.getElementById('setting-llm-temperature').value),
+                    api_type: document.getElementById('setting-llm-api-type').value
+                },
+                search: {
+                    engine: document.getElementById('setting-search-engine').value,
+                    lang: document.getElementById('setting-search-lang').value,
+                    country: document.getElementById('setting-search-country').value
+                },
+                browser: {
+                    headless: document.getElementById('setting-browser-headless').checked,
+                    max_content_length: parseInt(document.getElementById('setting-browser-max-content').value)
+                },
+                sandbox: {
+                    use_sandbox: document.getElementById('setting-sandbox-enabled').checked,
+                    timeout: parseInt(document.getElementById('setting-sandbox-timeout').value),
+                    network_enabled: document.getElementById('setting-sandbox-network').checked
+                },
+                prompts: {
+                    data_agent: document.getElementById('setting-prompt-data').value,
+                    browser_agent: document.getElementById('setting-prompt-browser').value,
+                    swe_agent: document.getElementById('setting-prompt-swe').value,
+                    analysis_agent: document.getElementById('setting-prompt-analysis').value
+                },
+                agent: {
+                    max_steps: parseInt(document.getElementById('setting-agent-max-steps').value)
+                }
+            };
+            
+            try {
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newSettings)
+                });
+                appSettings = newSettings;
+                document.getElementById('setting-model').textContent = newSettings.llm.model;
+                closeSettings();
+                addMessage('✅ 设置已保存', 'system');
+            } catch(e) {
+                addMessage('❌ 保存设置失败: ' + e.message, 'system');
+            }
+        }
+
+        async function resetSettings() {
+            if (confirm('确定要重置为默认设置吗？')) {
+                try {
+                    const defaultSettings = {
+                        llm: {
+                            model: "qwen-plus-latest",
+                            base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                            api_key: "",
+                            max_tokens: 4096,
+                            temperature: 0.7,
+                            api_type: "Openai"
+                        },
+                        search: {
+                            engine: "Google",
+                            lang: "zh",
+                            country: "cn"
+                        },
+                        browser: {
+                            headless: false,
+                            max_content_length: 2000
+                        },
+                        sandbox: {
+                            use_sandbox: false,
+                            timeout: 300,
+                            network_enabled: false
+                        },
+                        prompts: {
+                            data_agent: "",
+                            browser_agent: "",
+                            swe_agent: "",
+                            analysis_agent: ""
+                        },
+                        agent: {
+                            max_steps: 5
+                        }
+                    };
+                    
+                    await fetch('/api/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(defaultSettings)
+                    });
+                    
+                    populateSettings(defaultSettings);
+                    document.getElementById('setting-model').textContent = defaultSettings.llm.model;
+                    addMessage('✅ 设置已重置为默认', 'system');
+                } catch(e) {
+                    addMessage('❌ 重置设置失败: ' + e.message, 'system');
+                }
+            }
+        }
+
+        // Load settings on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
     </script>
 </body>
 </html>
-"""
-
-
-@app.get("/", response_class=HTMLResponse)
-async def get_index():
-    return HTMLResponse(content=HTML_TEMPLATE)
-
-
-@app.get("/api/sandbox/python")
-async def sandbox_python(code: str = ""):
-    if not code:
-        return JSONResponse({"error": "No code provided"}, status_code=400)
-    result = await sandbox.execute_python(code)
-    return JSONResponse({"result": result})
-
-
-@app.get("/api/sandbox/bash")
-async def sandbox_bash(command: str = ""):
-    if not command:
-        return JSONResponse({"error": "No command provided"}, status_code=400)
-    result = await sandbox.execute_bash(command)
-    return JSONResponse({"result": result})
-
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-
-    client_id = f"client_{id(websocket)}"
-    active_connections[client_id] = websocket
-
-    try:
-        while True:
-            data = await websocket.receive_json()
-            content = data.get('content', '')
-            agent_type = data.get('agent', 'data')
-
-            await run_agent_with_thinking(websocket, content, agent_type)
-
-    except WebSocketDisconnect:
-        del active_connections[client_id]
+    """
+    return HTMLResponse(html_content)
 
 
 if __name__ == "__main__":
