@@ -16,7 +16,7 @@ async def on_chat_start():
         cl.user_session.set("agent", agent)
         
         await cl.Message(
-            content="👋 你好！我是 OpenManus，您的智能助手。\n\n我可以帮您：\n- 🔍 网页搜索\n- 📄 文件读写\n- 📂 目录浏览\n\n有什么可以帮您的吗？"
+            content="👋 你好！我是 Data，您的智能助手。\n\n我可以帮您：\n- 🔍 网页搜索\n- 📄 文件读写\n- 📂 目录浏览\n\n有什么可以帮您的吗？"
         ).send()
         
     except Exception as e:
