@@ -1993,6 +1993,7 @@ let currentSessionId = null;
 let sessions = [];
 let availableTools = [];
 let isLoading = false;
+let messageIndexCounter = 0;
 
 // Page titles
 const PAGE_TITLES = {
@@ -2197,6 +2198,9 @@ function addChatMessage(role, content, meta = {}) {
   div.className = 'chat-message ' + role;
   const msgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
   div.id = msgId;
+  const msgIdx = messageIndexCounter++;
+  div.dataset.msgIndex = msgIdx;
+  div.dataset.role = role;
   
   const metaHtml = meta.intent ? `
     <div class="chat-meta">
@@ -2269,6 +2273,15 @@ function copyMessage(msgId, btn) {
 function deleteMessage(msgId) {
   const msgEl = document.getElementById(msgId);
   if (!msgEl) return;
+  const msgIndex = parseInt(msgEl.dataset.msgIndex);
+  const role = msgEl.dataset.role;
+  
+  if (currentSessionId && !isNaN(msgIndex)) {
+    fetch(`${API_URL}/chat/${currentSessionId}/message/${msgIndex}`, {
+      method: 'DELETE'
+    }).catch(() => {});
+  }
+  
   msgEl.style.transition = 'all 0.3s ease';
   msgEl.style.opacity = '0';
   msgEl.style.transform = 'translateX(20px)';

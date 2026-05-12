@@ -74,6 +74,10 @@ class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
 
+class DeleteMessageRequest(BaseModel):
+    session_id: str
+    message_index: int
+
 class ChatResponse(BaseModel):
     response: str
     session_id: str
@@ -97,26 +101,80 @@ class PluginSettingsRequest(BaseModel):
     plugin_id: str
     enabled: bool
 
-def get_intent(message: str) -> tuple:
+INTENT_KEYWORDS = {
+    "calculator": ["计算", "加", "减", "乘", "除", "等于", "多少", "calc", "换算", "转换", "统计"],
+    "calendar": ["日程", "会议", "时间安排", "calendar", "schedule", "提醒", "预约"],
+    "task": ["任务", "todo", "task", "完成", "待办", "进度", "跟踪"],
+    "email": ["邮件", "email", "写信", "发送邮件", "收件", "回复"],
+    "document": ["文档", "document", "read", "文件", "摘要", "阅读", "总结"],
+    "chart": ["图表", "chart", "柱状图", "折线图", "饼图", "雷达图", "散点图", "可视化"],
+    "ppt": ["ppt", "演示", "slide", "幻灯片", "汇报", "展示"],
+    "knowledge": ["知识库", "搜索", "knowledge", "查询", "查找", "检索", "问答"],
+}
+
+def get_intent_keyword(message: str) -> tuple:
     msg = message.lower()
-    if any(word in msg for word in ["计算", "加", "减", "乘", "除", "等于", "多少", "calc"]):
-        return ("calculator", 0.9)
-    elif any(word in msg for word in ["日程", "会议", "时间", "calendar", "schedule"]):
-        return ("calendar", 0.85)
-    elif any(word in msg for word in ["任务", "todo", "task", "完成", "待办"]):
-        return ("task", 0.8)
-    elif any(word in msg for word in ["邮件", "email", "写信"]):
-        return ("email", 0.75)
-    elif any(word in msg for word in ["文档", "document", "read", "文件"]):
-        return ("document", 0.7)
-    elif any(word in msg for word in ["图表", "chart", "图", "统计"]):
-        return ("chart", 0.75)
-    elif any(word in msg for word in ["ppt", "演示", "slide", "幻灯片"]):
-        return ("ppt", 0.7)
-    elif any(word in msg for word in ["知识库", "搜索", "knowledge", "查询", "查找"]):
-        return ("knowledge", 0.8)
-    else:
-        return ("chat", 0.6)
+    best_intent = "chat"
+    best_confidence = 0.6
+    for intent, keywords in INTENT_KEYWORDS.items():
+        for kw in keywords:
+            if kw in msg:
+                conf = min(0.95, 0.7 + len(kw) * 0.03)
+                if conf > best_confidence:
+                    best_intent = intent
+                    best_confidence = conf
+                break
+    return (best_intent, best_confidence)
+
+async def get_intent_ai(message: str) -> tuple:
+    if not system_config.get("api_key"):
+        return get_intent_keyword(message)
+    try:
+        url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+        headers = {"Authorization": f"Bearer {system_config['api_key']}", "Content-Type": "application/json"}
+        payload = {
+            "model": system_config.get("model", "qwen-flash"),
+            "messages": [
+                {"role": "system", "content": """你是意图识别专家。分析用户输入，返回JSON格式的意图识别结果。
+
+可用意图类型：calculator, calendar, task, email, document, chart, ppt, knowledge, chat
+
+规则：
+- calculator: 数学计算、单位换算、统计分析
+- calendar: 日程安排、会议、提醒
+- task: 任务管理、待办事项
+- email: 邮件相关
+- document: 文档处理、摘要
+- chart: 图表生成、数据可视化
+- ppt: PPT/演示文稿
+- knowledge: 知识库检索、搜索查询
+- chat: 普通闲聊、问候、其他
+
+只输出JSON，不要其他文字：
+{"intent":"xxx","confidence":0.95}"""},
+                {"role": "user", "content": message}
+            ],
+            "temperature": 0,
+            "max_tokens": 100
+        }
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code == 200:
+                content = response.json()["choices"][0]["message"]["content"].strip()
+                import re
+                json_match = re.search(r'\{[^}]+\}', content)
+                if json_match:
+                    data = json.loads(json_match.group())
+                    intent = data.get("intent", "chat")
+                    confidence = data.get("confidence", 0.8)
+                    if intent in INTENT_KEYWORDS or intent == "chat":
+                        return (intent, confidence)
+            return get_intent_keyword(message)
+    except Exception:
+        return get_intent_keyword(message)
+
+def get_intent(message: str) -> tuple:
+    return get_intent_keyword(message)
 
 async def call_dashscope_api(messages: list) -> str:
     api_key = system_config.get("api_key", "")
@@ -172,7 +230,7 @@ async def chat(request: ChatRequest):
                 "messages": []
             }
         
-        intent, confidence = get_intent(request.message)
+        intent, confidence = await get_intent_ai(request.message)
         
         if intent != "chat" and not plugin_settings.get(intent, {}).get("enabled", True):
             response = f"抱歉，{intent} 插件当前已禁用。您可以在设置中启用此功能。"
@@ -245,6 +303,26 @@ async def delete_session(session_id: str):
         if session_id in sessions:
             del sessions[session_id]
         return {"status": "success", "message": "Session deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/chat/{session_id}/message/{message_index}")
+async def delete_message(session_id: str, message_index: int):
+    try:
+        if session_id not in sessions:
+            raise HTTPException(status_code=404, detail="Session not found")
+        msgs = sessions[session_id]["messages"]
+        if message_index < 0 or message_index >= len(msgs):
+            raise HTTPException(status_code=400, detail="Invalid message index")
+        deleted = msgs.pop(message_index)
+        return {
+            "status": "success",
+            "message": "Message deleted",
+            "deleted_role": deleted["role"],
+            "remaining_messages": len(msgs)
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
