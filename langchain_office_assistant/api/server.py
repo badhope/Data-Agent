@@ -86,6 +86,7 @@ class ChatResponse(BaseModel):
     confidence: float
     tool_used: Optional[str]
     duration_ms: int
+    thinking: Optional[List[Dict[str, Any]]] = None
 
 class ToolListResponse(BaseModel):
     tools: List[Dict[str, Any]]
@@ -217,6 +218,58 @@ async def call_dashscope_api(messages: list) -> str:
     except Exception as e:
         return f"❌ API调用异常: {str(e)}"
 
+def generate_thinking_chain(user_message: str, intent: str, confidence: float) -> List[Dict[str, Any]]:
+    """生成思维链"""
+    chain = []
+    
+    # 步骤1：理解用户问题
+    chain.append({
+        "title": "理解用户问题",
+        "content": f"分析用户输入：「{user_message}」"
+    })
+    
+    # 步骤2：识别意图
+    intent_names = {
+        "calculator": "计算工具",
+        "calendar": "日程管理",
+        "task": "任务管理",
+        "email": "邮件处理",
+        "document": "文档处理",
+        "chart": "图表生成",
+        "ppt": "PPT生成",
+        "knowledge": "知识库",
+        "chat": "普通对话"
+    }
+    chain.append({
+        "title": "识别用户意图",
+        "content": f"识别为「{intent_names.get(intent, intent)}」，置信度 {int(confidence * 100)}%"
+    })
+    
+    # 步骤3：根据意图思考下一步
+    if intent == "calculator":
+        chain.append({
+            "title": "思考计算方法",
+            "content": "识别到计算意图，准备进行数学运算"
+        })
+    elif intent == "chart":
+        chain.append({
+            "title": "思考图表生成",
+            "content": "识别到图表意图，准备生成可视化图表"
+        })
+    elif intent == "chat":
+        chain.append({
+            "title": "规划回复策略",
+            "content": "识别到普通对话，准备友好回复用户"
+        })
+    
+    # 步骤4：生成回复
+    chain.append({
+        "title": "生成最终回复",
+        "content": "整合思考，生成最终回复内容"
+    })
+    
+    return chain
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
@@ -252,6 +305,9 @@ async def chat(request: ChatRequest):
             response = generate_mock_response(request.message, intent)
             tool_used = intent if intent != "chat" else None
         
+        # 生成思维链
+        thinking = generate_thinking_chain(request.message, intent, confidence)
+        
         trace_id = str(uuid.uuid4())
         trace = {
             "trace_id": trace_id,
@@ -280,7 +336,8 @@ async def chat(request: ChatRequest):
             intent=intent,
             confidence=confidence,
             tool_used=tool_used,
-            duration_ms=duration_ms
+            duration_ms=duration_ms,
+            thinking=thinking
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

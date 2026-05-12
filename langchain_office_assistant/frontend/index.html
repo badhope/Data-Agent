@@ -838,6 +838,134 @@ input:checked + .toggle-slider:before {
   opacity: 1;
 }
 
+/* 思维链样式 */
+.chain-section {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.chain-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.chain-toggle:hover {
+  background: var(--bg-card);
+  border-color: var(--accent);
+}
+
+.chain-toggle-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chain-toggle.expanded .chain-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.chain-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 12px;
+}
+
+.chain-content.expanded {
+  max-height: 2000px;
+  padding: 12px;
+}
+
+.chain-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chain-step {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.chain-step-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.chain-step-content {
+  flex: 1;
+}
+
+.chain-step-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.chain-step-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.chain-thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px dashed var(--accent);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.chain-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.chain-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: chainBounce 1.4s infinite ease-in-out;
+}
+
+.chain-dot:nth-child(2) { animation-delay: 0.2s; }
+.chain-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes chainBounce {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
 .chat-action-btn {
   display: flex;
   align-items: center;
@@ -2164,7 +2292,7 @@ async function sendMessage() {
         tool: data.tool_used,
         confidence: data.confidence,
         duration: data.duration_ms
-      });
+      }, data.thinking);
       
       // Update session
       const session = sessions.find(s => s.id === currentSessionId);
@@ -2192,7 +2320,7 @@ function sendQuick(text) {
   }, 100);
 }
 
-function addChatMessage(role, content, meta = {}) {
+function addChatMessage(role, content, meta = {}, thinking = null) {
   const container = document.getElementById('chatMessages');
   const div = document.createElement('div');
   div.className = 'chat-message ' + role;
@@ -2213,12 +2341,31 @@ function addChatMessage(role, content, meta = {}) {
 
   const copySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   const deleteSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+  const chainSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+  
+  let chainHtml = '';
+  if (role === 'bot' && thinking) {
+    chainHtml = `
+      <div class="chain-section">
+        <button class="chain-toggle" onclick="toggleChain('${msgId}')">
+          <span class="chain-toggle-icon">${chainSvg}</span>
+          <span>思考过程</span>
+        </button>
+        <div class="chain-content" id="chain-${msgId}">
+          <div class="chain-steps">
+            ${generateChainSteps(thinking)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
   
   div.innerHTML = `
     <div class="chat-avatar">${role === 'user' ? '👤' : '🤖'}</div>
     <div>
       <div class="chat-bubble">${formatContent(content)}</div>
       ${metaHtml}
+      ${chainHtml}
       <div class="chat-actions">
         <button class="chat-action-btn copy" onclick="copyMessage('${msgId}', this)" title="复制">${copySvg}<span>复制</span></button>
         <button class="chat-action-btn delete" onclick="deleteMessage('${msgId}')" title="删除">${deleteSvg}<span>删除</span></button>
@@ -2226,8 +2373,39 @@ function addChatMessage(role, content, meta = {}) {
     </div>
   `;
   div.dataset.rawContent = content;
+  if (thinking) {
+    div.dataset.thinking = JSON.stringify(thinking);
+  }
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
+}
+
+function generateChainSteps(thinking) {
+  if (!thinking || !Array.isArray(thinking)) {
+    return '';
+  }
+  let html = '';
+  thinking.forEach((step, index) => {
+    html += `
+      <div class="chain-step">
+        <div class="chain-step-icon">${index + 1}</div>
+        <div class="chain-step-content">
+          <div class="chain-step-title">${step.title || '步骤 ' + (index + 1)}</div>
+          <div class="chain-step-text">${step.content || step.text || ''}</div>
+        </div>
+      </div>
+    `;
+  });
+  return html;
+}
+
+function toggleChain(msgId) {
+  const toggle = document.querySelector(`#${msgId} .chain-toggle`);
+  const content = document.getElementById(`chain-${msgId}`);
+  if (toggle && content) {
+    toggle.classList.toggle('expanded');
+    content.classList.toggle('expanded');
+  }
 }
 
 function formatContent(text) {
