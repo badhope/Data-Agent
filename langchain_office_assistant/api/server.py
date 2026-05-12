@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import uvicorn
@@ -13,6 +15,8 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
 app = FastAPI(title="Office Agent API", version="1.0.0")
 
@@ -28,8 +32,8 @@ sessions = {}
 traces = []
 system_config = {
     "platform": "dashscope",
-    "model": "qwen-plus",
-    "api_key": "",
+    "model": "qwen-flash",
+    "api_key": "sk-a9aa5c63a3384a75a2e54c89240ef02a",
     "temperature": 0.7,
     "max_tokens": 2000,
 }
@@ -80,7 +84,7 @@ class ChatResponse(BaseModel):
     duration_ms: int
 
 class ToolListResponse(BaseModel):
-    tools: List[Dict[str, str]]
+    tools: List[Dict[str, Any]]
 
 class ConfigRequest(BaseModel):
     platform: Optional[str] = None
@@ -359,6 +363,20 @@ async def get_stats():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+if FRONTEND_DIR.exists():
+    @app.get("/")
+    async def serve_frontend():
+        return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+    @app.get("/frontend/{file_path:path}")
+    async def serve_frontend_file(file_path: str):
+        file = FRONTEND_DIR / file_path
+        if file.exists() and file.is_file():
+            return FileResponse(str(file))
+        return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
