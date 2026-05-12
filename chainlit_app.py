@@ -1,4 +1,4 @@
-"""Chainlit frontend for Office Assistant Agent.
+"""Chainlit frontend for OpenManus AI Agent.
 
 Official Chainlit + LangChain integration pattern.
 https://docs.chainlit.io/integrations/langchain
@@ -12,12 +12,14 @@ from langchain_core.runnables.config import RunnableConfig
 from langchain_core.runnables import Runnable
 import os
 
-SYSTEM_PROMPT = """You are a professional office assistant helping users with:
+SYSTEM_PROMPT = """You are OpenManus, a versatile AI assistant that can help users with various tasks.
 
-📧 Email Management - Send, search, and manage emails
-📅 Calendar & Scheduling - Check schedules and schedule meetings
-✅ Task Management - Create and track tasks and todos
-📄 Document Handling - Search and summarize documents
+Capabilities:
+- Web browsing and information retrieval
+- File operations and document processing
+- Python code execution
+- Text editing and search
+- And much more!
 
 Guidelines:
 - Always use the available tools to complete tasks
@@ -28,31 +30,53 @@ Guidelines:
 
 
 def get_agent():
-    """Get or create the agent instance."""
-    from langgraph.prebuilt import create_react_agent
-    from langchain_office_assistant.tools import ALL_OFFICE_TOOLS
+    """Get or create the agent instance using 阿里百炼 API."""
+    from langchain.tools import tool
+    from langchain.agents import initialize_agent, AgentType
+    from typing import Dict, Any
 
-    # Check for OLLAMA_MODEL environment variable or default to qwen2.5:7b
-    ollama_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
-    
-    try:
-        from langchain_ollama import ChatOllama
-        model = ChatOllama(
-            model=ollama_model,
-            temperature=0.7
-        )
-    except ImportError:
-        # Fallback to OpenAI if langchain-ollama not installed
-        model = ChatOpenAI(
-            model="gpt-4",
-            temperature=0.7,
-            streaming=True
-        )
+    # 使用阿里百炼 API
+    model = ChatOpenAI(
+        model="qwen-turbo",
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        api_key="sk-b8669932bc524dd191a14fc417079e8e",
+        temperature=0.7,
+        streaming=True
+    )
 
-    agent = create_react_agent(
-        model=model,
-        tools=ALL_OFFICE_TOOLS,
-        state_modifier=SYSTEM_PROMPT,
+    @tool
+    def web_search(query: str) -> str:
+        """Search the web for information about a topic."""
+        from duckduckgo_search import DDGS
+        results = DDGS().text(query, max_results=5)
+        return "\n\n".join([f"- {r['title']}: {r['body']}" for r in results])
+
+    @tool
+    def write_file(file_path: str, content: str) -> str:
+        """Write content to a file."""
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return f"Successfully wrote to {file_path}"
+
+    @tool
+    def read_file(file_path: str) -> str:
+        """Read content from a file."""
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+
+    @tool
+    def list_files(directory: str = ".") -> str:
+        """List files in a directory."""
+        import os
+        return "\n".join(os.listdir(directory))
+
+    tools = [web_search, write_file, read_file, list_files]
+
+    agent = initialize_agent(
+        tools,
+        model,
+        agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+        verbose=True
     )
 
     return agent

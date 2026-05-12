@@ -1,0 +1,28 @@
+[project]
+name = "Data Agent"
+description = "智能助手 - Powered by 阿里百炼"
+version = "1.0.0"
+
+[server]
+port = 8000
+host = "0.0.0.0"
+log_level = "info"
+
+[ui]
+# Custom CSS file
+custom_css = "./styles.css"
+
+# Theme settings
+theme_mode = "dark"
+primary_color = "#4F46E5"
+secondary_color = "#10B981"
+
+# Header settings
+header = true
+title = "Data"
+subtitle = "智能助手"
+
+# Chat settings
+show_tool_calls = true
+enable_streaming = false
+message_timestamps = true
