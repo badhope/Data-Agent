@@ -1,4 +1,4 @@
-"""Custom CSS for Data Agent - Responsive design with sidebar."""
+/* ===== Data Agent Custom UI ===== */
 
 :root {
     --primary-color: #4F46E5;
@@ -17,6 +17,7 @@
     --sidebar-width: 280px;
 }
 
+/* ===== Layout ===== */
 body {
     margin: 0;
     padding: 0;
@@ -26,20 +27,91 @@ body {
     overflow: hidden;
 }
 
-.main-container {
+/* ===== Custom Header with Buttons ===== */
+.custom-header {
     display: flex;
-    height: 100vh;
-    width: 100vw;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 150;
+    height: 56px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    gap: 8px;
+}
+
+.header-btn:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.header-btn-icon {
+    font-size: 18px;
+}
+
+/* ===== Sidebar ===== */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 200;
+}
+
+.sidebar-overlay.show {
+    display: block;
 }
 
 .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: var(--sidebar-width);
+    height: 100%;
     background: var(--surface);
     border-right: 1px solid var(--border-color);
+    z-index: 250;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s ease;
-    z-index: 100;
+}
+
+.sidebar.open {
+    transform: translateX(0);
 }
 
 .sidebar-header {
@@ -122,46 +194,64 @@ body {
     font-weight: 600;
 }
 
-.chat-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.chat-header {
-    padding: 16px 20px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.chat-header-title {
-    font-size: 18px;
-    font-weight: 600;
-}
-
-.chat-header-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.chat-header-btn {
+/* ===== Tool Cards ===== */
+.tool-card {
     background: var(--surface-light);
     border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: 10px;
+    padding: 14px;
+    margin: 0 12px 8px;
     cursor: pointer;
-    font-size: 13px;
     transition: all 0.2s;
 }
 
-.chat-header-btn:hover {
-    background: var(--border-color);
-    color: var(--text-primary);
+.tool-card:hover {
+    border-color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+.tool-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.tool-card-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ===== Stats Card ===== */
+.stats-card {
+    background: var(--surface-light);
+    border-radius: 10px;
+    padding: 14px;
+    margin: 0 12px 8px;
+}
+
+.stats-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+}
+
+.stats-label {
+    color: var(--text-secondary);
+}
+
+.stats-value {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* ===== Chat Area ===== */
+.chat-container {
+    margin-top: 56px;
+    height: calc(100vh - 56px);
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-messages {
@@ -218,32 +308,18 @@ body {
     background: var(--primary-hover);
 }
 
-.mobile-menu-btn {
-    display: none;
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    z-index: 200;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 18px;
+/* ===== Hide Default Chainlit Elements ===== */
+.sidebar-header,
+新建对话,
+.chat-header,
+.chat-history,
+button[title="New conversation"],
+[ class*="newConversation"],
+[ class*="sidebarToggle"] {
+    display: none !important;
 }
 
-.sidebar-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 90;
-}
-
+/* ===== Message Bubbles ===== */
 .message {
     margin-bottom: 16px;
     animation: slideIn 0.3s ease-out;
@@ -275,61 +351,7 @@ body {
     color: var(--text-primary);
 }
 
-.tool-card {
-    background: var(--surface-light);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 14px;
-    margin: 0 12px 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.tool-card:hover {
-    border-color: var(--primary-color);
-    transform: translateX(4px);
-}
-
-.tool-card.active {
-    border-color: var(--primary-color);
-    background: rgba(79, 70, 229, 0.1);
-}
-
-.tool-card-title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.tool-card-desc {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.stats-card {
-    background: var(--surface-light);
-    border-radius: 10px;
-    padding: 14px;
-    margin: 0 12px 8px;
-}
-
-.stats-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    font-size: 13px;
-}
-
-.stats-label {
-    color: var(--text-secondary);
-}
-
-.stats-value {
-    font-weight: 600;
-    color: var(--primary-color);
-}
-
+/* ===== Animations ===== */
 @keyframes slideIn {
     from {
         opacity: 0;
@@ -341,6 +363,7 @@ body {
     }
 }
 
+/* ===== Scrollbar ===== */
 .sidebar-content::-webkit-scrollbar,
 .chat-messages::-webkit-scrollbar {
     width: 6px;
@@ -357,57 +380,49 @@ body {
     border-radius: 3px;
 }
 
-@media (min-width: 768px) {
-    .main-container {
-        display: flex;
-    }
-    
-    .sidebar {
-        transform: translateX(0);
-    }
-}
-
+/* ===== Responsive - Mobile ===== */
 @media (max-width: 767px) {
-    .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        height: 100%;
-        transform: translateX(-100%);
+    .header-btn span {
+        display: none;
     }
     
-    .sidebar.open {
-        transform: translateX(0);
-    }
-    
-    .sidebar-overlay.show {
-        display: block;
-    }
-    
-    .mobile-menu-btn {
-        display: block;
-    }
-    
-    .chat-header {
-        padding-left: 60px;
+    .header-btn {
+        padding: 10px 12px;
     }
     
     .message-content {
         max-width: 90%;
     }
     
-    .chat-header-btn span {
-        display: none;
+    .chat-messages {
+        padding: 12px;
+    }
+    
+    .chat-input-area {
+        padding: 12px;
     }
 }
 
+/* ===== Responsive - Desktop ===== */
+@media (min-width: 768px) {
+    .sidebar {
+        transform: translateX(0);
+        position: fixed;
+    }
+    
+    .chat-container {
+        margin-left: var(--sidebar-width);
+    }
+    
+    .sidebar-overlay {
+        display: none !important;
+    }
+}
+
+/* ===== Small Mobile ===== */
 @media (max-width: 320px) {
     .sidebar {
         width: 100%;
-    }
-    
-    .chat-header-title {
-        font-size: 16px;
     }
     
     .message-content {
@@ -417,16 +432,9 @@ body {
     }
 }
 
+/* ===== Landscape Mobile ===== */
 @media (max-width: 767px) and (orientation: landscape) {
-    .sidebar-content {
-        padding: 8px 0;
-    }
-    
-    .sidebar-item {
-        padding: 8px 16px;
-    }
-    
     .chat-messages {
-        padding: 12px;
+        padding: 10px;
     }
 }

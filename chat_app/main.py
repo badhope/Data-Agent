@@ -1,4 +1,4 @@
-"""Main entry point for the Data Agent chat application with sidebar."""
+"""Main entry point for the Data Agent chat application with custom UI."""
 
 import chainlit as cl
 from app.agents import create_agent
@@ -6,70 +6,127 @@ from app.logger import get_logger, log_agent_action, log_error
 from app.config import load_config
 
 
+def get_custom_header_html():
+    """Generate custom header HTML with sidebar toggle and new chat buttons."""
+    return """
+    <div class="custom-header">
+        <div class="header-left">
+            <button class="header-btn" onclick="toggleSidebar()">
+                <span class="header-btn-icon">☰</span>
+                <span>菜单</span>
+            </button>
+        </div>
+        <div class="header-right">
+            <button class="header-btn" onclick="startNewChat()">
+                <span class="header-btn-icon">+</span>
+                <span>新建对话</span>
+            </button>
+        </div>
+    </div>
+    """
+
+
 def get_sidebar_html():
     """Generate sidebar HTML."""
     return """
-    <div class="sidebar">
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">🤖 Data</div>
             <div class="sidebar-subtitle">智能助手</div>
         </div>
         
-        <div class="sidebar-content">
-            <div class="sidebar-section">
-                <p class="sidebar-section-title">📋 快捷操作</p>
-                
-                <div class="sidebar-item" onclick="sendMessage('查看日志')">
-                    <span class="sidebar-item-icon">📋</span>
-                    <span class="sidebar-item-text">查看日志</span>
-                </div>
-                
-                <div class="sidebar-item" onclick="sendMessage('查看配置')">
-                    <span class="sidebar-item-icon">⚙️</span>
-                    <span class="sidebar-item-text">查看配置</span>
-                </div>
-                
-                <div class="sidebar-item" onclick="sendMessage('可用工具')">
-                    <span class="sidebar-item-icon">📁</span>
-                    <span class="sidebar-item-text">可用工具</span>
-                </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">📋 快捷操作</div>
+            
+            <div class="sidebar-item" onclick="sendMessage('查看日志')">
+                <span class="sidebar-item-icon">📋</span>
+                <span class="sidebar-item-text">查看日志</span>
             </div>
             
-            <div class="sidebar-section">
-                <p class="sidebar-section-title">🛠️ 功能工具</p>
-                
-                <div class="tool-card">
-                    <div class="tool-card-title">🔍 网络搜索</div>
-                    <div class="tool-card-desc">搜索网页信息</div>
-                </div>
-                
-                <div class="tool-card">
-                    <div class="tool-card-title">📄 文件操作</div>
-                    <div class="tool-card-desc">读写文件内容</div>
-                </div>
-                
-                <div class="tool-card">
-                    <div class="tool-card-title">📂 目录浏览</div>
-                    <div class="tool-card-desc">浏览文件夹</div>
-                </div>
+            <div class="sidebar-item" onclick="sendMessage('查看配置')">
+                <span class="sidebar-item-icon">⚙️</span>
+                <span class="sidebar-item-text">查看配置</span>
             </div>
             
-            <div class="sidebar-section">
-                <p class="sidebar-section-title">📊 状态信息</p>
-                
-                <div class="stats-card">
-                    <div class="stats-item">
-                        <span class="stats-label">运行状态</span>
-                        <span class="stats-value">🟢 在线</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="stats-label">API 模型</span>
-                        <span class="stats-value">qwen-turbo</span>
-                    </div>
+            <div class="sidebar-item" onclick="sendMessage('可用工具')">
+                <span class="sidebar-item-icon">📁</span>
+                <span class="sidebar-item-text">可用工具</span>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">🛠️ 功能工具</div>
+            
+            <div class="tool-card" onclick="sendMessage('帮我搜索今天的新闻')">
+                <div class="tool-card-title">🔍 网络搜索</div>
+                <div class="tool-card-desc">搜索网页信息</div>
+            </div>
+            
+            <div class="tool-card" onclick="sendMessage('帮我列出当前目录的文件')">
+                <div class="tool-card-title">📂 目录浏览</div>
+                <div class="tool-card-desc">浏览文件夹</div>
+            </div>
+            
+            <div class="tool-card" onclick="sendMessage('帮我读取README.md文件')">
+                <div class="tool-card-title">📄 文件操作</div>
+                <div class="tool-card-desc">读写文件内容</div>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">📊 状态信息</div>
+            
+            <div class="stats-card">
+                <div class="stats-item">
+                    <span class="stats-label">运行状态</span>
+                    <span class="stats-value">🟢 在线</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">API 模型</span>
+                    <span class="stats-value">qwen-turbo</span>
                 </div>
             </div>
         </div>
     </div>
+    """
+
+
+def get_javascript_html():
+    """Generate JavaScript for sidebar and chat interactions."""
+    return """
+    <script>
+        // Sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+        }
+        
+        // Send message to chat
+        function sendMessage(text) {
+            const input = document.querySelector('textarea');
+            if (input) {
+                input.value = text;
+                input.focus();
+                
+                // Trigger input event
+                const event = new Event('input', { bubbles: true });
+                input.dispatchEvent(event);
+            }
+            
+            toggleSidebar();
+        }
+        
+        // Start new chat
+        function startNewChat() {
+            window.location.reload();
+        }
+    </script>
     """
 
 
@@ -84,9 +141,15 @@ async def on_chat_start():
         cl.user_session.set("agent", agent)
         logger.info("Agent initialized successfully")
         
+        # Send custom header
+        await cl.HTML(
+            get_custom_header_html(),
+            name="custom-header"
+        ).send()
+        
         # Send sidebar
         await cl.HTML(
-            get_sidebar_html(),
+            get_sidebar_html() + get_javascript_html(),
             name="sidebar"
         ).send()
         
@@ -101,7 +164,7 @@ async def on_chat_start():
 
 有什么可以帮您的吗？
 
-💡 **提示**：点击左侧栏可快速访问功能菜单
+💡 **提示**：点击左上角 ☰ 菜单可打开侧边栏
 """
         ).send()
         
@@ -123,7 +186,7 @@ async def on_message(message: cl.Message):
     logger = get_logger()
     msg_lower = message.content.lower().strip()
     
-    # 处理特殊命令
+    # Handle special commands
     if msg_lower in ["查看日志", "日志", "logs"]:
         logs = logger.get_recent_logs(20)
         
@@ -181,7 +244,7 @@ async def on_message(message: cl.Message):
 """).send()
         return
     
-    # 正常消息处理
+    # Normal message processing
     try:
         agent = cl.user_session.get("agent")
         
