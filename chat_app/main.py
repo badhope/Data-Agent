@@ -1,9 +1,76 @@
-"""Main entry point for the Data Agent chat application."""
+"""Main entry point for the Data Agent chat application with sidebar."""
 
 import chainlit as cl
 from app.agents import create_agent
 from app.logger import get_logger, log_agent_action, log_error
 from app.config import load_config
+
+
+def get_sidebar_html():
+    """Generate sidebar HTML."""
+    return """
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🤖 Data</div>
+            <div class="sidebar-subtitle">智能助手</div>
+        </div>
+        
+        <div class="sidebar-content">
+            <div class="sidebar-section">
+                <p class="sidebar-section-title">📋 快捷操作</p>
+                
+                <div class="sidebar-item" onclick="sendMessage('查看日志')">
+                    <span class="sidebar-item-icon">📋</span>
+                    <span class="sidebar-item-text">查看日志</span>
+                </div>
+                
+                <div class="sidebar-item" onclick="sendMessage('查看配置')">
+                    <span class="sidebar-item-icon">⚙️</span>
+                    <span class="sidebar-item-text">查看配置</span>
+                </div>
+                
+                <div class="sidebar-item" onclick="sendMessage('可用工具')">
+                    <span class="sidebar-item-icon">📁</span>
+                    <span class="sidebar-item-text">可用工具</span>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <p class="sidebar-section-title">🛠️ 功能工具</p>
+                
+                <div class="tool-card">
+                    <div class="tool-card-title">🔍 网络搜索</div>
+                    <div class="tool-card-desc">搜索网页信息</div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="tool-card-title">📄 文件操作</div>
+                    <div class="tool-card-desc">读写文件内容</div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="tool-card-title">📂 目录浏览</div>
+                    <div class="tool-card-desc">浏览文件夹</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <p class="sidebar-section-title">📊 状态信息</p>
+                
+                <div class="stats-card">
+                    <div class="stats-item">
+                        <span class="stats-label">运行状态</span>
+                        <span class="stats-value">🟢 在线</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">API 模型</span>
+                        <span class="stats-value">qwen-turbo</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    """
 
 
 @cl.on_chat_start
@@ -17,6 +84,13 @@ async def on_chat_start():
         cl.user_session.set("agent", agent)
         logger.info("Agent initialized successfully")
         
+        # Send sidebar
+        await cl.HTML(
+            get_sidebar_html(),
+            name="sidebar"
+        ).send()
+        
+        # Send welcome message
         await cl.Message(
             content="""👋 你好！我是 **Data**，您的智能助手。
 
@@ -27,10 +101,7 @@ async def on_chat_start():
 
 有什么可以帮您的吗？
 
-💡 **提示**：
-- 输入 "查看日志" 查看操作记录
-- 输入 "查看配置" 查看设置
-- 输入 "可用工具" 了解功能
+💡 **提示**：点击左侧栏可快速访问功能菜单
 """
         ).send()
         
