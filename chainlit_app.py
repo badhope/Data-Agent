@@ -31,8 +31,8 @@ Guidelines:
 
 def get_agent():
     """Get or create the agent instance using 阿里百炼 API."""
-    from langgraph.prebuilt import create_react_agent
     from langchain.tools import tool
+    from langchain.agents import initialize_agent, AgentType
     from typing import Dict, Any
 
     # 使用阿里百炼 API
@@ -72,10 +72,11 @@ def get_agent():
 
     tools = [web_search, write_file, read_file, list_files]
 
-    agent = create_react_agent(
-        model=model,
-        tools=tools,
-        state_modifier=SYSTEM_PROMPT,
+    agent = initialize_agent(
+        tools,
+        model,
+        agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+        verbose=True
     )
 
     return agent
