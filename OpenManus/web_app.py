@@ -282,43 +282,6 @@ HTML_TEMPLATE = """
         .agent-card h4 { color: white; font-size: 12px; margin-bottom: 2px; }
         .agent-card p { color: #94A3B8; font-size: 10px; }
 
-        /* ===== Sidebar Btn ===== */
-        .sidebar-btn {
-            width: 100%;
-            padding: 8px 12px;
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 7px;
-            color: #F1F5F9;
-            font-size: 12px;
-            cursor: pointer;
-            text-align: left;
-            margin-bottom: 5px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .sidebar-btn:hover { background: #4F46E5; border-color: #4F46E5; }
-
-        /* ===== Tool Card ===== */
-        .tool-card {
-            background: #1E293B;
-            border: 1px solid #334155;
-            border-radius: 7px;
-            padding: 8px 12px;
-            margin-bottom: 5px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .tool-card:hover { border-color: #4F46E5; }
-        .tool-card .tool-icon { font-size: 16px; flex-shrink: 0; }
-        .tool-card .tool-info h5 { color: white; font-size: 12px; font-weight: 500; }
-        .tool-card .tool-info p { color: #94A3B8; font-size: 10px; }
-
         .status-badge {
             display: inline-block;
             padding: 2px 8px;
@@ -694,61 +657,6 @@ HTML_TEMPLATE = """
             </div>
             <div class="collapse-section">
                 <div class="collapse-header" onclick="toggleSection(this)">
-                    <span>📋 快捷操作</span><span class="arrow">▶</span>
-                </div>
-                <div class="collapse-body"><div class="collapse-body-inner">
-                    <button class="sidebar-btn" onclick="showConfig()">⚙️ 查看配置</button>
-                    <button class="sidebar-btn" onclick="showTools()">🛠️ 查看所有工具</button>
-                    <button class="sidebar-btn" onclick="showSandboxInfo()">📦 沙箱环境</button>
-                </div></div>
-            </div>
-            <div class="collapse-section">
-                <div class="collapse-header" onclick="toggleSection(this)">
-                    <span>🌐 网页工具</span><span class="arrow">▶</span>
-                </div>
-                <div class="collapse-body"><div class="collapse-body-inner">
-                    <div class="tool-card" onclick="useSearch('web')">
-                        <span class="tool-icon">🔍</span>
-                        <div class="tool-info"><h5>网络搜索</h5><p>百度 / DuckDuckGo</p></div>
-                    </div>
-                    <div class="tool-card" onclick="useBrowser()">
-                        <span class="tool-icon">🌐</span>
-                        <div class="tool-info"><h5>浏览器自动化</h5><p>Browser Use</p></div>
-                    </div>
-                </div></div>
-            </div>
-            <div class="collapse-section">
-                <div class="collapse-header" onclick="toggleSection(this)">
-                    <span>💻 终端工具</span><span class="arrow">▶</span>
-                </div>
-                <div class="collapse-body"><div class="collapse-body-inner">
-                    <div class="tool-card" onclick="useTerminal('bash')">
-                        <span class="tool-icon">⚡</span>
-                        <div class="tool-info"><h5>Bash 命令</h5><p>执行 Shell 命令</p></div>
-                    </div>
-                    <div class="tool-card" onclick="useTerminal('python')">
-                        <span class="tool-icon">🐍</span>
-                        <div class="tool-info"><h5>Python 执行</h5><p>运行 Python 代码</p></div>
-                    </div>
-                </div></div>
-            </div>
-            <div class="collapse-section">
-                <div class="collapse-header" onclick="toggleSection(this)">
-                    <span>🚀 高级工具</span><span class="arrow">▶</span>
-                </div>
-                <div class="collapse-body"><div class="collapse-body-inner">
-                    <div class="tool-card" onclick="useAdvanced('chart')">
-                        <span class="tool-icon">📈</span>
-                        <div class="tool-info"><h5>图表可视化</h5><p>数据图表生成</p></div>
-                    </div>
-                    <div class="tool-card" onclick="useAdvanced('planning')">
-                        <span class="tool-icon">🧠</span>
-                        <div class="tool-info"><h5>任务规划</h5><p>多步骤任务规划</p></div>
-                    </div>
-                </div></div>
-            </div>
-            <div class="collapse-section">
-                <div class="collapse-header" onclick="toggleSection(this)">
                     <span>📊 系统信息</span><span class="arrow">▶</span>
                 </div>
                 <div class="collapse-body"><div class="collapse-body-inner" style="color:#94A3B8;font-size:11px;line-height:1.8;">
@@ -1084,40 +992,6 @@ HTML_TEMPLATE = """
         // ===== Quick Actions =====
         function showConfig() {
             addMessage('⚙️ <strong>当前配置：</strong><br><br>• 模型: qwen-plus-latest<br>• API: 阿里百炼<br>• 代理: ' + currentAgent + '<br>• 沙箱: 已启用<br>• 思维链: 可视化', 'assistant');
-        }
-
-        function showTools() {
-            addMessage('🛠️ <strong>可用工具：</strong><br><br>🌐 <strong>网页：</strong>网络搜索 / 浏览器自动化 / 网页爬取<br>📁 <strong>文件：</strong>读取 / 写入 / 浏览 / 编辑<br>💻 <strong>终端：</strong>Bash / Python<br>🚀 <strong>高级：</strong>图表 / 规划 / 沙箱 / MCP', 'assistant');
-        }
-
-        function showSandboxInfo() {
-            addMessage('📦 <strong>沙箱环境信息：</strong><br><br>• Python 环境: 已配置 (matplotlib, pandas, numpy)<br>• 工作目录: /tmp/dataagent_sandbox_<br>• 超时限制: 30秒<br>• 图表输出: 支持 PNG<br>• 安全隔离: 子进程执行', 'assistant');
-        }
-
-        function useSearch(engine) {
-            inputEl.value = '帮我搜索 ';
-            inputEl.focus();
-        }
-
-        function useBrowser() {
-            addMessage('🌐 浏览器自动化已就绪！请输入网页操作指令。', 'assistant');
-        }
-
-        function useTerminal(type) {
-            if (type === 'python') {
-                inputEl.value = '运行 Python 代码: ';
-            } else {
-                inputEl.value = '执行命令: ';
-            }
-            inputEl.focus();
-        }
-
-        function useAdvanced(tool) {
-            const msgs = {
-                'chart': '📈 请提供数据，我将为您生成图表！例如："用Python画一个折线图"',
-                'planning': '🧠 请描述您的复杂任务，我将规划执行步骤。',
-            };
-            addMessage(msgs[tool] || '工具已就绪', 'assistant');
         }
 
         selectAgent('data');
