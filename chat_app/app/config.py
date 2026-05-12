@@ -19,9 +19,9 @@ class LLMConfig:
 class AgentConfig:
     """Configuration for the agent."""
     
-    name: str = "OpenManus"
+    name: str = "Data"
     description: str = "A versatile AI assistant that can help with various tasks"
-    system_prompt: str = """You are OpenManus, a versatile AI assistant that can help users with various tasks.
+    system_prompt: str = """You are Data, a versatile AI assistant that can help users with various tasks.
 
 Capabilities:
 - Web browsing and information retrieval
