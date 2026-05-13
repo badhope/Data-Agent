@@ -1388,6 +1388,546 @@ async def get_available_models():
     ]
     return JSONResponse(models)
 
+# ==================== 泰迪杯B题：财务报表智能解析模块 ====================
+
+# 数据库管理
+import sqlite3
+import pandas as pd
+
+DATABASES_DIR = DATA_DIR / "databases"
+DATABASES_DIR.mkdir(parents=True, exist_ok=True)
+
+class Database(BaseModel):
+    id: str
+    name: str
+    path: str
+    tables: List[str] = Field(default_factory=list)
+    created_at: str
+    updated_at: str
+
+databases: Dict[str, Database] = {}
+
+def load_databases():
+    db_file = DATA_DIR / "databases.json"
+    if db_file.exists():
+        try:
+            with open(db_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
+def save_databases():
+    with open(DATA_DIR / "databases.json", 'w', encoding='utf-8') as f:
+        json.dump({k: v.model_dump() if hasattr(v, 'model_dump') else v for k, v in databases.items()}, f, ensure_ascii=False, indent=2)
+
+databases = load_databases()
+
+@app.get("/api/databases")
+async def list_databases():
+    return JSONResponse([db.model_dump() if hasattr(db, 'model_dump') else db for db in databases.values()])
+
+@app.post("/api/databases")
+async def create_database(request: Request):
+    data = await request.json()
+    db_id = str(uuid.uuid4())
+    db_name = data.get("name", "新数据库")
+    db_path = DATABASES_DIR / f"{db_id}.db"
+    now = datetime.datetime.now().isoformat()
+    
+    conn = sqlite3.connect(str(db_path))
+    conn.close()
+    
+    db = Database(id=db_id, name=db_name, path=str(db_path), created_at=now, updated_at=now)
+    databases[db_id] = db
+    save_databases()
+    return JSONResponse(db.model_dump())
+
+@app.delete("/api/databases/{db_id}")
+async def delete_database(db_id: str):
+    if db_id not in databases:
+        raise HTTPException(status_code=404, detail="数据库不存在")
+    db = databases[db_id]
+    if Path(db.path).exists():
+        Path(db.path).unlink()
+    del databases[db_id]
+    save_databases()
+    return JSONResponse({"success": True})
+
+@app.get("/api/databases/{db_id}/tables")
+async def list_tables(db_id: str):
+    if db_id not in databases:
+        raise HTTPException(status_code=404, detail="数据库不存在")
+    db = databases[db_id]
+    conn = sqlite3.connect(db.path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return JSONResponse({"tables": tables})
+
+@app.get("/api/databases/{db_id}/tables/{table_name}")
+async def get_table_schema(db_id: str, table_name: str):
+    if db_id not in databases:
+        raise HTTPException(status_code=404, detail="数据库不存在")
+    db = databases[db_id]
+    conn = sqlite3.connect(db.path)
+    cursor = conn.cursor()
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    columns = [{"name": row[1], "type": row[2]} for row in cursor.fetchall()]
+    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+    count = cursor.fetchone()[0]
+    conn.close()
+    return JSONResponse({"table": table_name, "columns": columns, "row_count": count})
+
+@app.post("/api/databases/{db_id}/query")
+async def execute_query(db_id: str, request: Request):
+    if db_id not in databases:
+        raise HTTPException(status_code=404, detail="数据库不存在")
+    data = await request.json()
+    sql = data.get("sql", "")
+    if not sql:
+        raise HTTPException(status_code=400, detail="SQL语句不能为空")
+    
+    forbidden = ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "CREATE", "TRUNCATE"]
+    sql_upper = sql.upper()
+    for kw in forbidden:
+        if kw in sql_upper and not data.get("allow_write", False):
+            raise HTTPException(status_code=403, detail=f"禁止执行 {kw} 操作")
+    
+    db = databases[db_id]
+    try:
+        conn = sqlite3.connect(db.path)
+        df = pd.read_sql_query(sql, conn)
+        conn.close()
+        return JSONResponse({
+            "success": True,
+            "columns": list(df.columns),
+            "data": df.values.tolist(),
+            "row_count": len(df)
+        })
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
+# PDF财报解析模块
+@app.post("/api/financial/parse-pdf")
+async def parse_financial_pdf(file: UploadFile = File(...)):
+    try:
+        import pdfplumber
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            shutil.copyfileobj(file.file, tmp)
+            tmp_path = tmp.name
+        
+        tables_data = []
+        text_content = []
+        
+        with pdfplumber.open(tmp_path) as pdf:
+            for page_num, page in enumerate(pdf.pages):
+                text = page.extract_text()
+                if text:
+                    text_content.append({"page": page_num + 1, "text": text})
+                
+                tables = page.extract_tables()
+                for table_idx, table in enumerate(tables):
+                    if table and len(table) > 1:
+                        headers = table[0] if table[0] else [f"col_{i}" for i in range(len(table[1]))]
+                        rows = table[1:]
+                        df = pd.DataFrame(rows, columns=headers)
+                        tables_data.append({
+                            "page": page_num + 1,
+                            "table_index": table_idx,
+                            "headers": headers,
+                            "data": rows,
+                            "shape": df.shape
+                        })
+        
+        Path(tmp_path).unlink()
+        return JSONResponse({
+            "success": True,
+            "filename": file.filename,
+            "tables": tables_data,
+            "text_content": text_content,
+            "table_count": len(tables_data)
+        })
+    except ImportError:
+        return JSONResponse({"success": False, "error": "请安装 pdfplumber: pip install pdfplumber"})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
+@app.post("/api/financial/extract-tables")
+async def extract_financial_tables(request: Request):
+    data = await request.json()
+    tables = data.get("tables", [])
+    db_id = data.get("database_id")
+    
+    if db_id and db_id in databases:
+        db = databases[db_id]
+        conn = sqlite3.connect(db.path)
+        cursor = conn.cursor()
+        
+        for table_data in tables:
+            table_name = table_data.get("name", f"table_{uuid.uuid4().hex[:8]}")
+            headers = table_data.get("headers", [])
+            rows = table_data.get("data", [])
+            
+            if headers and rows:
+                columns_def = ", ".join([f'"{h}" TEXT' for h in headers])
+                cursor.execute(f'CREATE TABLE IF NOT EXISTS "{table_name}" ({columns_def})')
+                
+                placeholders = ", ".join(["?" for _ in headers])
+                for row in rows:
+                    if len(row) == len(headers):
+                        cursor.execute(f'INSERT INTO "{table_name}" VALUES ({placeholders})', row)
+        
+        conn.commit()
+        conn.close()
+        databases[db_id].updated_at = datetime.datetime.now().isoformat()
+        save_databases()
+    
+    return JSONResponse({"success": True, "imported_tables": len(tables)})
+
+# NL2SQL引擎
+@app.post("/api/nl2sql/analyze-intent")
+async def analyze_intent(request: Request):
+    data = await request.json()
+    query = data.get("query", "")
+    db_id = data.get("database_id")
+    
+    if not query:
+        raise HTTPException(status_code=400, detail="请提供查询语句")
+    
+    intent_types = {
+        "query_data": ["查询", "显示", "列出", "找出", "搜索", "获取", "统计", "计算"],
+        "aggregate": ["总计", "合计", "平均", "最大", "最小", "求和", "计数", "多少"],
+        "compare": ["对比", "比较", "差异", "增长", "下降", "变化", "同比", "环比"],
+        "trend": ["趋势", "走势", "变化", "随时间", "历史"],
+        "ranking": ["排名", "前几", "最大值", "最小值", "排序", "top"],
+        "filter": ["筛选", "过滤", "条件", "满足", "大于", "小于", "等于"]
+    }
+    
+    detected_intents = []
+    query_lower = query.lower()
+    for intent_type, keywords in intent_types.items():
+        for kw in keywords:
+            if kw in query_lower:
+                detected_intents.append(intent_type)
+                break
+    
+    if not detected_intents:
+        detected_intents.append("query_data")
+    
+    tables = []
+    if db_id and db_id in databases:
+        db = databases[db_id]
+        conn = sqlite3.connect(db.path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [row[0] for row in cursor.fetchall()]
+        conn.close()
+    
+    return JSONResponse({
+        "query": query,
+        "intents": list(set(detected_intents)),
+        "tables": tables,
+        "need_clarification": len(detected_intents) > 2 or len(tables) > 1
+    })
+
+@app.post("/api/nl2sql/generate")
+async def generate_sql(request: Request):
+    data = await request.json()
+    query = data.get("query", "")
+    db_id = data.get("database_id")
+    intent = data.get("intent", "query_data")
+    
+    if not query:
+        raise HTTPException(status_code=400, detail="请提供查询语句")
+    
+    if not current_settings.llm.api_key:
+        raise HTTPException(status_code=400, detail="请先配置API Key")
+    
+    schema_info = ""
+    if db_id and db_id in databases:
+        db = databases[db_id]
+        conn = sqlite3.connect(db.path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [row[0] for row in cursor.fetchall()]
+        
+        for table in tables:
+            cursor.execute(f"PRAGMA table_info({table})")
+            columns = [row[1] for row in cursor.fetchall()]
+            schema_info += f"表 {table}({', '.join(columns)})\n"
+        conn.close()
+    
+    prompt = f"""你是一个SQL专家。根据用户的自然语言查询，生成对应的SQLite SQL语句。
+
+数据库结构：
+{schema_info}
+
+用户查询：{query}
+意图类型：{intent}
+
+要求：
+1. 只返回SQL语句，不要其他内容
+2. 使用标准SQLite语法
+3. 如果涉及聚合，使用GROUP BY
+4. 如果涉及排序，使用ORDER BY
+5. 如果涉及限制数量，使用LIMIT
+
+SQL:"""
+    
+    try:
+        client = AsyncOpenAI(
+            api_key=current_settings.llm.api_key,
+            base_url=current_settings.llm.base_url or "https://api.openai.com/v1"
+        )
+        response = await client.chat.completions.create(
+            model=current_settings.llm.model or "gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500,
+            temperature=0.1
+        )
+        
+        sql = response.choices[0].message.content.strip()
+        sql = re.sub(r'^```sql\s*', '', sql)
+        sql = re.sub(r'\s*```$', '', sql)
+        
+        return JSONResponse({"sql": sql, "query": query, "intent": intent})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
+@app.post("/api/nl2sql/execute")
+async def nl2sql_execute(request: Request):
+    data = await request.json()
+    sql = data.get("sql", "")
+    db_id = data.get("database_id")
+    
+    if not sql or not db_id:
+        raise HTTPException(status_code=400, detail="缺少SQL或数据库ID")
+    
+    if db_id not in databases:
+        raise HTTPException(status_code=404, detail="数据库不存在")
+    
+    db = databases[db_id]
+    try:
+        conn = sqlite3.connect(db.path)
+        df = pd.read_sql_query(sql, conn)
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "sql": sql,
+            "columns": list(df.columns),
+            "data": df.values.tolist(),
+            "row_count": len(df)
+        })
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e), "sql": sql})
+
+# 数据可视化模块
+@app.post("/api/visualization/generate")
+async def generate_chart(request: Request):
+    data = await request.json()
+    chart_type = data.get("type", "bar")
+    columns = data.get("columns", [])
+    rows = data.get("data", [])
+    title = data.get("title", "数据图表")
+    
+    if not columns or not rows:
+        raise HTTPException(status_code=400, detail="缺少数据")
+    
+    df = pd.DataFrame(rows, columns=columns)
+    
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        if chart_type == "bar":
+            if len(columns) >= 2:
+                df.plot(kind='bar', x=columns[0], y=columns[1], ax=ax)
+            else:
+                df.plot(kind='bar', ax=ax)
+        elif chart_type == "line":
+            if len(columns) >= 2:
+                df.plot(kind='line', x=columns[0], y=columns[1], ax=ax)
+            else:
+                df.plot(kind='line', ax=ax)
+        elif chart_type == "pie":
+            if len(columns) >= 2:
+                df.plot(kind='pie', y=columns[1], labels=df[columns[0]], ax=ax)
+        elif chart_type == "scatter":
+            if len(columns) >= 2:
+                ax.scatter(df[columns[0]], df[columns[1]])
+                ax.set_xlabel(columns[0])
+                ax.set_ylabel(columns[1])
+        elif chart_type == "heatmap":
+            import seaborn as sns
+            numeric_df = df.select_dtypes(include=['number'])
+            if not numeric_df.empty:
+                sns.heatmap(numeric_df.corr(), annot=True, ax=ax)
+        
+        ax.set_title(title)
+        plt.tight_layout()
+        
+        chart_path = DATA_DIR / "charts" / f"{uuid.uuid4().hex}.png"
+        chart_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close()
+        
+        return JSONResponse({
+            "success": True,
+            "chart_path": str(chart_path),
+            "chart_type": chart_type,
+            "title": title
+        })
+    except ImportError as e:
+        return JSONResponse({"success": False, "error": f"请安装可视化库: {str(e)}"})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
+# 多意图拆解模块（DAG规划）
+@app.post("/api/agent/decompose")
+async def decompose_query(request: Request):
+    data = await request.json()
+    query = data.get("query", "")
+    
+    if not query:
+        raise HTTPException(status_code=400, detail="请提供查询语句")
+    
+    if not current_settings.llm.api_key:
+        raise HTTPException(status_code=400, detail="请先配置API Key")
+    
+    prompt = f"""你是一个任务规划专家。将用户的复杂查询拆解为多个子任务，形成DAG（有向无环图）结构。
+
+用户查询：{query}
+
+请返回JSON格式的任务列表，每个任务包含：
+- id: 任务ID（task_1, task_2等）
+- description: 任务描述
+- type: 任务类型（query/aggregate/compare/visualize）
+- dependencies: 依赖的任务ID列表
+- sql_hint: SQL提示（可选）
+
+只返回JSON数组，不要其他内容。"""
+    
+    try:
+        client = AsyncOpenAI(
+            api_key=current_settings.llm.api_key,
+            base_url=current_settings.llm.base_url or "https://api.openai.com/v1"
+        )
+        response = await client.chat.completions.create(
+            model=current_settings.llm.model or "gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1000,
+            temperature=0.3
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        json_match = re.search(r'\[.*\]', result_text, re.DOTALL)
+        if json_match:
+            tasks = json.loads(json_match.group())
+            return JSONResponse({"query": query, "tasks": tasks, "task_count": len(tasks)})
+        else:
+            return JSONResponse({"query": query, "tasks": [], "error": "解析失败"})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
+@app.post("/api/agent/execute-dag")
+async def execute_dag(request: Request):
+    data = await request.json()
+    tasks = data.get("tasks", [])
+    db_id = data.get("database_id")
+    
+    if not tasks:
+        raise HTTPException(status_code=400, detail="缺少任务列表")
+    
+    results = {}
+    execution_order = []
+    
+    def get_ready_tasks(completed):
+        ready = []
+        for task in tasks:
+            if task["id"] in completed:
+                continue
+            deps = task.get("dependencies", [])
+            if all(d in completed for d in deps):
+                ready.append(task)
+        return ready
+    
+    completed = set()
+    while len(completed) < len(tasks):
+        ready = get_ready_tasks(completed)
+        if not ready:
+            break
+        
+        for task in ready:
+            execution_order.append(task["id"])
+            results[task["id"]] = {
+                "description": task["description"],
+                "type": task["type"],
+                "status": "completed"
+            }
+            completed.add(task["id"])
+    
+    return JSONResponse({
+        "success": True,
+        "execution_order": execution_order,
+        "results": results
+    })
+
+# 归因分析模块
+@app.post("/api/attribution/analyze")
+async def analyze_attribution(request: Request):
+    data = await request.json()
+    query = data.get("query", "")
+    response_text = data.get("response", "")
+    sources = data.get("sources", [])
+    
+    if not response_text:
+        raise HTTPException(status_code=400, detail="缺少响应内容")
+    
+    attributions = []
+    
+    for i, sentence in enumerate(response_text.split('。')[:10]):
+        if len(sentence.strip()) < 5:
+            continue
+        
+        matched_sources = []
+        for source in sources:
+            source_content = source.get("content", "")
+            if any(word in source_content for word in sentence.split()[:5] if len(word) > 1):
+                matched_sources.append({
+                    "source_id": source.get("id"),
+                    "source_name": source.get("name"),
+                    "relevance": 0.8
+                })
+        
+        attributions.append({
+            "sentence_index": i,
+            "sentence": sentence.strip(),
+            "sources": matched_sources[:3],
+            "confidence": 0.9 if matched_sources else 0.3
+        })
+    
+    return JSONResponse({
+        "query": query,
+        "attributions": attributions,
+        "coverage": len([a for a in attributions if a["sources"]]) / len(attributions) if attributions else 0
+    })
+
+@app.get("/api/attribution/trace/{query_id}")
+async def trace_query(query_id: str):
+    trace_file = DATA_DIR / "traces" / f"{query_id}.json"
+    if not trace_file.exists():
+        raise HTTPException(status_code=404, detail="追踪记录不存在")
+    
+    with open(trace_file, 'r', encoding='utf-8') as f:
+        return JSONResponse(json.load(f))
+
 async def run_universal_agent(websocket: WebSocket, message: str):
     try:
         await websocket.send_json({
