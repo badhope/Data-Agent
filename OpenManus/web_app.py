@@ -167,6 +167,31 @@ knowledge_bases: Dict[str, KnowledgeBase] = {}
 documents: Dict[str, Document] = {}
 skills: Dict[str, Skill] = {}
 mcp_servers: Dict[str, MCPServer] = {}
+conversations: Dict[str, dict] = {}
+
+class Conversation(BaseModel):
+    id: str
+    title: str
+    messages: List[dict] = Field(default_factory=list)
+    created_at: str
+    updated_at: str
+
+CONVERSATIONS_FILE = DATA_DIR / "conversations.json"
+
+def load_conversations():
+    if CONVERSATIONS_FILE.exists():
+        try:
+            with open(CONVERSATIONS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading conversations: {e}")
+    return {}
+
+def save_conversations():
+    with open(CONVERSATIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(conversations, f, ensure_ascii=False, indent=2)
+
+conversations = load_conversations()
 
 def load_settings():
     if SETTINGS_FILE.exists():
@@ -503,6 +528,47 @@ async def list_documents(kb_id: str):
     kb_docs = [doc.model_dump() for doc in documents.values() if doc.knowledge_base_id == kb_id]
     return JSONResponse(kb_docs)
 
+@app.put("/api/knowledge-bases/{kb_id}")
+async def update_knowledge_base(kb_id: str, request: Request):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    data = await request.json()
+    kb = knowledge_bases[kb_id]
+    kb.name = data.get("name", kb.name)
+    kb.description = data.get("description", kb.description)
+    kb.updated_at = datetime.datetime.now().isoformat()
+    save_knowledge_bases()
+    return JSONResponse(kb.model_dump())
+
+@app.delete("/api/knowledge-bases/{kb_id}")
+async def delete_knowledge_base(kb_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    del knowledge_bases[kb_id]
+    save_knowledge_bases()
+    import shutil
+    kb_dir = KNOWLEDGE_DIR / kb_id
+    if kb_dir.exists():
+        shutil.rmtree(kb_dir)
+    docs_to_delete = [doc_id for doc_id, doc in documents.items() if doc.knowledge_base_id == kb_id]
+    for doc_id in docs_to_delete:
+        del documents[doc_id]
+    return JSONResponse({"success": True, "message": "知识库已删除"})
+
+@app.delete("/api/knowledge-bases/{kb_id}/documents/{doc_id}")
+async def delete_document(kb_id: str, doc_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    if doc_id not in documents:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    doc = documents[doc_id]
+    if doc.knowledge_base_id != kb_id:
+        raise HTTPException(status_code=400, detail="文档不属于该知识库")
+    del documents[doc_id]
+    if doc.file_path and Path(doc.file_path).exists():
+        Path(doc.file_path).unlink()
+    return JSONResponse({"success": True, "message": "文档已删除"})
+
 @app.get("/api/skills")
 async def list_skills():
     return JSONResponse([skill.model_dump() for skill in skills.values()])
@@ -604,6 +670,27 @@ async def use_skill(skill_id: str, request: Request):
     response = await call_llm(prompt, current_settings)
     return JSONResponse({"response": response, "skill": skill.name})
 
+@app.put("/api/skills/{skill_id}")
+async def update_skill(skill_id: str, request: Request):
+    if skill_id not in skills:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    data = await request.json()
+    skill = skills[skill_id]
+    skill.name = data.get("name", skill.name)
+    skill.description = data.get("description", skill.description)
+    skill.prompts = data.get("prompts", skill.prompts)
+    skill.updated_at = datetime.datetime.now().isoformat()
+    save_skills()
+    return JSONResponse(skill.model_dump())
+
+@app.delete("/api/skills/{skill_id}")
+async def delete_skill(skill_id: str):
+    if skill_id not in skills:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    del skills[skill_id]
+    save_skills()
+    return JSONResponse({"success": True, "message": "技能已删除"})
+
 @app.get("/api/mcp/servers")
 async def list_mcp_servers():
     return JSONResponse([server.model_dump() for server in mcp_servers.values()])
@@ -627,6 +714,75 @@ async def create_mcp_server(request: Request):
     save_mcp_servers()
     return JSONResponse(server.model_dump())
 
+@app.put("/api/mcp/servers/{server_id}")
+async def update_mcp_server(server_id: str, request: Request):
+    if server_id not in mcp_servers:
+        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    data = await request.json()
+    server = mcp_servers[server_id]
+    server.name = data.get("name", server.name)
+    server.type = data.get("type", server.type)
+    server.command = data.get("command", server.command)
+    server.args = data.get("args", server.args)
+    server.url = data.get("url", server.url)
+    server.env = data.get("env", server.env)
+    server.enabled = data.get("enabled", server.enabled)
+    save_mcp_servers()
+    return JSONResponse(server.model_dump())
+
+@app.delete("/api/mcp/servers/{server_id}")
+async def delete_mcp_server(server_id: str):
+    if server_id not in mcp_servers:
+        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    del mcp_servers[server_id]
+    save_mcp_servers()
+    return JSONResponse({"success": True, "message": "MCP服务器已删除"})
+
+@app.post("/api/mcp/servers/{server_id}/execute")
+async def execute_mcp_tool(server_id: str, request: Request):
+    if server_id not in mcp_servers:
+        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    server = mcp_servers[server_id]
+    if not server.enabled:
+        raise HTTPException(status_code=400, detail="MCP服务器已禁用")
+    data = await request.json()
+    tool_name = data.get("tool", "")
+    params = data.get("parameters", {})
+    try:
+        result = await execute_mcp_command(server, tool_name, params)
+        return JSONResponse({"success": True, "result": result})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"MCP执行失败: {str(e)}")
+
+async def execute_mcp_command(server: MCPServer, tool: str, params: dict) -> str:
+    if server.type == "stdio":
+        cmd = [server.command] + server.args
+        env = os.environ.copy()
+        env.update(server.env)
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env
+        )
+        input_data = json.dumps({"tool": tool, "params": params})
+        stdout, stderr = await proc.communicate(input=input_data.encode())
+        if proc.returncode != 0:
+            raise Exception(f"MCP错误: {stderr.decode()}")
+        return stdout.decode()
+    elif server.type == "sse":
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                server.url,
+                json={"tool": tool, "params": params},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json().get("result", "")
+    return "不支持的服务器类型"
+
 @app.get("/api/schema/{schema_type}")
 async def get_schema(schema_type: str):
     schema_file = CONFIG_DIR / "schema" / f"{schema_type}_schema.json"
@@ -634,6 +790,51 @@ async def get_schema(schema_type: str):
         raise HTTPException(status_code=404, detail="Schema不存在")
     with open(schema_file, 'r', encoding='utf-8') as f:
         return JSONResponse(json.load(f))
+
+@app.get("/api/conversations")
+async def list_conversations():
+    return JSONResponse(list(conversations.values()))
+
+@app.post("/api/conversations")
+async def create_conversation(request: Request):
+    data = await request.json()
+    conv_id = str(uuid.uuid4())
+    now = datetime.datetime.now().isoformat()
+    conversation = {
+        "id": conv_id,
+        "title": data.get("title", "新对话"),
+        "messages": [],
+        "created_at": now,
+        "updated_at": now
+    }
+    conversations[conv_id] = conversation
+    save_conversations()
+    return JSONResponse(conversation)
+
+@app.get("/api/conversations/{conv_id}")
+async def get_conversation(conv_id: str):
+    if conv_id not in conversations:
+        raise HTTPException(status_code=404, detail="对话不存在")
+    return JSONResponse(conversations[conv_id])
+
+@app.put("/api/conversations/{conv_id}")
+async def update_conversation(conv_id: str, request: Request):
+    if conv_id not in conversations:
+        raise HTTPException(status_code=404, detail="对话不存在")
+    data = await request.json()
+    conversations[conv_id]["title"] = data.get("title", conversations[conv_id]["title"])
+    conversations[conv_id]["messages"] = data.get("messages", conversations[conv_id]["messages"])
+    conversations[conv_id]["updated_at"] = datetime.datetime.now().isoformat()
+    save_conversations()
+    return JSONResponse(conversations[conv_id])
+
+@app.delete("/api/conversations/{conv_id}")
+async def delete_conversation(conv_id: str):
+    if conv_id not in conversations:
+        raise HTTPException(status_code=404, detail="对话不存在")
+    del conversations[conv_id]
+    save_conversations()
+    return JSONResponse({"success": True, "message": "对话已删除"})
 
 async def run_universal_agent(websocket: WebSocket, message: str):
     try:
@@ -1724,6 +1925,88 @@ async def get():
             }
         }
         
+        /* ==================== 对话历史样式 ==================== */
+        .conversation-list {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0 16px;
+        }
+        
+        .conversation-item {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .conversation-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .conversation-item.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .conversation-title {
+            font-size: 14px;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .conversation-time {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        
+        .conversation-item .delete-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .conversation-item:hover .delete-btn {
+            display: block;
+        }
+        
+        .conversation-item .delete-btn:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .new-conversation-btn {
+            margin: 8px 16px 16px;
+            padding: 10px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            width: calc(100% - 32px);
+            transition: all 0.2s;
+        }
+        
+        .new-conversation-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
         /* ==================== iOS 安全区域适配 ==================== */
         @supports (padding: env(safe-area-inset-bottom)) {
             .input-area {
@@ -1746,6 +2029,10 @@ async def get():
                         <h4>对话</h4>
                         <p>开始智能对话</p>
                     </div>
+                </div>
+                <button class="new-conversation-btn" onclick="createNewConversation(); closeSidebar();">+ 新建对话</button>
+                <div class="conversation-list" id="conversation-list">
+                    <div style="color: #94a3b8; text-align: center; padding: 20px;">还没有对话记录</div>
                 </div>
                 <div class="nav-divider"></div>
                 <div class="nav-item" onclick="openModal('knowledge-modal'); closeSidebar();">
@@ -2967,9 +3254,154 @@ async def get():
             }
         });
 
+        // 对话历史管理
+        let currentConversationId = null;
+        
+        async function loadConversations() {
+            try {
+                const res = await fetch('/api/conversations');
+                const convs = await res.json();
+                const list = document.getElementById('conversation-list');
+                if (convs.length === 0) {
+                    list.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 20px;">还没有对话记录</div>';
+                } else {
+                    list.innerHTML = convs.map(conv => `
+                        <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" onclick="loadConversation('${conv.id}')">
+                            <div class="conversation-title">${conv.title}</div>
+                            <div class="conversation-time">${new Date(conv.updated_at).toLocaleDateString()}</div>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteConversation('${conv.id}')">×</button>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) { console.log(e); }
+        }
+        
+        async function createNewConversation() {
+            try {
+                const res = await fetch('/api/conversations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: '新对话' })
+                });
+                const conv = await res.json();
+                currentConversationId = conv.id;
+                clearChat();
+                loadConversations();
+                showSuccess('新对话已创建');
+            } catch (e) {
+                showError('创建对话失败: ' + e.message);
+            }
+        }
+        
+        async function loadConversation(convId) {
+            try {
+                const res = await fetch(`/api/conversations/${convId}`);
+                const conv = await res.json();
+                currentConversationId = conv.id;
+                const chatArea = document.getElementById('chat-area');
+                chatArea.innerHTML = conv.messages.map(msg => `
+                    <div class="message ${msg.type}">
+                        <div class="message-content">${msg.content}</div>
+                    </div>
+                `).join('');
+                loadConversations();
+            } catch (e) {
+                showError('加载对话失败: ' + e.message);
+            }
+        }
+        
+        async function deleteConversation(convId) {
+            if (!confirm('确定要删除这个对话吗？')) return;
+            try {
+                await fetch(`/api/conversations/${convId}`, { method: 'DELETE' });
+                if (currentConversationId === convId) {
+                    currentConversationId = null;
+                    clearChat();
+                }
+                loadConversations();
+                showSuccess('对话已删除');
+            } catch (e) {
+                showError('删除对话失败: ' + e.message);
+            }
+        }
+        
+        async function saveCurrentConversation() {
+            if (!currentConversationId) {
+                await createNewConversation();
+            }
+            const messages = [];
+            document.querySelectorAll('.message').forEach(msg => {
+                const type = msg.classList.contains('user') ? 'user' : msg.classList.contains('assistant') ? 'assistant' : 'system';
+                const content = msg.querySelector('.message-content')?.textContent || '';
+                if (type !== 'system') {
+                    messages.push({ type, content });
+                }
+            });
+            try {
+                await fetch(`/api/conversations/${currentConversationId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages })
+                });
+            } catch (e) { console.log(e); }
+        }
+        
+        // 删除知识库
+        async function deleteKnowledgeBase(kbId) {
+            if (!confirm('确定要删除这个知识库吗？所有文档也将被删除。')) return;
+            try {
+                await fetch(`/api/knowledge-bases/${kbId}`, { method: 'DELETE' });
+                loadKnowledgeBases();
+                showSuccess('知识库已删除');
+            } catch (e) {
+                showError('删除知识库失败: ' + e.message);
+            }
+        }
+        
+        // 删除技能
+        async function deleteSkill(skillId) {
+            if (!confirm('确定要删除这个技能吗？')) return;
+            try {
+                await fetch(`/api/skills/${skillId}`, { method: 'DELETE' });
+                loadSkills();
+                showSuccess('技能已删除');
+            } catch (e) {
+                showError('删除技能失败: ' + e.message);
+            }
+        }
+        
+        // 删除MCP服务器
+        async function deleteMcpServer(serverId) {
+            if (!confirm('确定要删除这个MCP服务器吗？')) return;
+            try {
+                await fetch(`/api/mcp/servers/${serverId}`, { method: 'DELETE' });
+                loadMcpServers();
+                showSuccess('MCP服务器已删除');
+            } catch (e) {
+                showError('删除MCP服务器失败: ' + e.message);
+            }
+        }
+        
+        // 执行MCP工具
+        async function executeMcpTool(serverId, toolName, params) {
+            try {
+                const res = await fetch(`/api/mcp/servers/${serverId}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tool: toolName, parameters: params })
+                });
+                const result = await res.json();
+                return result.result;
+            } catch (e) {
+                showError('MCP执行失败: ' + e.message);
+                return null;
+            }
+        }
+
         window.onload = function() {
             connectWS();
             loadSettings();
+            loadConversations();
         };
     </script>
 </body>
