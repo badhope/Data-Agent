@@ -46,6 +46,7 @@ def load_settings() -> Settings:
 
 def save_settings(settings: Settings):
     """保存系统配置"""
+    ensure_directories()
     with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump(settings.model_dump(), f, ensure_ascii=False, indent=2)
     global current_settings
@@ -74,6 +75,7 @@ def save_knowledge_bases(kbs=None):
     global knowledge_bases
     if kbs is not None:
         knowledge_bases = kbs
+    ensure_directories()
     index_file = KNOWLEDGE_DIR / "index.json"
     data = {kb_id: kb.model_dump() for kb_id, kb in knowledge_bases.items()}
     with open(index_file, 'w', encoding='utf-8') as f:
@@ -165,6 +167,7 @@ def save_skills(skills_data=None):
     global skills
     if skills_data is not None:
         skills = skills_data
+    ensure_directories()
     index_file = SKILLS_DIR / "index.json"
     data = {skill_id: skill.model_dump() for skill_id, skill in skills.items()}
     with open(index_file, 'w', encoding='utf-8') as f:
