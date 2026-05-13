@@ -79,9 +79,13 @@ async def clean_text(text: str, rules: Dict[str, Any]) -> str:
     return result
 
 
-async def run_universal_agent(websocket, message: str):
+async def run_universal_agent(websocket, message: str, settings: Settings = None):
     """运行通用智能体"""
     try:
+        if settings is None:
+            from .storage import get_settings
+            settings = get_settings()
+            
         await websocket.send_json({
             "type": "thinking",
             "title": "🤔 理解需求",
@@ -92,7 +96,7 @@ async def run_universal_agent(websocket, message: str):
         kb_related = False
         search_enabled = False
 
-        if current_settings.knowledge_base.get("enabled"):
+        if settings.knowledge_base.get("enabled"):
             kb_related = any(kw in message.lower() for kw in ["文档", "知识库", "knowledge", "search", "查找"])
 
         if any(kw in message.lower() for kw in ["代码", "python", "图表", "计算", "数据", "分析", "plot", "chart", "execute"]):
@@ -132,7 +136,7 @@ async def run_universal_agent(websocket, message: str):
                 "content": "正在沙箱环境中执行代码..."
             })
 
-            result = await execute_python(code, timeout=current_settings.sandbox["timeout"])
+            result = await execute_python(code, timeout=settings.sandbox["timeout"])
 
             if result["success"]:
                 response = f"✅ 执行成功！\n\n**标准输出:**\n{result['stdout']}\n\n**代码:**\n```python\n{code}\n```"
@@ -148,8 +152,9 @@ async def run_universal_agent(websocket, message: str):
                 "content": "正在从知识库中检索相关信息..."
             })
 
-            from .storage import knowledge_bases
-            kb_list = ", ".join([kb.name for kb in knowledge_bases.values()])
+            from .storage import get_knowledge_bases
+            kbs = get_knowledge_bases()
+            kb_list = ", ".join([kb.name for kb in kbs.values()])
 
             await websocket.send_json({
                 "type": "thinking",
@@ -157,7 +162,7 @@ async def run_universal_agent(websocket, message: str):
                 "content": f"可用知识库: {kb_list}"
             })
 
-            response = await call_llm(f"用户问题：{message}\n\n可用知识库：{kb_list}\n\n请基于知识库内容回答用户问题。", current_settings)
+            response = await call_llm(f"用户问题：{message}\n\n可用知识库：{kb_list}\n\n请基于知识库内容回答用户问题。", settings)
 
         else:
             await websocket.send_json({
@@ -172,7 +177,7 @@ async def run_universal_agent(websocket, message: str):
                 "content": "正在向AI模型发送请求..."
             })
 
-            response = await call_llm(message, current_settings)
+            response = await call_llm(message, settings)
 
         await websocket.send_json({"type": "stream_start"})
 
