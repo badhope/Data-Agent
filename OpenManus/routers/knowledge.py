@@ -1,0 +1,370 @@
+"""
+DataAgent - 知识库路由
+包含知识库 CRUD、文档上传/预览/分块/搜索/嵌入等端点
+"""
+
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
+from fastapi.responses import JSONResponse
+from database import (
+    knowledge_bases, documents, save_knowledge_bases,
+    current_settings
+)
+from config import KNOWLEDGE_DIR, DATA_DIR
+from models import KnowledgeBase as KBModel, Document as DocModel
+import sys, os, json, uuid, datetime, re, tempfile, shutil, asyncio
+from pathlib import Path
+from typing import Dict, List, Any
+
+router = APIRouter()
+
+
+# ==================== 知识库 CRUD ====================
+
+@router.get("/api/knowledge-bases")
+async def list_knowledge_bases():
+    return JSONResponse([kb.model_dump() for kb in knowledge_bases.values()])
+
+
+@router.post("/api/knowledge-bases")
+async def create_knowledge_base(request: Request):
+    data = await request.json()
+    kb_id = str(uuid.uuid4())
+    now = datetime.datetime.now().isoformat()
+    kb = KBModel(
+        id=kb_id,
+        name=data.get("name", "未命名知识库"),
+        description=data.get("description", ""),
+        created_at=now,
+        updated_at=now,
+        embedding_model=data.get("embedding_model", "text-embedding-v3"),
+        indexing_technique=data.get("indexing_technique", "high_quality")
+    )
+    knowledge_bases[kb_id] = kb
+    save_knowledge_bases()
+    (KNOWLEDGE_DIR / kb_id).mkdir(exist_ok=True)
+    return JSONResponse(kb.model_dump())
+
+
+@router.get("/api/knowledge-bases/{kb_id}")
+async def get_knowledge_base(kb_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    return JSONResponse(knowledge_bases[kb_id].model_dump())
+
+
+@router.put("/api/knowledge-bases/{kb_id}")
+async def update_knowledge_base(kb_id: str, request: Request):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    data = await request.json()
+    kb = knowledge_bases[kb_id]
+    kb.name = data.get("name", kb.name)
+    kb.description = data.get("description", kb.description)
+    kb.updated_at = datetime.datetime.now().isoformat()
+    save_knowledge_bases()
+    return JSONResponse(kb.model_dump())
+
+
+@router.delete("/api/knowledge-bases/{kb_id}")
+async def delete_knowledge_base(kb_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    del knowledge_bases[kb_id]
+    save_knowledge_bases()
+    import shutil
+    kb_dir = KNOWLEDGE_DIR / kb_id
+    if kb_dir.exists():
+        shutil.rmtree(kb_dir)
+    docs_to_delete = [doc_id for doc_id, doc in documents.items() if doc.knowledge_base_id == kb_id]
+    for doc_id in docs_to_delete:
+        del documents[doc_id]
+    return JSONResponse({"success": True, "message": "知识库已删除"})
+
+
+# ==================== 文档上传/管理 ====================
+
+@router.post("/api/knowledge-bases/{kb_id}/documents")
+async def upload_document(kb_id: str, file: UploadFile = File(...)):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+
+    allowed_extensions = {'.pdf', '.txt', '.md', '.docx', '.csv', '.xlsx', '.xls', '.ppt', '.pptx'}
+    max_size = 50 * 1024 * 1024  # 50MB
+
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支持的文件格式: {file_ext}。支持的格式: {', '.join(allowed_extensions)}"
+        )
+
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+
+    if size > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"文件过大: {size / 1024 / 1024:.2f}MB。最大支持 {max_size / 1024 / 1024}MB"
+        )
+
+    upload_dir = Path("data/uploads") / kb_id
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    doc_id = str(uuid.uuid4())
+    file_path = upload_dir / f"{doc_id}{file_ext}"
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        now = datetime.datetime.now().isoformat()
+        doc = DocModel(
+            id=doc_id,
+            knowledge_base_id=kb_id,
+            name=file.filename or "文档",
+            data_source_type="upload",
+            status="processing",
+            file_path=str(file_path),
+            created_at=now
+        )
+        documents[doc_id] = doc
+
+        asyncio.create_task(process_document(doc_id, file_path, file_ext))
+
+        return JSONResponse({
+            **doc.model_dump(),
+            "message": f"文件上传成功，正在处理..."
+        })
+
+    except Exception as e:
+        if file_path.exists():
+            file_path.unlink()
+        raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
+
+
+@router.post("/api/knowledge-bases/{kb_id}/documents/batch")
+async def batch_upload_documents(kb_id: str, files: List[UploadFile] = File(...)):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+
+    results = []
+    for file in files:
+        try:
+            result = await upload_document(kb_id, file)
+            results.append({"filename": file.filename, "success": True, "doc": result})
+        except Exception as e:
+            results.append({"filename": file.filename, "success": False, "error": str(e)})
+
+    return JSONResponse({"results": results})
+
+
+@router.get("/api/knowledge-bases/{kb_id}/documents")
+async def list_documents(kb_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    kb_docs = [doc.model_dump() for doc in documents.values() if doc.knowledge_base_id == kb_id]
+    return JSONResponse(kb_docs)
+
+
+@router.delete("/api/knowledge-bases/{kb_id}/documents/{doc_id}")
+async def delete_document(kb_id: str, doc_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    if doc_id not in documents:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    doc = documents[doc_id]
+    if doc.knowledge_base_id != kb_id:
+        raise HTTPException(status_code=400, detail="文档不属于该知识库")
+    del documents[doc_id]
+    if doc.file_path and Path(doc.file_path).exists():
+        Path(doc.file_path).unlink()
+    return JSONResponse({"success": True, "message": "文档已删除"})
+
+
+# ==================== 文档处理/预览/分块 ====================
+
+async def process_document(doc_id: str, file_path: Path, file_ext: str):
+    try:
+        content = ""
+
+        if file_ext == '.txt' or file_ext == '.md':
+            import aiofiles
+            async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
+                content = await f.read()
+
+        elif file_ext == '.csv':
+            import pandas as pd
+            df = pd.read_csv(file_path)
+            content = df.to_string()
+
+        elif file_ext == '.pdf':
+            try:
+                import fitz
+                doc = fitz.open(file_path)
+                content = "\n".join([page.get_text() for page in doc])
+                doc.close()
+            except:
+                content = "[PDF内容需要安装pymupdf库]"
+
+        elif file_ext == '.docx':
+            try:
+                from docx import Document as DocxDocument
+                doc = DocxDocument(file_path)
+                content = "\n".join([para.text for para in doc.paragraphs])
+            except:
+                content = "[DOCX内容需要安装python-docx库]"
+
+        if doc_id in documents:
+            documents[doc_id].status = "available"
+            documents[doc_id].content = content[:100000] if len(content) > 100000 else content
+            chunks = split_into_chunks(content, chunk_size=500, overlap=50)
+            documents[doc_id].chunks = chunks
+            documents[doc_id].chunk_count = len(chunks)
+
+    except Exception as e:
+        if doc_id in documents:
+            documents[doc_id].status = "failed"
+            documents[doc_id].error = str(e)
+
+
+def split_into_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> List[dict]:
+    if not text:
+        return []
+    chunks = []
+    start = 0
+    chunk_id = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunk_text = text[start:end]
+        chunks.append({
+            "id": chunk_id,
+            "content": chunk_text,
+            "start": start,
+            "end": min(end, len(text))
+        })
+        chunk_id += 1
+        start = end - overlap
+        if start >= len(text) - overlap:
+            break
+    return chunks
+
+
+@router.get("/api/knowledge-bases/{kb_id}/documents/{doc_id}/preview")
+async def preview_document(kb_id: str, doc_id: str):
+    if doc_id not in documents:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    doc = documents[doc_id]
+    return JSONResponse({
+        "id": doc.id,
+        "name": doc.name,
+        "content": doc.content or "",
+        "chunks": doc.chunks if hasattr(doc, 'chunks') else [],
+        "status": doc.status
+    })
+
+
+@router.get("/api/knowledge-bases/{kb_id}/documents/{doc_id}/chunks")
+async def get_document_chunks(kb_id: str, doc_id: str):
+    if doc_id not in documents:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    doc = documents[doc_id]
+    chunks = doc.chunks if hasattr(doc, 'chunks') else []
+    return JSONResponse({"chunks": chunks, "total": len(chunks)})
+
+
+# ==================== 搜索/嵌入 ====================
+
+async def generate_embeddings(text: str, api_key: str, base_url: str = "https://api.openai.com/v1", model: str = "text-embedding-3-small") -> List[float]:
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        response = await client.embeddings.create(input=text[:8000], model=model)
+        return response.data[0].embedding
+    except Exception as e:
+        print(f"Embedding error: {e}")
+        return []
+
+
+def cosine_similarity(a: List[float], b: List[float]) -> float:
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    dot_product = sum(x * y for x, y in zip(a, b))
+    norm_a = sum(x * x for x in a) ** 0.5
+    norm_b = sum(x * x for x in b) ** 0.5
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return dot_product / (norm_a * norm_b)
+
+
+@router.post("/api/knowledge-bases/{kb_id}/search")
+async def search_knowledge_base(kb_id: str, request: Request):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    data = await request.json()
+    query = data.get("query", "")
+    top_k = data.get("top_k", 5)
+    if not query:
+        raise HTTPException(status_code=400, detail="请提供搜索查询")
+
+    kb = knowledge_bases[kb_id]
+    results = []
+
+    api_key = current_settings.llm.api_key or ""
+    base_url = current_settings.llm.base_url or "https://api.openai.com/v1"
+    embedding_model = kb.embedding_model or "text-embedding-3-small"
+
+    query_embedding = await generate_embeddings(query, api_key, base_url, embedding_model)
+
+    for doc_id, doc in documents.items():
+        if doc.knowledge_base_id != kb_id:
+            continue
+        if not hasattr(doc, 'chunks') or not doc.chunks:
+            continue
+
+        for chunk in doc.chunks:
+            if not hasattr(chunk, 'embedding') or not chunk.get('embedding'):
+                chunk['embedding'] = await generate_embeddings(
+                    chunk['content'], api_key, base_url, embedding_model
+                )
+
+            if query_embedding and chunk.get('embedding'):
+                score = cosine_similarity(query_embedding, chunk['embedding'])
+                results.append({
+                    "doc_id": doc_id,
+                    "doc_name": doc.name,
+                    "chunk_id": chunk['id'],
+                    "content": chunk['content'],
+                    "score": score
+                })
+
+    results.sort(key=lambda x: x['score'], reverse=True)
+    return JSONResponse({"results": results[:top_k], "total": len(results)})
+
+
+@router.post("/api/knowledge-bases/{kb_id}/embed")
+async def generate_kb_embeddings(kb_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+
+    kb = knowledge_bases[kb_id]
+    api_key = current_settings.llm.api_key or ""
+    base_url = current_settings.llm.base_url or "https://api.openai.com/v1"
+    embedding_model = kb.embedding_model or "text-embedding-3-small"
+
+    if not api_key:
+        raise HTTPException(status_code=400, detail="请先配置API Key")
+
+    embedded_count = 0
+    for doc_id, doc in documents.items():
+        if doc.knowledge_base_id != kb_id:
+            continue
+        if hasattr(doc, 'chunks') and doc.chunks:
+            for chunk in doc.chunks:
+                if not chunk.get('embedding'):
+                    chunk['embedding'] = await generate_embeddings(
+                        chunk['content'], api_key, base_url, embedding_model
+                    )
+                    embedded_count += 1
+
+    return JSONResponse({"success": True, "embedded_chunks": embedded_count})
