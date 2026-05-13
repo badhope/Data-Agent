@@ -43,6 +43,13 @@
                         <p>Model Context Protocol</p>
                     </div>
                 </div>
+                <div class="nav-item" onclick="openModal('tidy-cup-modal'); closeSidebar();">
+                    <span class="nav-icon">📊</span>
+                    <div class="nav-text">
+                        <h4>泰迪杯竞赛</h4>
+                        <p>财务数据分析系统</p>
+                    </div>
+                </div>
                 <div class="nav-divider"></div>
                 <div class="nav-item" onclick="openModal('settings-modal'); closeSidebar();">
                     <span class="nav-icon">⚙️</span>
@@ -328,6 +335,142 @@
                         <input type="text" class="setting-input" id="mcp-command" placeholder="例如：npx">
                     </div>
                     <button class="btn btn-primary" style="width: 100%;" onclick="createMcpServer()">添加服务器</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="tidy-cup-modal">
+        <div class="modal" style="max-width: 900px; width: 95%; max-height: 90vh;">
+            <div class="modal-header">
+                <div class="modal-title">📊 泰迪杯/海峡杯 - 财务数据分析系统</div>
+                <button class="modal-close" onclick="closeModal('tidy-cup-modal')">×</button>
+            </div>
+            <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
+                <div class="settings-tabs" style="margin-bottom: 20px;">
+                    <div class="settings-tab active" onclick="showTidyTab('overview')">📋 概览</div>
+                    <div class="settings-tab" onclick="showTidyTab('analyze')">🔍 分析</div>
+                    <div class="settings-tab" onclick="showTidyTab('query')">💬 查询</div>
+                    <div class="settings-tab" onclick="showTidyTab('upload')">📁 上传</div>
+                    <div class="settings-tab" onclick="showTidyTab('datasource')">🗄️ 数据源</div>
+                </div>
+                
+                <!-- 概览面板 -->
+                <div class="settings-section active" id="tidy-overview">
+                    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(168,85,247,0.15)); border-radius: 12px; margin-bottom: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 8px;">📊</div>
+                        <h2 style="color: white; margin: 0 0 8px 0;">财务数据分析系统</h2>
+                        <p style="color: #94a3b8; margin: 0;">支持：PDF解析、NL2SQL查询、知识库RAG、归因分析、多意图规划</p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:16px; margin-bottom:20px;">
+                        <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size:24px; margin-bottom:8px;">📄</div>
+                            <h4 style="color:white; margin:0 0 8px 0;">PDF智能解析</h4>
+                            <p style="color:#94a3b8; margin:0; font-size:13px;">双引擎解析策略：规则优先 + LLM兜底</p>
+                        </div>
+                        <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size:24px; margin-bottom:8px;">🔢</div>
+                            <h4 style="color:white; margin:0 0 8px 0;">自然语言转SQL</h4>
+                            <p style="color:#94a3b8; margin:0; font-size:13px;">智能理解查询意图，自动生成SQL并安全执行</p>
+                        </div>
+                        <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size:24px; margin-bottom:8px;">🔎</div>
+                            <h4 style="color:white; margin:0 0 8px 0;">知识库RAG</h4>
+                            <p style="color:#94a3b8; margin:0; font-size:13px;">文档向量化存储，语义检索增强生成</p>
+                        </div>
+                        <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size:24px; margin-bottom:8px;">📋</div>
+                            <h4 style="color:white; margin:0 0 8px 0;">归因与规划</h4>
+                            <p style="color:#94a3b8; margin:0; font-size:13px;">追踪答案来源，拆解复杂问题</p>
+                        </div>
+                    </div>
+                    
+                    <h3 style="color: white; margin-bottom:12px;">💡 示例查询</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:10px;">
+                        <button class="btn btn-secondary" style="text-align:left; padding:12px 16px;" onclick="quickTidyQuery('贵州茅台2023年财务数据分析')">贵州茅台2023年财务数据</button>
+                        <button class="btn btn-secondary" style="text-align:left; padding:12px 16px;" onclick="quickTidyQuery('对比贵州茅台和平安银行的业绩')">对比贵州茅台和平安银行的业绩</button>
+                        <button class="btn btn-secondary" style="text-align:left; padding:12px 16px;" onclick="quickTidyQuery('贵州茅台近年来的利润增长趋势')">贵州茅台近年来的利润增长趋势</button>
+                        <button class="btn btn-secondary" style="text-align:left; padding:12px 16px;" onclick="quickTidyQuery('白酒行业分析报告')">白酒行业分析报告</button>
+                        <button class="btn btn-secondary" style="text-align:left; padding:12px 16px;" onclick="quickTidyQuery('平安银行净利润')">平安银行净利润</button>
+                    </div>
+                </div>
+                
+                <!-- 分析面板 -->
+                <div class="settings-section" id="tidy-analyze">
+                    <div id="tidy-analysis-status" style="padding:20px; text-align:center; color:#94a3b8;">选择分析目标开始分析</div>
+                    <div id="tidy-analysis-result" style="display:none;">
+                        <h3 style="color:white; margin-bottom:16px;">📊 分析结果</h3>
+                        <div id="analysis-content"></div>
+                    </div>
+                </div>
+                
+                <!-- 查询面板 -->
+                <div class="settings-section" id="tidy-query">
+                    <div style="margin-bottom:16px;">
+                        <h3 style="color:white; margin-bottom:8px;">💬 自然语言查询</h3>
+                        <p style="color:#94a3b8; margin:0 0 16px 0;">用自然语言描述您的查询，系统会自动理解并执行</p>
+                    </div>
+                    <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; margin-bottom:16px;">
+                        <textarea id="tidy-query-input" placeholder="例如：贵州茅台2023年的净利润是多少？" style="width:100%; background: rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:12px; color:white; min-height:80px; resize:vertical;"></textarea>
+                        <div style="display:flex; justify-content: space-between; align-items:center; margin-top:12px;">
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-secondary" onclick="clearTidyQuery()">清空</button>
+                            </div>
+                            <button class="btn btn-primary" onclick="executeTidyQuery()">🔍 执行查询</button>
+                        </div>
+                    </div>
+                    <div id="tidy-query-result" style="margin-top:16px;"></div>
+                </div>
+                
+                <!-- 上传面板 -->
+                <div class="settings-section" id="tidy-upload">
+                    <div style="text-align:center; padding:30px; border:2px dashed rgba(255,255,255,0.2); border-radius:12px; margin-bottom:20px;" onclick="document.getElementById('tidy-pdf-input').click()">
+                        <div style="font-size:48px; margin-bottom:12px;">📁</div>
+                        <h3 style="color:white; margin:0 0 8px 0;">上传财务报表PDF</h3>
+                        <p style="color:#94a3b8; margin:0 0 12px 0;">支持：.pdf, .csv, .xlsx</p>
+                        <p style="color:#64748b; font-size:13px; margin:0;">点击或拖拽文件到此处</p>
+                    </div>
+                    <input type="file" id="tidy-pdf-input" accept=".pdf,.csv,.xlsx,.xls" style="display:none;" onchange="handleTidyPdfUpload(event)">
+                    <div id="tidy-upload-result" style="margin-top:16px;"></div>
+                </div>
+                
+                <!-- 数据源面板 -->
+                <div class="settings-section" id="tidy-datasource">
+                    <h3 style="color:white; margin-bottom:12px;">🗄️ 当前数据源</h3>
+                    <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; margin-bottom:16px;">
+                        <h4 style="color:white; margin:0 0 12px 0;">💾 财务数据库 (SQLite)</h4>
+                        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:8px;">
+                            <div style="padding:8px; background: rgba(0,0,0,0.25); border-radius:6px;">
+                                <div style="font-size:12px; color:#64748b;">公司数量</div>
+                                <div style="color:#22c55e; font-size:20px; font-weight:700;" id="db-company-count">-</div>
+                            </div>
+                            <div style="padding:8px; background: rgba(0,0,0,0.25); border-radius:6px;">
+                                <div style="font-size:12px; color:#64748b;">数据记录</div>
+                                <div style="color:#3b82f6; font-size:20px; font-weight:700;" id="db-record-count">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px;">
+                        <h4 style="color:white; margin:0 0 12px 0;">📚 知识库文档</h4>
+                        <div id="kb-doc-list" style="display:grid; gap:8px;">
+                            <div style="padding:10px; background: rgba(0,0,0,0.2); border-radius:6px; display:flex; justify-content: space-between; align-items:center;">
+                                <span style="color:white; font-size:14px;">贵州茅台2023年年度报告</span>
+                                <span style="color:#94a3b8; font-size:12px;">演示数据</span>
+                            </div>
+                            <div style="padding:10px; background: rgba(0,0,0,0.2); border-radius:6px; display:flex; justify-content: space-between; align-items:center;">
+                                <span style="color:white; font-size:14px;">平安银行2023年财报</span>
+                                <span style="color:#94a3b8; font-size:12px;">演示数据</span>
+                            </div>
+                            <div style="padding:10px; background: rgba(0,0,0,0.2); border-radius:6px; display:flex; justify-content: space-between; align-items:center;">
+                                <span style="color:white; font-size:14px;">白酒行业分析报告</span>
+                                <span style="color:#94a3b8; font-size:12px;">演示数据</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top:16px;">
+                        <button class="btn btn-primary" style="width:100%;" onclick="loadTidyDemoData()">🎬 加载演示数据</button>
+                    </div>
                 </div>
             </div>
         </div>
