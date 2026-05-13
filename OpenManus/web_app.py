@@ -704,11 +704,434 @@ async def get():
         .rule-item:last-child { border-bottom: none; }
         pre code { color: #e2e8f0 !important; }
         .message-content a { color: #60a5fa; }
+        
+        /* ==================== 移动端响应式适配 ==================== */
+        @media screen and (max-width: 768px) {
+            /* 汉堡菜单按钮 - 默认隐藏侧边栏 */
+            .menu-toggle {
+                display: flex;
+            }
+            
+            /* 侧边栏 - 移动端默认隐藏 */
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                bottom: 0;
+                width: 280px;
+                z-index: 1001;
+                transition: left 0.3s ease;
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            /* 侧边栏遮罩层 */
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+            }
+            
+            .sidebar-overlay.show {
+                display: block;
+            }
+            
+            /* 主内容区 - 占据全屏 */
+            .main-content {
+                width: 100%;
+                height: 100vh;
+            }
+            
+            /* 头部优化 */
+            .header {
+                padding: 12px 16px;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                background: rgba(30, 41, 59, 0.98);
+            }
+            
+            .header h1 {
+                font-size: 16px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .header-actions {
+                gap: 8px;
+            }
+            
+            .header-actions .btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            /* 聊天区域 - 适配移动端 */
+            .chat-area {
+                padding: 16px;
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .message {
+                max-width: 92%;
+                margin-bottom: 16px;
+            }
+            
+            .message-content {
+                padding: 12px 14px;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            
+            /* 思考容器 - 移动端适配 */
+            .thinking-container {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            
+            .thinking-content {
+                padding-left: 16px;
+                font-size: 12px;
+            }
+            
+            .thinking-tools {
+                padding-left: 16px;
+            }
+            
+            /* 输入区域 - 固定在底部 */
+            .input-area {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 12px 16px;
+                background: rgba(30, 41, 59, 0.98);
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                z-index: 100;
+                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+            }
+            
+            .input-container {
+                display: flex;
+                gap: 10px;
+                align-items: flex-end;
+            }
+            
+            .input-box {
+                flex: 1;
+                padding: 12px 14px;
+                font-size: 16px;
+                min-height: 48px;
+                max-height: 120px;
+                border-radius: 10px;
+            }
+            
+            .send-btn {
+                padding: 12px 18px;
+                font-size: 14px;
+                border-radius: 10px;
+                min-width: 60px;
+                min-height: 48px;
+            }
+            
+            /* 模态框 - 全屏显示 */
+            .modal-overlay {
+                padding: 0;
+                align-items: flex-end;
+            }
+            
+            .modal-overlay.show {
+                display: flex;
+            }
+            
+            .modal {
+                width: 100%;
+                max-width: 100%;
+                max-height: 90vh;
+                border-radius: 16px 16px 0 0;
+                margin: 0;
+            }
+            
+            .modal-header {
+                padding: 16px 20px;
+                flex-shrink: 0;
+            }
+            
+            .modal-title {
+                font-size: 16px;
+            }
+            
+            .modal-body {
+                padding: 16px 20px;
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .modal-actions {
+                padding: 12px 20px;
+                flex-shrink: 0;
+                position: sticky;
+                bottom: 0;
+                background: #1e293b;
+            }
+            
+            /* 设置页面 - 移动端适配 */
+            .settings-tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 4px;
+            }
+            
+            .settings-tab {
+                white-space: nowrap;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            .setting-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                padding: 12px;
+            }
+            
+            .setting-label {
+                width: auto;
+                font-size: 13px;
+            }
+            
+            .setting-input,
+            .setting-select {
+                width: 100%;
+                font-size: 14px;
+                padding: 10px 12px;
+            }
+            
+            /* 知识库卡片 - 移动端适配 */
+            .kb-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .kb-card {
+                padding: 16px;
+            }
+            
+            .kb-card-icon {
+                font-size: 28px;
+            }
+            
+            .kb-meta {
+                flex-wrap: wrap;
+            }
+            
+            /* 技能列表 - 移动端适配 */
+            .skill-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .skill-info {
+                width: 100%;
+            }
+            
+            /* 文件上传区域 - 移动端适配 */
+            .file-upload-area {
+                padding: 24px 16px;
+            }
+            
+            .file-upload-area h4 {
+                font-size: 14px;
+            }
+            
+            /* 帮助内容 - 移动端适配 */
+            .help-content {
+                font-size: 13px;
+                line-height: 1.6;
+            }
+            
+            .help-content h4 {
+                font-size: 15px;
+            }
+            
+            .help-content pre {
+                padding: 12px;
+                margin: 10px 0;
+            }
+            
+            .help-content code {
+                font-size: 12px;
+            }
+            
+            /* 开关按钮 - 触摸友好 */
+            .setting-switch {
+                width: 52px;
+                height: 30px;
+            }
+            
+            .setting-switch::after {
+                width: 24px;
+                height: 24px;
+            }
+            
+            .setting-switch.on::after {
+                left: 26px;
+            }
+            
+            /* 按钮 - 触摸友好 */
+            .btn {
+                min-height: 44px;
+                padding: 10px 16px;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            
+            /* 工具标签 - 移动端适配 */
+            .tool-tag {
+                padding: 3px 8px;
+                font-size: 11px;
+            }
+        }
+        
+        /* ==================== 超小屏幕适配 (< 480px) ==================== */
+        @media screen and (max-width: 480px) {
+            .header h1 {
+                font-size: 14px;
+            }
+            
+            .header-actions .btn {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            
+            .header-actions .btn span {
+                display: none;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+            
+            .message-content {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            
+            .input-area {
+                padding: 10px 12px;
+            }
+            
+            .input-box {
+                padding: 10px 12px;
+                font-size: 15px;
+                min-height: 44px;
+            }
+            
+            .send-btn {
+                padding: 10px 14px;
+                min-width: 54px;
+                min-height: 44px;
+            }
+            
+            .modal {
+                max-height: 85vh;
+            }
+            
+            .modal-header {
+                padding: 14px 16px;
+            }
+            
+            .modal-body {
+                padding: 12px 16px;
+            }
+            
+            .modal-actions {
+                padding: 10px 16px;
+            }
+            
+            .btn {
+                min-height: 40px;
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+        }
+        
+        /* ==================== 横屏模式适配 ==================== */
+        @media screen and (max-height: 500px) and (orientation: landscape) {
+            .input-area {
+                position: relative;
+                padding: 10px 24px;
+            }
+            
+            .input-box {
+                max-height: 80px;
+            }
+            
+            .chat-area {
+                flex: 1;
+            }
+        }
+        
+        /* ==================== 触摸友好优化 ==================== */
+        @media (hover: none) and (pointer: coarse) {
+            /* 触摸设备禁用hover效果 */
+            .nav-item:hover,
+            .btn:hover,
+            .kb-card:hover,
+            .skill-item:hover {
+                background: inherit;
+                transform: none;
+            }
+            
+            /* 触摸设备添加active状态 */
+            .nav-item:active,
+            .btn:active,
+            .kb-card:active {
+                opacity: 0.8;
+            }
+            
+            /* 触摸设备禁用文本选择 */
+            .nav-item,
+            .btn,
+            .kb-card,
+            .skill-item,
+            .mcp-item {
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            /* 输入框可以选中文本 */
+            .input-box {
+                -webkit-user-select: text;
+                user-select: text;
+            }
+        }
+        
+        /* ==================== iOS 安全区域适配 ==================== */
+        @supports (padding: env(safe-area-inset-bottom)) {
+            .input-area {
+                padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
     <div class="app-container">
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h2>🤖 DataAgent</h2>
             </div>
@@ -721,21 +1144,21 @@ async def get():
                     </div>
                 </div>
                 <div class="nav-divider"></div>
-                <div class="nav-item" onclick="openModal('knowledge-modal')">
+                <div class="nav-item" onclick="openModal('knowledge-modal'); closeSidebar();">
                     <span class="nav-icon">📚</span>
                     <div class="nav-text">
                         <h4>知识库</h4>
                         <p>文档管理与检索</p>
                     </div>
                 </div>
-                <div class="nav-item" onclick="openModal('prompt-modal')">
+                <div class="nav-item" onclick="openModal('prompt-modal'); closeSidebar();">
                     <span class="nav-icon">💡</span>
                     <div class="nav-text">
                         <h4>技能系统</h4>
                         <p>自定义技能与提示词</p>
                     </div>
                 </div>
-                <div class="nav-item" onclick="openModal('mcp-modal')">
+                <div class="nav-item" onclick="openModal('mcp-modal'); closeSidebar();">
                     <span class="nav-icon">🔌</span>
                     <div class="nav-text">
                         <h4>MCP工具</h4>
@@ -743,14 +1166,14 @@ async def get():
                     </div>
                 </div>
                 <div class="nav-divider"></div>
-                <div class="nav-item" onclick="openModal('settings-modal')">
+                <div class="nav-item" onclick="openModal('settings-modal'); closeSidebar();">
                     <span class="nav-icon">⚙️</span>
                     <div class="nav-text">
                         <h4>设置</h4>
                         <p>模型与系统配置</p>
                     </div>
                 </div>
-                <div class="nav-item" onclick="openModal('help-modal')">
+                <div class="nav-item" onclick="openModal('help-modal'); closeSidebar();">
                     <span class="nav-icon">❓</span>
                     <div class="nav-text">
                         <h4>使用说明</h4>
@@ -761,7 +1184,10 @@ async def get():
         </div>
         <div class="main-content">
             <div class="header">
-                <h1>万能智能助手</h1>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()" style="display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 8px;">☰</button>
+                    <h1>万能智能助手</h1>
+                </div>
                 <div class="header-actions">
                     <button class="btn btn-secondary" onclick="clearChat()">🗑️ 清空对话</button>
                     <button class="btn btn-primary" onclick="openModal('help-modal')">📖 帮助</button>
@@ -1075,6 +1501,20 @@ async def get():
         function clearChat() {
             const chatArea = document.getElementById('chat-area');
             chatArea.innerHTML = '<div class="message system"><div class="message-content">欢迎使用 DataAgent！</div></div>';
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
         }
 
         function openModal(id) {
