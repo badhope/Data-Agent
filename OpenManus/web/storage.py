@@ -66,10 +66,14 @@ def load_knowledge_bases():
                 }
         except Exception as e:
             print(f"Error loading knowledge bases: {e}")
+    return knowledge_bases
 
 
-def save_knowledge_bases():
+def save_knowledge_bases(kbs=None):
     """保存知识库列表"""
+    global knowledge_bases
+    if kbs is not None:
+        knowledge_bases = kbs
     index_file = KNOWLEDGE_DIR / "index.json"
     data = {kb_id: kb.model_dump() for kb_id, kb in knowledge_bases.items()}
     with open(index_file, 'w', encoding='utf-8') as f:
@@ -153,10 +157,14 @@ def load_skills():
             print(f"Error loading skills: {e}")
     if not skills:
         init_builtin_skills()
+    return skills
 
 
-def save_skills():
+def save_skills(skills_data=None):
     """保存技能列表"""
+    global skills
+    if skills_data is not None:
+        skills = skills_data
     index_file = SKILLS_DIR / "index.json"
     data = {skill_id: skill.model_dump() for skill_id, skill in skills.items()}
     with open(index_file, 'w', encoding='utf-8') as f:
@@ -185,10 +193,14 @@ def load_mcp_servers():
                         )
         except Exception as e:
             print(f"Error loading MCP servers: {e}")
+    return mcp_servers
 
 
-def save_mcp_servers():
+def save_mcp_servers(mcp_data=None):
     """保存MCP服务器配置"""
+    global mcp_servers
+    if mcp_data is not None:
+        mcp_servers = mcp_data
     data = {
         "mcpServers": {
             server_id: {
@@ -213,4 +225,11 @@ def initialize_storage():
     load_knowledge_bases()
     load_skills()
     load_mcp_servers()
+
+
+# 别名函数，保持API兼容性
+get_settings = load_settings
+get_knowledge_bases = load_knowledge_bases
+get_skills = load_skills
+get_mcp_servers = load_mcp_servers
 
