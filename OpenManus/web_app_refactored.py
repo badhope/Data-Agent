@@ -20,6 +20,13 @@ from web.storage import (
 )
 from web.services import execute_python, call_llm, clean_text, run_universal_agent
 
+# 泰迪杯B题功能
+try:
+    from web.tidycup import FullTidyCupPipeline, FullNL2SQLPipeline
+    TIDYCUP_AVAILABLE = True
+except ImportError:
+    TIDYCUP_AVAILABLE = False
+
 app = FastAPI(
     title="DATA-AI - 万能智能助手",
     description="完整的系统化智能助手：知识库、技能系统、MCP工具、数据清洗",
@@ -50,6 +57,19 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # 初始化存储
 initialize_storage()
+
+# 初始化泰迪杯B题功能
+tidycup_pipeline = None
+if TIDYCUP_AVAILABLE:
+    try:
+        db_path = BASE_DIR / "data" / "tidycup.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        tidycup_pipeline = FullTidyCupPipeline(db_path)
+        tidycup_pipeline.initialize()
+        print("泰迪杯B题功能初始化成功")
+    except Exception as e:
+        print(f"泰迪杯B题功能初始化失败: {e}")
+        TIDYCUP_AVAILABLE = False
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -362,6 +382,70 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"WebSocket error: {e}")
         import traceback
         print(f"Error details: {traceback.format_exc()}")
+
+
+# ==================== 泰迪杯B题功能路由 ====================
+
+@app.get("/api/tidycup/status")
+async def get_tidycup_status():
+    """获取泰迪杯B题功能状态"""
+    return JSONResponse({
+        "available": TIDYCUP_AVAILABLE,
+        "version": "1.0.0" if TIDYCUP_AVAILABLE else None
+    })
+
+
+@app.post("/api/tidycup/query")
+async def tidycup_query(request: Request):
+    """处理泰迪杯B题查询"""
+    if not TIDYCUP_AVAILABLE or not tidycup_pipeline:
+        raise HTTPException(status_code=501, detail="泰迪杯B题功能未启用")
+    
+    try:
+        data = await request.json()
+        query = data.get("query", "")
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="查询内容不能为空")
+        
+        result = await tidycup_pipeline.process_complex_query(query)
+        return JSONResponse(result)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"查询处理失败: {str(e)}")
+
+
+@app.post("/api/tidycup/nl2sql")
+async def tidycup_nl2sql(request: Request):
+    """NL2SQL查询"""
+    if not TIDYCUP_AVAILABLE or not tidycup_pipeline:
+        raise HTTPException(status_code=501, detail="泰迪杯B题功能未启用")
+    
+    try:
+        data = await request.json()
+        query = data.get("query", "")
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="查询内容不能为空")
+        
+        result = await tidycup_pipeline.nl2sql_pipeline.process_query(query)
+        return JSONResponse(result)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"NL2SQL处理失败: {str(e)}")
+
+
+@app.get("/api/tidycup/sample-queries")
+async def get_sample_queries():
+    """获取示例查询"""
+    samples = [
+        "贵州茅台2023年的财务数据",
+        "对比贵州茅台和平安银行的业绩",
+        "贵州茅台的收入增长趋势",
+        "平安银行2023年净利润",
+        "白酒行业分析报告"
+    ]
+    return JSONResponse(samples)
 
 
 if __name__ == "__main__":
