@@ -1,0 +1,402 @@
+/* ==================== 欢迎页面 ==================== */
+.welcome-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    max-width: 800px;
+    margin: 0 auto;
+    animation: fadeIn 0.6s ease;
+}
+
+.welcome-hero {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.welcome-logo {
+    font-size: 64px;
+    margin-bottom: 16px;
+    animation: pulse 3s infinite;
+}
+
+.welcome-hero h1 {
+    font-size: 36px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #60a5fa);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% center; }
+    50% { background-position: 200% center; }
+}
+
+.welcome-tagline {
+    color: #94a3b8;
+    font-size: 16px;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
+.welcome-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(71, 85, 105, 0.3);
+    border-radius: 20px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.connected {
+    background: #10b981;
+}
+
+.status-dot.error {
+    background: #ef4444;
+}
+
+/* 功能卡片网格 */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 40px;
+}
+
+.feature-card {
+    background: rgba(71, 85, 105, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+}
+
+.feature-card:hover {
+    background: rgba(71, 85, 105, 0.35);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.feature-card:active {
+    transform: translateY(-2px);
+}
+
+.feature-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+}
+
+.feature-card h3 {
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.feature-card p {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* 提示区域 */
+.welcome-tips {
+    text-align: center;
+    color: #475569;
+    font-size: 13px;
+}
+
+.welcome-tips kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(71, 85, 105, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: inherit;
+    color: #94a3b8;
+}
+
+/* ==================== 侧边栏分区标签 ==================== */
+.nav-section-label {
+    font-size: 11px;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 16px 14px 6px;
+    font-weight: 600;
+}
+
+.nav-section-label:first-child {
+    padding-top: 8px;
+}
+
+/* ==================== 连接状态指示器 ==================== */
+.header-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #64748b;
+    padding: 4px 12px;
+    background: rgba(71, 85, 105, 0.3);
+    border-radius: 12px;
+}
+
+.header-status .status-dot {
+    width: 6px;
+    height: 6px;
+}
+
+/* ==================== 输入区域增强 ==================== */
+.input-chips {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.input-chip {
+    padding: 4px 12px;
+    background: rgba(71, 85, 105, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    font-size: 12px;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.input-chip:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+}
+
+.input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.char-count {
+    font-size: 11px;
+    color: #475569;
+}
+
+.model-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(71, 85, 105, 0.3);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #94a3b8;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+}
+
+.model-selector:hover {
+    background: rgba(71, 85, 105, 0.5);
+}
+
+/* ==================== NL2SQL 模态框 ==================== */
+.nl2sql-input-area {
+    margin-bottom: 20px;
+}
+
+.nl2sql-input-area textarea {
+    width: 100%;
+    padding: 14px;
+    background: rgba(71, 85, 105, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+}
+
+.nl2sql-input-area textarea:focus {
+    border-color: #3b82f6;
+}
+
+.nl2sql-result {
+    background: rgba(71, 85, 105, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.nl2sql-result h4 {
+    color: white;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.sql-display {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Courier New', monospace;
+    color: #4ade80;
+    font-size: 13px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+}
+
+.intent-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.intent-tag {
+    padding: 4px 10px;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #60a5fa;
+}
+
+/* ==================== 数据库模态框 ==================== */
+.db-query-area {
+    margin-top: 16px;
+}
+
+.db-query-area textarea {
+    width: 100%;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #4ade80;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+}
+
+.db-query-area textarea:focus {
+    border-color: #3b82f6;
+}
+
+.db-result-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.db-result-table th {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.db-result-table td {
+    padding: 8px 12px;
+    color: #cbd5e1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.db-result-table tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* ==================== 响应式适配 ==================== */
+@media screen and (max-width: 768px) {
+    .welcome-page {
+        padding: 24px 16px;
+    }
+
+    .welcome-logo {
+        font-size: 48px;
+    }
+
+    .welcome-hero h1 {
+        font-size: 28px;
+    }
+
+    .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .feature-card {
+        padding: 16px 12px;
+    }
+
+    .feature-icon {
+        font-size: 28px;
+    }
+
+    .feature-card h3 {
+        font-size: 14px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .feature-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .feature-card {
+        padding: 14px 10px;
+    }
+
+    .feature-icon {
+        font-size: 24px;
+        margin-bottom: 8px;
+    }
+
+    .feature-card h3 {
+        font-size: 13px;
+    }
+
+    .feature-card p {
+        font-size: 11px;
+    }
+
+    .welcome-hero h1 {
+        font-size: 24px;
+    }
+
+    .welcome-tagline {
+        font-size: 13px;
+    }
+}
