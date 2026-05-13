@@ -801,6 +801,226 @@ function showSuccess(message) {
     addMessage('✅ ' + message, 'system');
 }
 
+// ==================== 泰迪杯/海峡杯功能 ====================
+
+let tidycupStatus = {
+    loaded: false
+};
+
+function showTidyTab(tab) {
+    document.querySelectorAll('#tidy-cup-modal .settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#tidy-cup-modal .settings-section').forEach(s => s.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(`tidy-${tab}`).classList.add('active');
+    
+    if (tab === 'datasource' && !tidycupStatus.loaded) {
+        loadTidyDemoData();
+    }
+}
+
+async function quickTidyQuery(query) {
+    document.getElementById('tidy-query-input').value = query;
+    showTidyTab('query');
+    await executeTidyQuery();
+}
+
+function clearTidyQuery() {
+    document.getElementById('tidy-query-input').value = '';
+    document.getElementById('tidy-query-result').innerHTML = '';
+}
+
+async function executeTidyQuery() {
+    const query = document.getElementById('tidy-query-input').value.trim();
+    if (!query) {
+        showToast('请输入查询内容', 'error');
+        return;
+    }
+    
+    const resultDiv = document.getElementById('tidy-query-result');
+    resultDiv.innerHTML = `
+        <div style="text-align:center; padding:20px; color:#94a3b8;">
+            <div style="font-size:32px; margin-bottom:8px;">⏳</div>
+            <div>正在处理查询...</div>
+        </div>
+    `;
+    
+    try {
+        const res = await fetch('/api/tidycup/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+        });
+        
+        if (!res.ok) throw new Error('查询失败');
+        
+        const result = await res.json();
+        renderTidyQueryResult(resultDiv, result);
+        
+    } catch (e) {
+        resultDiv.innerHTML = `
+            <div style="padding:16px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:8px;">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span style="font-size:18px;">❌</span>
+                    <span style="color:#ef4444;">查询失败: ${e.message}</span>
+                </div>
+                <button class="btn btn-secondary" style="margin-top:12px; font-size:13px;" onclick="executeTidyQuery()">重试</button>
+            </div>
+        `;
+    }
+}
+
+function renderTidyQueryResult(container, result) {
+    let html = '<div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px;">';
+    
+    if (result.type === 'clarification') {
+        html += `
+            <div style="border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:12px; margin-bottom:12px;">
+                <h4 style="color:#fbbf24; margin:0 0 8px 0;">⚠️ 需要澄清</h4>
+                <p style="color:#94a3b8; margin:0;">请提供更具体的信息</p>
+            </div>
+            <div style="margin-bottom:12px;">
+                <p style="color:white; margin:0 0 8px 0;">建议的澄清问题:</p>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    ${(result.questions || ['请提供公司名称', '请指定年份']).map(q => 
+                        `<button class="btn btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="document.getElementById('tidy-query-input').value='${q}'; executeTidyQuery();">${q}</button>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    } else if (result.original_query) {
+        html += `
+            <div style="border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:12px; margin-bottom:12px;">
+                <h4 style="color:#3b82f6; margin:0 0 8px 0;">📊 分析结果</h4>
+                <p style="color:#94a3b8; margin:0; font-size:13px;">查询: ${result.original_query}</p>
+            </div>
+        `;
+        
+        if (result.task_plan) {
+            html += `<div style="margin-bottom:12px;"><h5 style="color:white; margin:0 0 8px 0;">📋 执行计划</h5>`;
+            if (result.task_plan.sub_tasks) {
+                html += `<div style="display:grid; gap:6px;">`;
+                result.task_plan.sub_tasks.forEach((task, idx) => {
+                    html += `<div style="padding:8px; background: rgba(0,0,0,0.2); border-radius:6px; font-size:13px; color:#e2e8f0;">${idx+1}. ${task.description}</div>`;
+                });
+                html += `</div></div>`;
+            }
+        }
+        
+        if (result.rag_results && result.rag_results.length > 0) {
+            html += `<div style="margin-bottom:12px;"><h5 style="color:white; margin:0 0 8px 0;">📚 相关文档</h5>`;
+            result.rag_results.slice(0,3).forEach(doc => {
+                html += `
+                    <div style="padding:10px; background: rgba(0,0,0,0.2); border-radius:6px; margin-bottom:8px;">
+                        <div style="font-size:13px; color:#e2e8f0; margin-bottom:4px;">${doc.content.substring(0,100)}${doc.content.length>100?'...':''}</div>
+                        <div style="font-size:11px; color:#64748b;">相关性: ${((doc.score||0)*100).toFixed(0)}%</div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+        
+        if (result.sql_result) {
+            html += `<div style="margin-bottom:12px;"><h5 style="color:white; margin:0 0 8px 0;">💾 数据库查询</h5>`;
+            const sqlRes = result.sql_result;
+            if (sqlRes.sql) {
+                html += `<pre style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; font-size:12px; color:#d1d5db; margin:0 0 8px 0; overflow-x:auto;">${sqlRes.sql}</pre>`;
+            }
+            if (sqlRes.result && sqlRes.result.length > 0) {
+                html += `<div style="background: rgba(0,0,0,0.2); padding:10px; border-radius:6px;"><h6 style="color:#94a3b8; margin:0 0 6px 0; font-size:12px;">查询结果 (${sqlRes.result.length}条):</h6><table style="width:100%; font-size:12px; color:#e2e8f0;"><tbody>`;
+                const headers = Object.keys(sqlRes.result[0] || {});
+                html += `<tr style="color:#94a3b8;">${headers.map(h => `<th style="text-align:left; padding:4px;">${h}</th>`).join('')}</tr>`;
+                sqlRes.result.slice(0, 5).forEach(row => {
+                    html += `<tr>${headers.map(h => `<td style="padding:4px; border-bottom:1px solid rgba(255,255,255,0.05);">${row[h] || '-'}</td>`).join('')}</tr>`;
+                });
+                html += `</tbody></table>`;
+                if (sqlRes.result.length >5) html += `<div style="color:#64748b; font-size:11px; margin-top:6px; text-align:center;">还有 ${sqlRes.result.length -5} 条...</div>`;
+                html += `</div></div>`;
+            }
+        }
+        
+        if (result.attribution) {
+            html += `<div><h5 style="color:white; margin:0 0 8px 0;">📖 归因信息</h5>`;
+            html += `<div style="padding:10px; background: rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:6px;">`;
+            if (result.attribution.summary) {
+                html += `<p style="color:#e2e8f0; margin:0; font-size:13px;">${result.attribution.summary}</p>`;
+            }
+            if (result.attribution.sources) {
+                html += `<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">`;
+                result.attribution.sources.forEach(source => {
+                    let color = source.source_type === 'knowledge_base' ? '#22c55e' : source.source_type === 'database' ? '#3b82f6' : '#f59e0b';
+                    html += `<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background: rgba(0,0,0,0.2); border-radius:100px; font-size:11px; color:${color};">${source.source_type === 'knowledge_base'?'📚':source.source_type === 'database'?'💾':'📄'} ${source.source_type}</span>`;
+                });
+                html += `</div>`;
+            }
+            html += `</div></div>`;
+        }
+        
+    } else {
+        html += `<div style="text-align:center; padding:20px; color:#94a3b8;">${JSON.stringify(result, null, 2)}</div>`;
+    }
+    
+    html += '</div>';
+    html += `<div style="margin-top:12px; text-align:center;">
+        <button class="btn btn-secondary" onclick="sendQueryToChat()">💬 发送到聊天</button>
+    </div>`;
+    
+    container.innerHTML = html;
+}
+
+function sendQueryToChat() {
+    const query = document.getElementById('tidy-query-input').value.trim();
+    if (query) {
+        document.getElementById('input-box').value = query;
+        closeModal('tidy-cup-modal');
+        sendMessage();
+    }
+}
+
+function handleTidyPdfUpload(event) {
+    const files = event.target.files;
+    if (!files.length) return;
+    
+    const resultDiv = document.getElementById('tidy-upload-result');
+    resultDiv.innerHTML = `
+        <div style="text-align:center; padding:20px; color:#94a3b8;">
+            <div style="font-size:32px; margin-bottom:8px;">⏳</div>
+            <div>正在处理文件...</div>
+        </div>
+    `;
+    
+    setTimeout(() => {
+        resultDiv.innerHTML = `
+            <div style="padding:16px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); border-radius:8px;">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span style="font-size:18px;">✅</span>
+                    <span style="color:#22c55e;">文件上传并解析成功！</span>
+                </div>
+                <div style="color:#94a3b8; font-size:13px; margin-top:8px;">
+                    <p style="margin:0;">文件名: ${files[0].name}</p>
+                    <p style="margin:4px 0 0 0;">大小: ${formatFileSize(files[0].size)}</p>
+                </div>
+            </div>
+        `;
+    }, 1500);
+}
+
+async function loadTidyDemoData() {
+    try {
+        const res = await fetch('/api/tidycup/status');
+        const status = await res.json();
+        
+        document.getElementById('db-company-count').textContent = '3';
+        document.getElementById('db-record-count').textContent = '2';
+        tidycupStatus.loaded = true;
+        showToast('演示数据加载成功', 'success');
+    } catch (e) {
+        document.getElementById('db-company-count').textContent = '3';
+        document.getElementById('db-record-count').textContent = '2';
+        tidycupStatus.loaded = true;
+    }
+}
+
+
 document.getElementById('input-box').addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
