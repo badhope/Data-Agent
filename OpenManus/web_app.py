@@ -11,7 +11,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 

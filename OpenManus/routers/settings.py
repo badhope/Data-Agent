@@ -6,7 +6,8 @@ DataAgent - 设置路由
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from database import current_settings, save_settings
+import database
+from database import save_settings
 from config import CONFIG_DIR
 from models import Settings
 from services.llm_service import test_connection
@@ -19,16 +20,15 @@ router = APIRouter()
 
 @router.get("/api/settings")
 async def get_settings():
-    return JSONResponse(current_settings.model_dump())
+    return JSONResponse(database.current_settings.model_dump())
 
 
 @router.post("/api/settings")
 async def update_settings(request: Request):
-    global current_settings
     data = await request.json()
-    current_settings = Settings(**data)
-    save_settings(current_settings)
-    return JSONResponse({"success": True, "settings": current_settings.model_dump()})
+    database.current_settings = Settings(**data)
+    save_settings(database.current_settings)
+    return JSONResponse({"success": True, "settings": database.current_settings.model_dump()})
 
 
 # ==================== Schema ====================
@@ -72,16 +72,15 @@ async def test_api_connection(request: Request):
 
 @router.get("/api/settings/export")
 async def export_settings():
-    return JSONResponse(current_settings.model_dump())
+    return JSONResponse(database.current_settings.model_dump())
 
 
 @router.post("/api/settings/import")
 async def import_settings(request: Request):
-    global current_settings
     data = await request.json()
     try:
-        current_settings = Settings(**data)
-        save_settings()
+        database.current_settings = Settings(**data)
+        save_settings(database.current_settings)
         return JSONResponse({"success": True, "message": "配置导入成功"})
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"配置格式错误: {str(e)}")

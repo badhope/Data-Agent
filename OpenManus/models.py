@@ -75,6 +75,8 @@ class Document(BaseModel):
     created_at: str
     content: Optional[str] = None
     error: Optional[str] = None
+    chunks: List[str] = Field(default_factory=list)
+    chunk_count: int = 0
 
 
 class ProcessingRule(BaseModel):

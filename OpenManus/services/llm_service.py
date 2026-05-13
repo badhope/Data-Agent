@@ -14,6 +14,15 @@ import tempfile
 from config import OPENAI_AVAILABLE
 
 
+def _create_openai_client(settings):
+    """创建 AsyncOpenAI 客户端的辅助函数"""
+    from openai import AsyncOpenAI
+    return AsyncOpenAI(
+        api_key=settings.llm["api_key"],
+        base_url=settings.llm["base_url"]
+    )
+
+
 async def execute_python(code: str, timeout: int = 30) -> dict:
     """在沙箱中执行 Python 代码"""
     try:
@@ -44,11 +53,7 @@ async def call_llm(prompt: str, settings) -> str:
     if not settings.llm.get("api_key"):
         return "请先在设置中配置 API Key"
     try:
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(
-            api_key=settings.llm["api_key"],
-            base_url=settings.llm["base_url"]
-        )
+        client = _create_openai_client(settings)
         response = await client.chat.completions.create(
             model=settings.llm["model"],
             messages=[{"role": "user", "content": prompt}],
@@ -68,11 +73,7 @@ async def call_llm_with_system(system_prompt: str, user_prompt: str, settings) -
     if not settings.llm.get("api_key"):
         return "请先在设置中配置 API Key"
     try:
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(
-            api_key=settings.llm["api_key"],
-            base_url=settings.llm["base_url"]
-        )
+        client = _create_openai_client(settings)
         response = await client.chat.completions.create(
             model=settings.llm["model"],
             messages=[
@@ -95,11 +96,7 @@ async def call_llm_json(prompt: str, settings, pattern: str = r'\{.*\}|\[.*\]', 
     if not settings.llm.get("api_key"):
         return {"error": "请先在设置中配置 API Key"}
     try:
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(
-            api_key=settings.llm["api_key"],
-            base_url=settings.llm["base_url"]
-        )
+        client = _create_openai_client(settings)
         response = await client.chat.completions.create(
             model=settings.llm["model"],
             messages=[{"role": "user", "content": prompt}],

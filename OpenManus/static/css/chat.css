@@ -1,12 +1,4 @@
 .chat-area { flex: 1; overflow-y: auto; padding: 24px; }
-.message { max-width: 85%; margin-bottom: 24px; animation: fadeIn 0.3s ease; }
-.message.user { margin-left: auto; }
-.message.assistant { margin-right: auto; }
-.message.system { text-align: center; margin: 16px auto; max-width: 60%; }
-.message-content { padding: 14px 18px; border-radius: 16px; line-height: 1.6; }
-.user .message-content { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border-bottom-right-radius: 4px; }
-.assistant .message-content { background: rgba(71, 85, 105, 0.6); color: #e2e8f0; border-bottom-left-radius: 4px; }
-.system .message-content { background: rgba(148, 163, 184, 0.15); color: #94a3b8; font-size: 13px; padding: 10px 16px; border-radius: 12px; }
 
 /* 企业级消息动画 */
 .message {
@@ -115,4 +107,19 @@
 /* 流式消息样式 */
 .message.streaming .message-content {
     background: rgba(71, 85, 105, 0.4);
+}
+
+/* 消息文本内容 */
+.message-text {
+    line-height: 1.7;
+    word-break: break-word;
+}
+
+/* 错误消息 */
+.message.error {
+    border-left: 3px solid #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+.message.error .message-content {
+    color: #fca5a5;
 }

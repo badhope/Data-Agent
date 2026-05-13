@@ -10,19 +10,25 @@ import os
 from database import MCPServer
 
 
+async def _create_mcp_process(server: MCPServer):
+    """创建 MCP stdio 子进程的辅助函数"""
+    cmd = [server.command] + server.args
+    env = os.environ.copy()
+    env.update(server.env)
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env=env
+    )
+    return proc
+
+
 async def execute_mcp_command(server: MCPServer, tool: str, params: dict) -> str:
     """执行 MCP 工具命令"""
     if server.type == "stdio":
-        cmd = [server.command] + server.args
-        env = os.environ.copy()
-        env.update(server.env)
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=env
-        )
+        proc = await _create_mcp_process(server)
         input_data = json.dumps({"tool": tool, "params": params})
         stdout, stderr = await proc.communicate(input=input_data.encode())
         if proc.returncode != 0:
@@ -45,16 +51,7 @@ async def test_mcp_connection(server: MCPServer) -> dict:
     """测试 MCP 服务器连接"""
     try:
         if server.type == "stdio":
-            cmd = [server.command] + server.args
-            env = os.environ.copy()
-            env.update(server.env)
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env
-            )
+            proc = await _create_mcp_process(server)
             input_data = json.dumps({"action": "ping"})
             stdout, stderr = await asyncio.wait_for(
                 proc.communicate(input=input_data.encode()),
@@ -83,16 +80,7 @@ async def list_mcp_tools(server: MCPServer) -> dict:
     """获取 MCP 服务器可用工具列表"""
     try:
         if server.type == "stdio":
-            cmd = [server.command] + server.args
-            env = os.environ.copy()
-            env.update(server.env)
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env
-            )
+            proc = await _create_mcp_process(server)
             input_data = json.dumps({"action": "list_tools"})
             stdout, stderr = await asyncio.wait_for(
                 proc.communicate(input=input_data.encode()),
@@ -117,16 +105,7 @@ async def list_mcp_resources(server: MCPServer) -> dict:
     """获取 MCP 服务器可用资源列表"""
     try:
         if server.type == "stdio":
-            cmd = [server.command] + server.args
-            env = os.environ.copy()
-            env.update(server.env)
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env
-            )
+            proc = await _create_mcp_process(server)
             input_data = json.dumps({"action": "list_resources"})
             stdout, stderr = await asyncio.wait_for(
                 proc.communicate(input=input_data.encode()),

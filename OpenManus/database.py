@@ -214,7 +214,8 @@ def load_databases():
     if db_file.exists():
         try:
             with open(db_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                return {k: Database(**v) for k, v in data.items()}
         except:
             pass
     return {}

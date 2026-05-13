@@ -6,7 +6,7 @@ DataAgent - 数据库路由
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from database import databases, save_databases, Database
-from config import DATABASES_DIR, DATA_DIR
+from config import DATABASES_DIR
 import json, uuid, datetime, sqlite3
 from pathlib import Path
 
