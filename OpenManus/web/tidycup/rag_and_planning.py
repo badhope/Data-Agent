@@ -59,7 +59,7 @@ class AttributionResult:
 
 
 class SimpleVectorStore:
-    """简单的向量存储（使用纯Python实现，避免复杂依赖）"""
+    """改进的向量存储（更智能的关键词匹配）"""
 
     def __init__(self):
         self.chunks: Dict[str, DocumentChunk] = {}
@@ -69,26 +69,61 @@ class SimpleVectorStore:
         """添加文档片段"""
         self.chunks[chunk.chunk_id] = chunk
         
-        # 简单的关键词索引
-        words = re.findall(r'[\w\u4e00-\u9fff]+', chunk.content.lower())
+        # 改进的关键词索引：支持更多分词方式
+        content_lower = chunk.content.lower()
+        
+        # 1. 正则分词
+        words = re.findall(r'[\w\u4e00-\u9fff]+', content_lower)
+        # 2. 2-grams（用于中文词组匹配）
+        for i in range(len(chunk.content) - 1):
+            gram = chunk.content[i:i+2]
+            words.append(gram.lower())
+        # 3. 添加元数据关键词
+        for key, value in chunk.metadata.items():
+            if isinstance(value, str):
+                words.extend(re.findall(r'[\w\u4e00-\u9fff]+', value.lower()))
+        
         for word in set(words):
             if word not in self.keyword_index:
                 self.keyword_index[word] = []
-            self.chunks[chunk.chunk_id] = chunk
             if chunk.chunk_id not in self.keyword_index[word]:
                 self.keyword_index[word].append(chunk.chunk_id)
 
     def search(self, query: str, top_k: int = 5) -> List[DocumentChunk]:
-        """简单的关键词搜索"""
-        query_words = re.findall(r'[\w\u4e00-\u9fff]+', query.lower())
+        """更智能的搜索"""
+        query_lower = query.lower()
+        query_words = re.findall(r'[\w\u4e00-\u9fff]+', query_lower)
+        
+        # 添加2-grams
+        for i in range(len(query) - 1):
+            query_words.append(query[i:i+2].lower())
         
         # 计算匹配分数
-        chunk_scores: Dict[str, int] = {}
+        chunk_scores: Dict[str, float] = {}
         
+        # 基础关键词匹配
         for word in query_words:
             if word in self.keyword_index:
                 for chunk_id in self.keyword_index[word]:
                     chunk_scores[chunk_id] = chunk_scores.get(chunk_id, 0) + 1
+        
+        # 内容包含匹配（加权更高）
+        for chunk_id, chunk in self.chunks.items():
+            if query_lower in chunk.content.lower():
+                chunk_scores[chunk_id] = chunk_scores.get(chunk_id, 0) + 5
+        
+        # 元数据匹配
+        for chunk_id, chunk in self.chunks.items():
+            for key, value in chunk.metadata.items():
+                if query_lower in str(value).lower():
+                    chunk_scores[chunk_id] = chunk_scores.get(chunk_id, 0) + 3
+        
+        # 如果没有匹配，返回所有文档（按相关性排序）
+        if not chunk_scores:
+            results = list(self.chunks.values())[:top_k]
+            for i, chunk in enumerate(results):
+                chunk.score = 0.1 * (len(results) - i) / len(results)
+            return results
         
         # 排序并返回
         sorted_chunks = sorted(chunk_scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
@@ -97,7 +132,7 @@ class SimpleVectorStore:
         for chunk_id, score in sorted_chunks:
             chunk = self.chunks.get(chunk_id)
             if chunk:
-                chunk.score = score / len(query_words) if query_words else 0.0
+                chunk.score = min(score / 10.0, 1.0)  # 归一化
                 results.append(chunk)
         
         return results
