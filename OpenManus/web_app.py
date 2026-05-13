@@ -110,6 +110,8 @@ class Document(BaseModel):
     status: str
     file_path: str
     created_at: str
+    content: Optional[str] = None
+    error: Optional[str] = None
 
 class ProcessingRule(BaseModel):
     mode: str = "automatic"
@@ -408,22 +410,85 @@ async def get_knowledge_base(kb_id: str):
     return JSONResponse(knowledge_bases[kb_id].model_dump())
 
 @app.post("/api/knowledge-bases/{kb_id}/documents")
-async def upload_document(kb_id: str, name: str = Form(""), description: str = Form("")):
+async def upload_document(kb_id: str, file: UploadFile = File(...)):
     if kb_id not in knowledge_bases:
         raise HTTPException(status_code=404, detail="知识库不存在")
+    
+    allowed_extensions = {'.pdf', '.txt', '.md', '.docx', '.csv', '.xlsx', '.xls', '.ppt', '.pptx'}
+    max_size = 50 * 1024 * 1024  # 50MB
+    
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"不支持的文件格式: {file_ext}。支持的格式: {', '.join(allowed_extensions)}"
+        )
+    
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+    
+    if size > max_size:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"文件过大: {size / 1024 / 1024:.2f}MB。最大支持 {max_size / 1024 / 1024}MB"
+        )
+    
+    upload_dir = Path("data/uploads") / kb_id
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
     doc_id = str(uuid.uuid4())
-    now = datetime.datetime.now().isoformat()
-    doc = Document(
-        id=doc_id,
-        knowledge_base_id=kb_id,
-        name=name or "文档",
-        data_source_type="custom",
-        status="available",
-        file_path="",
-        created_at=now
-    )
-    documents[doc_id] = doc
-    return JSONResponse(doc.model_dump())
+    file_path = upload_dir / f"{doc_id}{file_ext}"
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        now = datetime.datetime.now().isoformat()
+        doc = Document(
+            id=doc_id,
+            knowledge_base_id=kb_id,
+            name=file.filename or "文档",
+            data_source_type="upload",
+            status="processing",
+            file_path=str(file_path),
+            created_at=now
+        )
+        documents[doc_id] = doc
+        
+        asyncio.create_task(process_document(doc_id, file_path, file_ext))
+        
+        return JSONResponse({
+            **doc.model_dump(),
+            "message": f"文件上传成功，正在处理..."
+        })
+        
+    except Exception as e:
+        if file_path.exists():
+            file_path.unlink()
+        raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
+
+async def process_document(doc_id: str, file_path: Path, file_ext: str):
+    try:
+        content = ""
+        
+        if file_ext == '.txt' or file_ext == '.md':
+            async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
+                content = await f.read()
+        
+        elif file_ext == '.csv':
+            import pandas as pd
+            df = pd.read_csv(file_path)
+            content = df.to_string()
+        
+        if doc_id in documents:
+            documents[doc_id].status = "available"
+            documents[doc_id].content = content[:10000] if len(content) > 10000 else content
+            
+    except Exception as e:
+        if doc_id in documents:
+            documents[doc_id].status = "failed"
+            documents[doc_id].error = str(e)
 
 @app.get("/api/knowledge-bases/{kb_id}/documents")
 async def list_documents(kb_id: str):
@@ -435,6 +500,55 @@ async def list_documents(kb_id: str):
 @app.get("/api/skills")
 async def list_skills():
     return JSONResponse([skill.model_dump() for skill in skills.values()])
+
+@app.post("/api/skills/generate")
+async def generate_skill(request: Request):
+    data = await request.json()
+    purpose = data.get("purpose", "")
+    
+    if not purpose:
+        raise HTTPException(status_code=400, detail="请提供技能用途描述")
+    
+    if not app_settings.get("llm", {}).get("api_key"):
+        raise HTTPException(status_code=400, detail="请先在设置中配置API Key")
+    
+    try:
+        client = AsyncOpenAI(
+            api_key=app_settings["llm"]["api_key"],
+            base_url=app_settings["llm"].get("base_url", "https://api.openai.com/v1")
+        )
+        
+        prompt = f"""基于以下需求，生成一个AI技能的建议：
+
+需求：{purpose}
+
+请生成一个JSON对象，包含以下字段：
+- name: 技能名称（中文，不超过30字）
+- icon: 表情符号图标（一个emoji）
+- description: 详细描述（中文，100字以内）
+- category: 分类（代码/数据/文档/翻译/写作/学习/创意/其他）
+
+只返回JSON，不要其他内容。"""
+        
+        response = await client.chat.completions.create(
+            model=app_settings["llm"].get("model", "gpt-4o"),
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500,
+            temperature=0.7
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        import re
+        json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
+        if json_match:
+            result = json.loads(json_match.group())
+            return JSONResponse(result)
+        else:
+            raise HTTPException(status_code=500, detail="AI返回格式错误")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI生成失败: {str(e)}")
 
 @app.post("/api/skills")
 async def create_skill(request: Request):
@@ -1888,41 +2002,83 @@ async def get():
             const progressBar = document.getElementById('upload-progress-bar');
             const uploadStatus = document.getElementById('upload-status');
             
-            // 重置UI
             progressDiv.style.display = 'block';
             errorDiv.style.display = 'none';
             progressBar.style.width = '0%';
             uploadStatus.textContent = '准备上传...';
             
+            const allowedExtensions = ['.pdf', '.txt', '.md', '.docx', '.csv', '.xlsx', '.xls', '.ppt', '.pptx'];
+            const maxSize = 50 * 1024 * 1024;
+            
             try {
-                // 验证文件
-                const allowedExtensions = ['.pdf', '.txt', '.md', '.docx', '.csv', '.xlsx', '.xls', '.ppt', '.pptx'];
-                const maxSize = 50 * 1024 * 1024; // 50MB
-                
+                // 验证所有文件
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     const ext = '.' + file.name.split('.').pop().toLowerCase();
                     
                     if (!allowedExtensions.includes(ext)) {
-                        throw new Error(`文件 ${file.name} 的格式不受支持，请使用以下格式: ${allowedExtensions.join(', ')}`);
+                        throw new Error(`文件 ${file.name} 的格式不受支持`);
                     }
                     
                     if (file.size > maxSize) {
                         throw new Error(`文件 ${file.name} 太大，最大支持50MB`);
                     }
-                    
+                }
+                
+                // 获取当前知识库（如果没有，先创建一个默认的）
+                let kbId = currentKnowledgeBaseId;
+                if (!kbId) {
+                    try {
+                        const res = await fetch('/api/knowledge-bases', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                name: '默认知识库', 
+                                description: '用于存储上传的文档' 
+                            })
+                        });
+                        const kb = await res.json();
+                        kbId = kb.id;
+                    } catch (e) {
+                        throw new Error('无法创建知识库，请刷新页面重试');
+                    }
+                }
+                
+                // 逐个上传文件
+                let successCount = 0;
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
                     uploadStatus.textContent = `正在上传: ${file.name} (${i + 1}/${files.length})`;
-                    progressBar.style.width = `${((i) / files.length) * 100}%`;
                     
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    try {
+                        const res = await fetch(`/api/knowledge-bases/${kbId}/documents`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (!res.ok) {
+                            const errorData = await res.json().catch(() => ({ detail: '上传失败' }));
+                            throw new Error(`${file.name}: ${errorData.detail}`);
+                        }
+                        
+                        successCount++;
+                        progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
+                        
+                    } catch (e) {
+                        throw new Error(e.message || `上传 ${file.name} 失败`);
+                    }
                 }
                 
                 progressBar.style.width = '100%';
-                uploadStatus.textContent = `✅ 成功上传 ${files.length} 个文件`;
+                uploadStatus.textContent = `✅ 成功上传 ${successCount} 个文件`;
                 
                 setTimeout(() => {
                     progressDiv.style.display = 'none';
-                    addMessage(`✅ 已上传 ${files.length} 个文档到知识库`, 'system');
+                    showSuccess(`已上传 ${successCount} 个文档到知识库`);
+                    loadKnowledgeBases(); // 刷新知识库列表
                 }, 1500);
                 
             } catch (e) {
@@ -1933,8 +2089,12 @@ async def get():
             }
             
             // 清空input
-            event.target.value = '';
+            if (event && event.target) {
+                event.target.value = '';
+            }
         }
+        
+        let currentKnowledgeBaseId = null;
         
         function showError(message, targetId = null) {
             if (targetId) {
@@ -1968,37 +2128,23 @@ async def get():
             generatingDiv.style.display = 'block';
             
             try {
-                // 预定义的技能模板，实际项目中可以调用真实AI
-                const skillTemplates = {
-                    '代码': { name: '代码审查专家', icon: '🔍', desc: '智能审查代码质量，发现潜在bug和改进建议，提供优化方案' },
-                    '数据': { name: '数据分析助手', icon: '📊', desc: '帮助分析数据集，生成可视化图表，提供数据洞察和解读' },
-                    '文档': { name: '文档整理专家', icon: '📝', desc: '专业的文档助手，帮助写作、编辑和优化文档内容' },
-                    '翻译': { name: '智能翻译官', icon: '🌍', desc: '多语言翻译助手，支持多种语言互译和本地化' },
-                    '编程': { name: '编程助手', icon: '💻', desc: '辅助编程，提供代码建议、调试帮助和最佳实践指导' },
-                    '写作': { name: '写作顾问', icon: '✍️', desc: '专业写作助手，帮助提升写作质量和表达' },
-                    '学习': { name: '学习导师', icon: '📚', desc: '个性化学习助手，根据需求提供学习资料和学习路径' },
-                    '创意': { name: '创意工坊', icon: '💡', desc: '激发创意灵感，提供创新想法和解决方案' }
-                };
+                // 调用后端AI生成API
+                const res = await fetch('/api/skills/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ purpose })
+                });
                 
-                let matched = null;
-                for (const [key, value] of Object.entries(skillTemplates)) {
-                    if (purpose.includes(key)) {
-                        matched = value;
-                        break;
-                    }
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ detail: '生成失败' }));
+                    throw new Error(errorData.detail || `请求失败 (${res.status})`);
                 }
                 
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                const result = await res.json();
                 
-                const result = matched || {
-                    name: purpose.length > 10 ? purpose.substring(0, 10) + '...' : purpose + '助手',
-                    icon: '✨',
-                    desc: '智能助手，专注于' + purpose
-                };
-                
-                document.getElementById('skill-name').value = result.name;
-                document.getElementById('skill-icon').value = result.icon;
-                document.getElementById('skill-desc').value = result.desc;
+                document.getElementById('skill-name').value = result.name || '';
+                document.getElementById('skill-icon').value = result.icon || '⚡';
+                document.getElementById('skill-desc').value = result.description || '';
                 
                 generatingDiv.style.display = 'none';
                 showSuccess('AI已为您生成技能建议！');
