@@ -7,10 +7,17 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from database import databases, save_databases, Database
 from config import DATABASES_DIR
-import json, uuid, datetime, sqlite3
+import json, uuid, datetime, sqlite3, re
 from pathlib import Path
 
 router = APIRouter()
+
+
+def _validate_table_name(name: str) -> str:
+    """验证表名，防止SQL注入"""
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
+        raise HTTPException(status_code=400, detail=f"无效的表名: {name}")
+    return name
 
 
 # ==================== 数据库 CRUD ====================
@@ -68,6 +75,7 @@ async def list_tables(db_id: str):
 async def get_table_schema(db_id: str, table_name: str):
     if db_id not in databases:
         raise HTTPException(status_code=404, detail="数据库不存在")
+    table_name = _validate_table_name(table_name)
     db = databases[db_id]
     conn = sqlite3.connect(db.path)
     cursor = conn.cursor()
@@ -91,9 +99,11 @@ async def execute_query(db_id: str, request: Request):
         raise HTTPException(status_code=400, detail="SQL语句不能为空")
 
     forbidden = ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "CREATE", "TRUNCATE"]
-    sql_upper = sql.upper()
+    sql_upper = sql.strip().upper()
+    if not sql_upper.startswith('SELECT') and not sql_upper.startswith('PRAGMA'):
+        raise HTTPException(status_code=403, detail="只允许执行SELECT或PRAGMA查询")
     for kw in forbidden:
-        if kw in sql_upper and not data.get("allow_write", False):
+        if kw in sql_upper:
             raise HTTPException(status_code=403, detail=f"禁止执行 {kw} 操作")
 
     db = databases[db_id]

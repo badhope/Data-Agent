@@ -25,6 +25,20 @@ function populateSettings(settings) {
         document.getElementById('setting-langsmith-project').value = settings.langsmith.project || 'dataagent';
         document.getElementById('setting-langsmith-endpoint').value = settings.langsmith.endpoint || 'https://api.smith.langchain.com';
     }
+
+    if (settings.conversation) {
+        document.getElementById('setting-context-rounds').value = settings.conversation.context_rounds || 10;
+        document.getElementById('setting-system-prompt').value = settings.conversation.system_prompt || '';
+    }
+    if (settings.display) {
+        document.getElementById('setting-font-size').value = settings.display.font_size || 'medium';
+        const showThinking = document.getElementById('setting-show-thinking');
+        if (settings.display.thinking_chain === false) showThinking.classList.remove('on');
+        else showThinking.classList.add('on');
+        const codeHighlight = document.getElementById('setting-code-highlight');
+        if (settings.display.code_highlight === false) codeHighlight.classList.remove('on');
+        else codeHighlight.classList.add('on');
+    }
 }
 
 async function saveSettings() {
@@ -51,8 +65,20 @@ async function saveSettings() {
             chunk_overlap: 200,
             embedding_model: 'text-embedding-v3'
         },
-        conversation: { history_enabled: true, max_history: 50, auto_title: true },
-        display: { theme: 'dark', thinking_chain: true, code_highlight: true, markdown_render: true },
+        conversation: {
+            history_enabled: true,
+            max_history: 50,
+            auto_title: true,
+            context_rounds: parseInt(document.getElementById('setting-context-rounds').value) || 10,
+            system_prompt: document.getElementById('setting-system-prompt').value || ''
+        },
+        display: {
+            theme: 'dark',
+            thinking_chain: document.getElementById('setting-show-thinking').classList.contains('on'),
+            code_highlight: document.getElementById('setting-code-highlight').classList.contains('on'),
+            markdown_render: true,
+            font_size: document.getElementById('setting-font-size').value || 'medium'
+        },
         agent: { max_steps: 5, auto_mode: true, reasoning_mode: 'auto' },
         langsmith: {
             enabled: document.getElementById('setting-langsmith-enabled').classList.contains('on'),
@@ -107,12 +133,42 @@ function resetSettings() {
     document.getElementById('setting-model').value = 'qwen-plus-latest';
     document.getElementById('setting-base-url').value = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
     document.getElementById('setting-api-key').value = '';
+    document.getElementById('setting-max-tokens').value = '4096';
+    document.getElementById('setting-temperature').value = '0.7';
+    document.getElementById('setting-context-rounds').value = '10';
+    document.getElementById('setting-system-prompt').value = '';
+    document.getElementById('setting-font-size').value = 'medium';
+
+    // Reset switches
+    document.getElementById('setting-stream-enabled').classList.add('on');
+    document.getElementById('setting-show-thinking').classList.add('on');
+    document.getElementById('setting-code-highlight').classList.add('on');
+    document.getElementById('setting-sandbox-enabled').classList.add('on');
+    document.getElementById('setting-sandbox-timeout').value = '60';
+    document.getElementById('setting-kb-enabled').classList.add('on');
+    document.getElementById('setting-max-steps').value = '5';
+
+    // Reset langsmith
+    document.getElementById('setting-langsmith-enabled').classList.remove('on');
+    document.getElementById('setting-langsmith-api-key').value = '';
+    document.getElementById('setting-langsmith-project').value = 'dataagent';
+    document.getElementById('setting-langsmith-endpoint').value = 'https://api.smith.langchain.com';
+
+    showToast('已重置为默认设置', 'info');
 }
 
-function showSettingsTab(tab) {
-    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
-    event.target.classList.add('active');
+function showSettingsTab(tab, el) {
+    document.querySelectorAll('#settings-modal .settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#settings-modal .settings-section').forEach(s => s.classList.remove('active'));
+    if (el) {
+        el.classList.add('active');
+    } else {
+        document.querySelectorAll('#settings-modal .settings-tab').forEach(t => {
+            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
+                t.classList.add('active');
+            }
+        });
+    }
     document.getElementById(`settings-${tab}`).classList.add('active');
 }
 

@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DataAgent - 万能智能助手</title>
+    <!-- Code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Markdown rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
     <link rel="stylesheet" href="/static/css/variables.css">
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/layout.css">
@@ -30,7 +35,7 @@
 
                 <!-- ====== 第一区：工作区 ====== -->
                 <div class="nav-section-label">工作区</div>
-                <div class="nav-item active" onclick="showMainChat()">
+                <div class="nav-item active" onclick="showMainChat(this)">
                     <span class="nav-icon">💬</span>
                     <div class="nav-text">
                         <h4>对话</h4>
@@ -180,11 +185,12 @@
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showSettingsTab('model')">🤖 模型</div>
-                    <div class="settings-tab" onclick="showSettingsTab('conversation')">💬 对话</div>
-                    <div class="settings-tab" onclick="showSettingsTab('display')">🖥️ 显示</div>
-                    <div class="settings-tab" onclick="showSettingsTab('sandbox')">🏖️ 沙箱</div>
-                    <div class="settings-tab" onclick="showSettingsTab('agent')">🧠 智能体</div>
+                    <div class="settings-tab active" onclick="showSettingsTab('model', this)">🤖 模型</div>
+                    <div class="settings-tab" onclick="showSettingsTab('conversation', this)">💬 对话</div>
+                    <div class="settings-tab" onclick="showSettingsTab('display', this)">🖥️ 显示</div>
+                    <div class="settings-tab" onclick="showSettingsTab('sandbox', this)">🏖️ 沙箱</div>
+                    <div class="settings-tab" onclick="showSettingsTab('agent', this)">🧠 智能体</div>
+                    <div class="settings-tab" onclick="showSettingsTab('langsmith', this)">🦜 LangSmith</div>
                 </div>
 
                 <!-- 模型配置 -->
@@ -326,9 +332,9 @@
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showKbTab('list')">知识库列表</div>
-                    <div class="settings-tab" onclick="showKbTab('create')">创建知识库</div>
-                    <div class="settings-tab" onclick="showKbTab('search')">🔍 搜索</div>
+                    <div class="settings-tab active" onclick="showKbTab('list', this)">知识库列表</div>
+                    <div class="settings-tab" onclick="showKbTab('create', this)">创建知识库</div>
+                    <div class="settings-tab" onclick="showKbTab('search', this)">🔍 搜索</div>
                 </div>
                 <div class="settings-section active" id="kb-list">
                     <div class="kb-grid" id="kb-grid"></div>
@@ -353,11 +359,11 @@
                     <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="searchKnowledgeBase()">搜索</button>
                     <div class="kb-search-results" id="kb-search-results" style="margin-top: 16px;"></div>
                 </div>
-                <div class="file-upload-area" onclick="document.getElementById('file-input').click()" style="margin-top: 20px;">
+                <div class="file-upload-area" onclick="document.getElementById('kb-file-input').click()" style="margin-top: 20px;">
                     <div style="font-size: 32px; margin-bottom: 12px;">📁</div>
                     <h4>上传文档</h4>
                     <p>支持 .pdf, .txt, .md, .docx, .csv 等格式</p>
-                    <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx" style="display: none;" onchange="handleFileUpload(event)">
+                    <input type="file" id="kb-file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx" style="display: none;" onchange="handleKbFileUpload(event)">
                 </div>
                 <div id="upload-progress" style="display: none; margin-top: 16px;">
                     <div style="background: rgba(255,255,255,0.1); border-radius: 8px; height: 8px; overflow: hidden;">
@@ -392,9 +398,9 @@
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showSkillTab('list')">技能列表</div>
-                    <div class="settings-tab" onclick="showSkillTab('create')">创建技能</div>
-                    <div class="settings-tab" onclick="showSkillTab('templates')">📋 模板</div>
+                    <div class="settings-tab active" onclick="showSkillTab('list', this)">技能列表</div>
+                    <div class="settings-tab" onclick="showSkillTab('create', this)">创建技能</div>
+                    <div class="settings-tab" onclick="showSkillTab('templates', this)">📋 模板</div>
                 </div>
                 <div class="settings-section active" id="skill-list">
                     <div class="skill-list" id="skill-list-content"></div>
@@ -460,8 +466,8 @@
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showMcpTab('servers')">🖥️ 服务</div>
-                    <div class="settings-tab" onclick="showMcpTab('resources')">📦 资源</div>
+                    <div class="settings-tab active" onclick="showMcpTab('servers', this)">🖥️ 服务</div>
+                    <div class="settings-tab" onclick="showMcpTab('resources', this)">📦 资源</div>
                 </div>
                 <!-- 服务列表 -->
                 <div class="settings-section active" id="mcp-servers">
@@ -524,9 +530,9 @@
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showDbTab('list')">数据库列表</div>
-                    <div class="settings-tab" onclick="showDbTab('query')">SQL查询</div>
-                    <div class="settings-tab" onclick="showDbTab('create')">创建数据库</div>
+                    <div class="settings-tab active" onclick="showDbTab('list', this)">数据库列表</div>
+                    <div class="settings-tab" onclick="showDbTab('query', this)">SQL查询</div>
+                    <div class="settings-tab" onclick="showDbTab('create', this)">创建数据库</div>
                 </div>
                 <!-- 数据库列表 -->
                 <div class="settings-section active" id="db-list">
@@ -757,93 +763,13 @@
     <script src="/static/js/knowledge.js"></script>
     <script src="/static/js/skills.js"></script>
     <script src="/static/js/mcp.js"></script>
+    <script src="/static/js/databases.js"></script>
+    <script src="/static/js/nl2sql.js"></script>
     <script src="/static/js/conversations.js"></script>
     <script src="/static/js/app.js"></script>
 
     <!-- 内联辅助脚本：欢迎页面控制、手风琴、字符计数等 -->
     <script>
-        /**
-         * 隐藏欢迎页面
-         * 当用户发送第一条消息时调用
-         */
-        function hideWelcomePage() {
-            var welcomePage = document.getElementById('welcome-page');
-            if (welcomePage) {
-                welcomePage.style.display = 'none';
-            }
-        }
-
-        /**
-         * 显示欢迎页面
-         * 当清空对话或新建对话时调用
-         */
-        function showWelcomePage() {
-            var welcomePage = document.getElementById('welcome-page');
-            if (welcomePage) {
-                welcomePage.style.display = '';
-            }
-        }
-
-        /**
-         * 自动调整文本框高度
-         */
-        function autoResize(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-        }
-
-        /**
-         * 更新字符计数
-         */
-        function updateCharCount() {
-            var inputBox = document.getElementById('input-box');
-            var charCount = document.getElementById('char-count');
-            var maxTokens = document.getElementById('setting-max-tokens');
-            var max = maxTokens ? parseInt(maxTokens.value) || 4096 : 4096;
-            var current = inputBox ? inputBox.value.length : 0;
-            if (charCount) {
-                if (current > 0) {
-                    charCount.textContent = current + ' / ' + max;
-                } else {
-                    charCount.textContent = '';
-                }
-                if (current > max) {
-                    charCount.style.color = '#f87171';
-                } else if (current > max * 0.8) {
-                    charCount.style.color = '#fbbf24';
-                } else {
-                    charCount.style.color = '#334155';
-                }
-            }
-        }
-
-        /**
-         * 手风琴切换
-         */
-        function toggleAccordion(header) {
-            var item = header.parentElement;
-            var body = item.querySelector('.accordion-body');
-            var arrow = header.querySelector('.accordion-arrow');
-            var isOpen = item.classList.contains('open');
-
-            // 关闭所有
-            var allItems = document.querySelectorAll('.accordion-item');
-            allItems.forEach(function(el) {
-                el.classList.remove('open');
-                var b = el.querySelector('.accordion-body');
-                if (b) b.style.maxHeight = null;
-                var a = el.querySelector('.accordion-arrow');
-                if (a) a.textContent = '▶';
-            });
-
-            // 如果之前是关闭的，则打开
-            if (!isOpen) {
-                item.classList.add('open');
-                if (body) body.style.maxHeight = body.scrollHeight + 'px';
-                if (arrow) arrow.textContent = '▼';
-            }
-        }
-
         /**
          * 更新头部模型名称显示（已移除头部模型显示，保留函数兼容性）
          */

@@ -109,8 +109,8 @@ async def search_knowledge_base(kb_id: str, query: str, top_k: int = 5) -> List[
     kb = knowledge_bases[kb_id]
     results = []
 
-    api_key = current_settings.llm.api_key or ""
-    base_url = current_settings.llm.base_url or "https://api.openai.com/v1"
+    api_key = current_settings.llm.get("api_key", "") or ""
+    base_url = current_settings.llm.get("base_url", "https://api.openai.com/v1")
     embedding_model = kb.embedding_model or "text-embedding-3-small"
 
     query_embedding = await generate_embeddings(query, api_key, base_url, embedding_model)

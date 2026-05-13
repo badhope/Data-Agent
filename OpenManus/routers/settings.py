@@ -16,11 +16,29 @@ import json
 router = APIRouter()
 
 
+def _mask_settings(settings: Settings) -> dict:
+    """对设置中的敏感信息进行脱敏"""
+    data = settings.model_dump()
+    if data.get("llm", {}).get("api_key"):
+        key = data["llm"]["api_key"]
+        if len(key) > 8:
+            data["llm"]["api_key"] = key[:4] + "****" + key[-4:]
+        else:
+            data["llm"]["api_key"] = "****"
+    if data.get("langsmith", {}).get("api_key"):
+        key = data["langsmith"]["api_key"]
+        if len(key) > 8:
+            data["langsmith"]["api_key"] = key[:4] + "****" + key[-4:]
+        else:
+            data["langsmith"]["api_key"] = "****"
+    return data
+
+
 # ==================== 设置 CRUD ====================
 
 @router.get("/api/settings")
 async def get_settings():
-    return JSONResponse(database.current_settings.model_dump())
+    return JSONResponse(_mask_settings(database.current_settings))
 
 
 @router.post("/api/settings")
@@ -72,7 +90,7 @@ async def test_api_connection(request: Request):
 
 @router.get("/api/settings/export")
 async def export_settings():
-    return JSONResponse(database.current_settings.model_dump())
+    return JSONResponse(_mask_settings(database.current_settings))
 
 
 @router.post("/api/settings/import")

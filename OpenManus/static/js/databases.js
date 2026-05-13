@@ -1,0 +1,142 @@
+// 数据库管理功能
+
+let currentDatabaseId = null;
+
+function showDbTab(tab, el) {
+    document.querySelectorAll('#database-modal .settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#database-modal .settings-section').forEach(s => s.classList.remove('active'));
+    if (el) {
+        el.classList.add('active');
+    } else {
+        document.querySelectorAll('#database-modal .settings-tab').forEach(t => {
+            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
+                t.classList.add('active');
+            }
+        });
+    }
+    document.getElementById(`db-${tab}`).classList.add('active');
+    if (tab === 'list') loadDatabases();
+}
+
+async function loadDatabases() {
+    try {
+        const res = await fetch('/api/databases');
+        const dbs = await res.json();
+        const list = document.getElementById('db-list-content');
+
+        // Update database selectors
+        const selectors = [document.getElementById('db-query-target'), document.getElementById('nl2sql-db-target')];
+        selectors.forEach(sel => {
+            if (!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- 请选择数据库 --</option>';
+            dbs.forEach(db => {
+                sel.innerHTML += `<option value="${db.id}">${db.name}</option>`;
+            });
+            sel.value = currentVal;
+        });
+
+        if (dbs.length === 0) {
+            list.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 40px 20px;"><div style="font-size: 48px; margin-bottom: 12px;">🗄️</div><p>暂无数据库</p><p style="font-size: 13px; margin-top: 8px;">点击"创建数据库"标签页添加新数据库</p></div>';
+        } else {
+            list.innerHTML = dbs.map(db => `
+                <div class="db-item" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: rgba(71,85,105,0.2); border-radius: 10px; margin-bottom: 8px; cursor: pointer;" onclick="selectDatabase('${db.id}')">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 24px;">🗄️</span>
+                        <div>
+                            <h4 style="color: white; margin: 0; font-size: 14px;">${db.name}</h4>
+                            <p style="color: #64748b; margin: 2px 0 0; font-size: 12px;">创建于 ${new Date(db.created_at).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteDatabase('${db.id}')" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;">删除</button>
+                </div>
+            `).join('');
+        }
+    } catch (e) {
+        console.error('Load databases error:', e);
+    }
+}
+
+function selectDatabase(dbId) {
+    currentDatabaseId = dbId;
+    showDbTab('query');
+    document.getElementById('db-query-target').value = dbId;
+}
+
+async function createDatabase() {
+    const name = document.getElementById('db-create-name').value.trim();
+    if (!name) {
+        showToast('请输入数据库名称', 'warning');
+        return;
+    }
+    try {
+        const res = await fetch('/api/databases', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        if (!res.ok) throw new Error('创建失败');
+        document.getElementById('db-create-name').value = '';
+        document.getElementById('db-create-desc').value = '';
+        loadDatabases();
+        showDbTab('list');
+        showToast(`数据库 "${name}" 创建成功！`, 'success');
+    } catch (e) {
+        showToast(`创建数据库失败: ${e.message}`, 'error');
+    }
+}
+
+async function deleteDatabase(dbId) {
+    if (!confirm('确定要删除这个数据库吗？')) return;
+    try {
+        await fetch(`/api/databases/${dbId}`, { method: 'DELETE' });
+        loadDatabases();
+        showToast('数据库已删除', 'success');
+    } catch (e) {
+        showToast('删除数据库失败: ' + e.message, 'error');
+    }
+}
+
+async function executeDbQuery() {
+    const dbId = document.getElementById('db-query-target').value;
+    const sql = document.getElementById('db-sql-input').value.trim();
+    if (!dbId) { showToast('请选择数据库', 'warning'); return; }
+    if (!sql) { showToast('请输入SQL语句', 'warning'); return; }
+
+    const resultsDiv = document.getElementById('db-query-results');
+    resultsDiv.innerHTML = '<p style="color: #60a5fa;">⏳ 正在执行查询...</p>';
+
+    try {
+        const res = await fetch(`/api/databases/${dbId}/query`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sql })
+        });
+        const data = await res.json();
+
+        if (data.success && data.columns) {
+            let tableHtml = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 13px;"><thead><tr>';
+            data.columns.forEach(col => {
+                tableHtml += `<th style="padding: 8px 12px; text-align: left; background: rgba(59,130,246,0.15); color: #60a5fa; border-bottom: 1px solid rgba(255,255,255,0.1); white-space: nowrap;">${col}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+            data.data.forEach((row, idx) => {
+                const bg = idx % 2 === 0 ? 'transparent' : 'rgba(71,85,105,0.1)';
+                tableHtml += '<tr style="background: ' + bg + ';">';
+                row.forEach(val => {
+                    tableHtml += `<td style="padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; white-space: nowrap;">${val !== null ? val : '<span style="color:#475569">NULL</span>'}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table></div>';
+            tableHtml += `<p style="color: #64748b; font-size: 12px; margin-top: 8px;">共 ${data.row_count} 行</p>`;
+            resultsDiv.innerHTML = tableHtml;
+        } else if (data.error) {
+            resultsDiv.innerHTML = `<p style="color: #ef4444;">❌ ${data.error}</p>`;
+        } else {
+            resultsDiv.innerHTML = '<p style="color: #94a3b8;">查询完成，无返回数据</p>';
+        }
+    } catch (e) {
+        resultsDiv.innerHTML = `<p style="color: #ef4444;">❌ 执行失败: ${e.message}</p>`;
+    }
+}

@@ -1,34 +1,683 @@
-.kb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-.kb-card { background: rgba(71, 85, 105, 0.25); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
-.kb-card:hover { background: rgba(71, 85, 105, 0.4); border-color: rgba(255,255,255,0.1); }
-.kb-card-icon { font-size: 32px; margin-bottom: 12px; }
-.kb-card h4 { color: white; margin-bottom: 6px; font-size: 16px; }
-.kb-card p { color: #94a3b8; font-size: 13px; margin-bottom: 12px; }
-.kb-meta { display: flex; gap: 12px; color: #64748b; font-size: 12px; }
-.skill-list { display: flex; flex-direction: column; gap: 12px; }
-.skill-item { background: rgba(71, 85, 105, 0.25); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
-.skill-info { display: flex; align-items: center; gap: 12px; }
-.skill-icon { font-size: 24px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.15); border-radius: 10px; }
-.skill-details h4 { color: white; font-size: 15px; margin-bottom: 4px; }
-.skill-details p { color: #94a3b8; font-size: 13px; }
-.skill-badge { background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 4px 10px; border-radius: 6px; font-size: 12px; }
-.mcp-list { display: flex; flex-direction: column; gap: 12px; }
-.mcp-item { background: rgba(71, 85, 105, 0.25); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
-.help-content { color: #94a3b8; line-height: 1.8; }
-.help-content h4 { color: white; margin-top: 24px; margin-bottom: 12px; font-size: 16px; }
-.help-content pre { background: rgba(71, 85, 105, 0.3); padding: 14px; border-radius: 10px; overflow-x: auto; margin: 12px 0; }
-.help-content code { color: #fbbf24; font-size: 13px; }
-.file-upload-area { border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 20px; cursor: pointer; transition: all 0.2s; }
-.file-upload-area:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
-.file-upload-area h4 { color: white; margin-bottom: 8px; }
-.file-upload-area p { color: #94a3b8; font-size: 13px; }
-.processing-rules { background: rgba(71, 85, 105, 0.2); border-radius: 12px; padding: 16px; margin-top: 16px; }
-.rule-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.rule-item:last-child { border-bottom: none; }
-pre code { color: #e2e8f0 !important; }
-.message-content a { color: #60a5fa; }
+/* ==================== 知识库组件 ==================== */
+.kb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
 
-/* Toast 通知 */
+.kb-card {
+    background: rgba(71, 85, 105, 0.25);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.kb-card:hover {
+    background: rgba(71, 85, 105, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.kb-card h4 {
+    color: white;
+    margin-bottom: 6px;
+    font-size: 16px;
+}
+
+.kb-card p {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.kb-card-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.kb-meta {
+    display: flex;
+    gap: 12px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.kb-search-results {
+    background: rgba(71, 85, 105, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.kb-search-results:empty {
+    display: none;
+}
+
+.kb-search-results .result-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background: rgba(71, 85, 105, 0.25);
+    border-radius: 8px;
+    border-left: 3px solid rgba(59, 130, 246, 0.5);
+    transition: background 0.2s ease;
+}
+
+.kb-search-results .result-item:hover {
+    background: rgba(71, 85, 105, 0.4);
+}
+
+.kb-search-results .result-item:last-child {
+    margin-bottom: 0;
+}
+
+.kb-search-results .result-title {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.kb-search-results .result-snippet {
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.kb-search-results .result-source {
+    color: #64748b;
+    font-size: 11px;
+    margin-top: 6px;
+}
+
+/* ==================== 技能组件 ==================== */
+.skill-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.skill-item {
+    background: rgba(71, 85, 105, 0.25);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.skill-item:hover {
+    background: rgba(71, 85, 105, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.skill-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.skill-icon {
+    font-size: 24px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.15);
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.skill-details h4 {
+    color: white;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.skill-details p {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.skill-badge {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+/* ==================== 技能模板 ==================== */
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.template-card {
+    background: rgba(71, 85, 105, 0.25);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    text-align: center;
+}
+
+.template-card:hover {
+    background: rgba(71, 85, 105, 0.4);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.template-card:active {
+    transform: translateY(0);
+}
+
+.template-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.template-card h4 {
+    color: white;
+    font-size: 15px;
+    margin-bottom: 6px;
+}
+
+.template-card p {
+    color: #94a3b8;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ==================== MCP 组件 ==================== */
+.mcp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mcp-item {
+    background: rgba(71, 85, 105, 0.25);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.mcp-item:hover {
+    background: rgba(71, 85, 105, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.mcp-resources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mcp-resources-list:empty {
+    display: none;
+}
+
+.mcp-resources-list .resource-item {
+    padding: 12px 16px;
+    background: rgba(71, 85, 105, 0.25);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.2s ease;
+    cursor: pointer;
+}
+
+.mcp-resources-list .resource-item:hover {
+    background: rgba(71, 85, 105, 0.4);
+}
+
+.mcp-resources-list .resource-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.mcp-resources-list .resource-name {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.mcp-resources-list .resource-uri {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 2px;
+    word-break: break-all;
+}
+
+/* ==================== 数据库组件 ==================== */
+.db-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.db-item {
+    background: rgba(71, 85, 105, 0.25);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.db-item:hover {
+    background: rgba(71, 85, 105, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.db-item .db-icon {
+    font-size: 28px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.db-item .db-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.db-item .db-info h4 {
+    color: white;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.db-item .db-info p {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.db-query-results {
+    background: rgba(71, 85, 105, 0.15);
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 60px;
+}
+
+.db-query-results:empty {
+    display: none;
+}
+
+.db-query-results .result-summary {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ==================== NL2SQL 组件 ==================== */
+.nl2sql-section {
+    background: rgba(71, 85, 105, 0.15);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.intent-analysis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.intent-tag {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    transition: all 0.2s ease;
+}
+
+.intent-tag:hover {
+    background: rgba(59, 130, 246, 0.25);
+}
+
+.intent-tag span {
+    color: #e2e8f0;
+    font-weight: 500;
+}
+
+.sql-display {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.sql-display pre {
+    background: transparent;
+    padding: 16px;
+    margin: 0;
+    overflow-x: auto;
+    color: #a5f3fc;
+    font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.sql-display .sql-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sql-display .sql-lang {
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.results-table-wrapper {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.results-table-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.results-table-wrapper thead {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.results-table-wrapper th {
+    padding: 10px 14px;
+    text-align: left;
+    color: #60a5fa;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+}
+
+.results-table-wrapper td {
+    padding: 10px 14px;
+    color: #cbd5e1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    white-space: nowrap;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.results-table-wrapper tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.results-table-wrapper tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.results-table-wrapper .empty-results {
+    text-align: center;
+    padding: 32px 16px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* ==================== 手风琴组件（帮助弹窗） ==================== */
+.accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.accordion-item {
+    background: rgba(71, 85, 105, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: all 0.2s ease;
+}
+
+.accordion-item:hover {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.accordion-item.active {
+    border-color: rgba(59, 130, 246, 0.2);
+    background: rgba(71, 85, 105, 0.3);
+}
+
+.accordion-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    user-select: none;
+}
+
+.accordion-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.accordion-header:active {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.accordion-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+}
+
+.accordion-header span:nth-child(2) {
+    flex: 1;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.accordion-arrow {
+    color: #64748b;
+    font-size: 10px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.accordion-item.active .accordion-arrow {
+    transform: rotate(90deg);
+    color: #60a5fa;
+}
+
+.accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 16px;
+}
+
+.accordion-item.active .accordion-body {
+    max-height: 600px;
+    padding: 0 16px 16px;
+}
+
+.accordion-body p {
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 8px;
+}
+
+.accordion-body p:last-child {
+    margin-bottom: 0;
+}
+
+.accordion-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+}
+
+.accordion-body ul li {
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1.7;
+    padding: 4px 0 4px 20px;
+    position: relative;
+}
+
+.accordion-body ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 6px;
+    height: 6px;
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 50%;
+}
+
+.accordion-body ul li strong {
+    color: #e2e8f0;
+}
+
+.accordion-body kbd {
+    background: rgba(71, 85, 105, 0.5);
+    color: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ==================== 帮助内容 ==================== */
+.help-content {
+    color: #94a3b8;
+    line-height: 1.8;
+}
+
+.help-content h4 {
+    color: white;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.help-content pre {
+    background: rgba(71, 85, 105, 0.3);
+    padding: 14px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 12px 0;
+}
+
+.help-content code {
+    color: #fbbf24;
+    font-size: 13px;
+}
+
+/* ==================== 文件上传 ==================== */
+.file-upload-area {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.file-upload-area:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.file-upload-area.dragover {
+    border-color: #60a5fa;
+    background: rgba(59, 130, 246, 0.1);
+    transform: scale(1.01);
+}
+
+.file-upload-area h4 {
+    color: white;
+    margin-bottom: 8px;
+}
+
+.file-upload-area p {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* ==================== 处理规则 ==================== */
+.processing-rules {
+    background: rgba(71, 85, 105, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.rule-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+.rule-item:last-child {
+    border-bottom: none;
+}
+
+/* ==================== 消息内容链接 ==================== */
+.message-content a {
+    color: #60a5fa;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.message-content a:hover {
+    color: #93bbfc;
+    text-decoration: underline;
+}
+
+/* ==================== 代码块通用 ==================== */
+pre code {
+    color: #e2e8f0 !important;
+}
+
+/* ==================== Toast 通知 ==================== */
 .toast {
     position: fixed;
     top: 20px;
@@ -38,20 +687,290 @@ pre code { color: #e2e8f0 !important; }
     color: #fff;
     font-size: 14px;
     z-index: 10000;
-    animation: toastSlideIn 0.3s ease, toastFadeOut 0.3s ease 2.7s;
+    opacity: 0;
+    transform: translateX(100%);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
     max-width: 400px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
-.toast-success { background: rgba(16, 185, 129, 0.9); }
-.toast-error { background: rgba(239, 68, 68, 0.9); }
-.toast-info { background: rgba(59, 130, 246, 0.9); }
-.toast-warning { background: rgba(245, 158, 11, 0.9); }
 
-@keyframes toastSlideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
 }
-@keyframes toastFadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
+
+.toast-success {
+    background: rgba(16, 185, 129, 0.9);
+}
+
+.toast-error {
+    background: rgba(239, 68, 68, 0.9);
+}
+
+.toast-info {
+    background: rgba(59, 130, 246, 0.9);
+}
+
+.toast-warning {
+    background: rgba(245, 158, 11, 0.9);
+}
+
+/* ==================== 响应式适配 ==================== */
+@media screen and (max-width: 768px) {
+    .kb-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .template-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .template-card {
+        padding: 14px;
+    }
+
+    .template-icon {
+        font-size: 28px;
+    }
+
+    .template-card h4 {
+        font-size: 13px;
+    }
+
+    .template-card p {
+        font-size: 11px;
+    }
+
+    .skill-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .skill-info {
+        width: 100%;
+    }
+
+    .file-upload-area {
+        padding: 20px 16px;
+    }
+
+    .nl2sql-section {
+        padding: 14px;
+    }
+
+    .intent-analysis {
+        gap: 6px;
+    }
+
+    .intent-tag {
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+
+    .results-table-wrapper td,
+    .results-table-wrapper th {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .accordion-header {
+        padding: 12px 14px;
+    }
+
+    .accordion-item.active .accordion-body {
+        padding: 0 14px 14px;
+    }
+
+    .toast {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        max-width: none;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .template-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .intent-analysis {
+        flex-direction: column;
+    }
+
+    .intent-tag {
+        width: 100%;
+        text-align: center;
+    }
+
+    .db-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .mcp-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+
+/* ==================== 触摸设备优化 ==================== */
+@media (hover: none) and (pointer: coarse) {
+    .template-card:hover,
+    .db-item:hover,
+    .mcp-item:hover {
+        background: inherit;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .template-card:active,
+    .db-item:active,
+    .mcp-item:active {
+        opacity: 0.7;
+        transform: scale(0.97);
+    }
+
+    .template-card,
+    .db-item,
+    .mcp-item,
+    .accordion-header {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* ==================== Code Block Enhancements ==================== */
+.message-text pre {
+    position: relative;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.message-text pre code {
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: inherit;
+}
+
+.message-text code {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+}
+
+.message-text pre code {
+    color: #e2e8f0;
+}
+
+.message-text p {
+    margin: 0 0 8px;
+}
+
+.message-text p:last-child {
+    margin-bottom: 0;
+}
+
+.message-text ul, .message-text ol {
+    padding-left: 20px;
+    margin: 8px 0;
+}
+
+.message-text li {
+    margin: 4px 0;
+}
+
+.message-text blockquote {
+    border-left: 3px solid #3b82f6;
+    padding-left: 12px;
+    margin: 8px 0;
+    color: #94a3b8;
+}
+
+.message-text h1, .message-text h2, .message-text h3,
+.message-text h4, .message-text h5, .message-text h6 {
+    color: white;
+    margin: 16px 0 8px;
+}
+
+.message-text h1 { font-size: 1.4em; }
+.message-text h2 { font-size: 1.25em; }
+.message-text h3 { font-size: 1.1em; }
+
+.message-text table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+}
+
+.message-text th, .message-text td {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.message-text th {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+.message-text a {
+    color: #60a5fa;
+    text-decoration: none;
+}
+
+.message-text a:hover {
+    text-decoration: underline;
+}
+
+.message-text hr {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 16px 0;
+}
+
+.message-text img {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+/* ==================== Drag & Drop ==================== */
+.chat-area.drag-over {
+    position: relative;
+}
+
+.chat-area.drag-over::after {
+    content: '📎 拖拽文件到此处上传到知识库';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(59, 130, 246, 0.15);
+    border: 2px dashed rgba(59, 130, 246, 0.5);
+    border-radius: 16px;
+    padding: 40px 60px;
+    color: #60a5fa;
+    font-size: 16px;
+    font-weight: 500;
+    z-index: 10;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
 }

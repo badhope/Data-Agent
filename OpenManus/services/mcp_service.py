@@ -6,15 +6,26 @@ DataAgent - MCP 服务
 import asyncio
 import json
 import os
+import re
 
 from database import MCPServer
+
+
+def _validate_env(env: dict) -> dict:
+    """Validate environment variables to prevent command injection"""
+    safe_env = {}
+    for key, value in env.items():
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', key):
+            raise ValueError(f"Invalid env key: {key}")
+        safe_env[key] = str(value)
+    return safe_env
 
 
 async def _create_mcp_process(server: MCPServer):
     """创建 MCP stdio 子进程的辅助函数"""
     cmd = [server.command] + server.args
     env = os.environ.copy()
-    env.update(server.env)
+    env.update(_validate_env(server.env))
     proc = await asyncio.create_subprocess_exec(
         *cmd,
         stdin=asyncio.subprocess.PIPE,

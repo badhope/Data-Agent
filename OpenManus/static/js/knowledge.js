@@ -1,9 +1,18 @@
 // 知识库功能
 
-function showKbTab(tab) {
+function showKbTab(tab, el) {
     document.querySelectorAll('#knowledge-modal .settings-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('#knowledge-modal .settings-section').forEach(s => s.classList.remove('active'));
-    event.target.classList.add('active');
+    if (el) {
+        el.classList.add('active');
+    } else {
+        // Programmatically find and activate the correct tab
+        document.querySelectorAll('#knowledge-modal .settings-tab').forEach(t => {
+            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
+                t.classList.add('active');
+            }
+        });
+    }
     document.getElementById(`kb-${tab}`).classList.add('active');
 }
 
@@ -18,8 +27,8 @@ async function loadKnowledgeBases() {
             grid.innerHTML = kbs.map(kb => `
                 <div class="kb-card">
                     <div class="kb-card-icon">\ud83d\udcda</div>
-                    <h4>${kb.name}</h4>
-                    <p>${kb.description || '暂无描述'}</p>
+                    <h4>${escapeHtml(kb.name)}</h4>
+                    <p>${escapeHtml(kb.description || '暂无描述')}</p>
                     <div class="kb-meta">
                         <span>创建: ${new Date(kb.created_at).toLocaleDateString()}</span>
                     </div>
@@ -162,17 +171,60 @@ async function uploadFiles(files) {
         errorMsg.textContent = e.message;
         console.error('Upload error:', e);
     }
-
-    // 清空input
-    if (event && event.target) {
-        event.target.value = '';
-    }
 }
 
 function handleFileUpload(event) {
     const files = event.target.files;
     if (files.length > 0) {
         uploadFiles(files);
+    }
+}
+
+function handleKbFileUpload(event) {
+    const files = event.target.files;
+    if (files.length > 0) {
+        uploadFiles(files);
+    }
+}
+
+async function searchKnowledgeBase() {
+    const query = document.getElementById('kb-search-input').value.trim();
+    if (!query) {
+        showToast('请输入搜索关键词', 'warning');
+        return;
+    }
+    const resultsDiv = document.getElementById('kb-search-results');
+    resultsDiv.innerHTML = '<p style="color: #60a5fa;">⏳ 正在搜索...</p>';
+
+    try {
+        // Get first knowledge base for now
+        const kbRes = await fetch('/api/knowledge-bases');
+        const kbs = await kbRes.json();
+        if (kbs.length === 0) {
+            resultsDiv.innerHTML = '<p style="color: #94a3b8;">暂无知识库，请先创建知识库</p>';
+            return;
+        }
+
+        const kbId = kbs[0].id;
+        const res = await fetch(`/api/knowledge-bases/${kbId}/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, top_k: 5 })
+        });
+        const data = await res.json();
+
+        if (data.results && data.results.length > 0) {
+            resultsDiv.innerHTML = data.results.map(r => `
+                <div style="padding: 12px; background: rgba(71,85,105,0.2); border-radius: 8px; margin-bottom: 8px;">
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">📄 ${r.doc_name} (相关度: ${(r.score * 100).toFixed(1)}%)</div>
+                    <div style="color: #cbd5e1; font-size: 13px; line-height: 1.6;">${r.content.substring(0, 200)}...</div>
+                </div>
+            `).join('');
+        } else {
+            resultsDiv.innerHTML = '<p style="color: #94a3b8;">未找到相关内容</p>';
+        }
+    } catch (e) {
+        resultsDiv.innerHTML = `<p style="color: #ef4444;">搜索失败: ${e.message}</p>`;
     }
 }
 

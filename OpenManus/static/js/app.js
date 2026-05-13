@@ -14,12 +14,17 @@ function showWelcomePage() {
 
 // ==================== WebSocket 连接 ====================
 
+let wsReconnectAttempts = 0;
+const WS_MAX_RETRIES = 10;
+const WS_BASE_DELAY = 1000;
+
 function connectWS() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
 
     ws.onopen = () => {
         console.log('WebSocket connected');
+        wsReconnectAttempts = 0;
         updateWSStatus('connected', '已连接');
     };
 
@@ -27,7 +32,15 @@ function connectWS() {
 
     ws.onclose = () => {
         updateWSStatus('error', '已断开');
-        setTimeout(connectWS, 3000);
+        if (wsReconnectAttempts < WS_MAX_RETRIES) {
+            const delay = Math.min(WS_BASE_DELAY * Math.pow(2, wsReconnectAttempts), 30000);
+            wsReconnectAttempts++;
+            console.log(`WebSocket reconnecting in ${delay}ms (attempt ${wsReconnectAttempts}/${WS_MAX_RETRIES})`);
+            setTimeout(connectWS, delay);
+        } else {
+            updateWSStatus('error', '连接失败');
+            showToast('WebSocket连接已断开，请刷新页面重试', 'error');
+        }
     };
 
     ws.onerror = () => {
@@ -108,7 +121,20 @@ function handleWSMessage(data) {
             const textEl = streamingEl.querySelector('.message-text');
             const indicator = streamingEl.querySelector('.typing-indicator');
 
-            textEl.innerHTML += data.content.replace(/\\n/g, '<br>');
+            const rawText = (textEl.getAttribute('data-raw') || '') + data.content;
+            textEl.setAttribute('data-raw', rawText);
+            // Only update DOM every frame using requestAnimationFrame
+            if (!textEl._rafPending) {
+                textEl._rafPending = true;
+                requestAnimationFrame(() => {
+                    textEl.innerHTML = textEl.getAttribute('data-raw').replace(/\n/g, '<br>');
+                    // Highlight code blocks
+                    textEl.querySelectorAll('pre code').forEach(block => {
+                        if (window.hljs) hljs.highlightElement(block);
+                    });
+                    textEl._rafPending = false;
+                });
+            }
             indicator.style.display = 'inline-block';
             chatArea.scrollTop = chatArea.scrollHeight;
         }
@@ -142,6 +168,7 @@ function handleWSMessage(data) {
                     <span style="font-size: 18px;">\u274c</span>
                     <span style="color: #ef4444;">${data.content}</span>
                 </div>
+                <button onclick="retryLastMessage()" style="margin-top: 8px; padding: 4px 12px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; color: #f87171; cursor: pointer; font-size: 12px;">\ud83d\udd04 重试</button>
             </div>
         `;
         chatArea.appendChild(messageEl);
@@ -161,7 +188,18 @@ function addMessage(content, type) {
     const chatArea = document.getElementById('chat-area');
     const messageEl = document.createElement('div');
     messageEl.className = `message ${type}`;
-    let formatted = content.replace(/\\n/g, '<br>');
+    // Escape HTML for user messages to prevent XSS; assistant messages may contain formatting
+    let formatted;
+    if (type === 'user') {
+        formatted = escapeHtml(content).replace(/\n/g, '<br>');
+    } else {
+        // Use marked.js for markdown rendering
+        if (window.marked) {
+            formatted = marked.parse(content);
+        } else {
+            formatted = content.replace(/\n/g, '<br>');
+        }
+    }
 
     const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
@@ -176,6 +214,10 @@ function addMessage(content, type) {
     `;
 
     chatArea.appendChild(messageEl);
+    // Highlight code blocks in the new message
+    messageEl.querySelectorAll('pre code').forEach(block => {
+        if (window.hljs) hljs.highlightElement(block);
+    });
     chatArea.scrollTop = chatArea.scrollHeight;
 }
 
@@ -190,15 +232,17 @@ function copyMessage(btn) {
 
 // ==================== 发送消息 ====================
 
-function sendMessage() {
+let lastUserMessage = '';
+
+function sendMessageWithText(content) {
     const inputBox = document.getElementById('input-box');
-    const content = inputBox.value.trim();
     if (!content || !ws || ws.readyState !== WebSocket.OPEN) return;
     inputBox.value = '';
     updateCharCount();
     hideWelcomePage();
     addMessage(content, 'user');
     document.getElementById('send-btn').disabled = true;
+    lastUserMessage = content;
 
     const webSearchEnabled = document.getElementById('web-search-btn').classList.contains('active');
     ws.send(JSON.stringify({
@@ -207,6 +251,27 @@ function sendMessage() {
             web_search: webSearchEnabled
         }
     }));
+}
+
+function retryLastMessage() {
+    if (!lastUserMessage) return;
+    // Remove the error message
+    const errorMsg = document.querySelector('.message.error');
+    if (errorMsg) errorMsg.remove();
+    // Also remove the last user message to avoid duplicates
+    const userMsgs = document.querySelectorAll('.message.user');
+    if (userMsgs.length > 0) {
+        userMsgs[userMsgs.length - 1].remove();
+    }
+    // Resend
+    sendMessageWithText(lastUserMessage);
+}
+
+function sendMessage() {
+    const inputBox = document.getElementById('input-box');
+    const content = inputBox.value.trim();
+    if (!content) return;
+    sendMessageWithText(content);
 }
 
 function toggleWebSearch() {
@@ -237,11 +302,35 @@ function finishProcessing() {
 
 function clearChat() {
     const chatArea = document.getElementById('chat-area');
+    // Remove all children except welcome-page
+    const welcomePage = document.getElementById('welcome-page');
     chatArea.innerHTML = '';
+    if (welcomePage) {
+        chatArea.appendChild(welcomePage);
+    } else {
+        // Recreate welcome page if it was destroyed
+        chatArea.innerHTML = `
+            <div class="welcome-page" id="welcome-page">
+                <div class="welcome-message">
+                    <div class="welcome-avatar">\ud83e\udd16</div>
+                    <div class="welcome-bubble">
+                        <p>你好！我是 DataAgent 智能助手。</p>
+                        <p>我可以帮你进行<strong>代码编写</strong>、<strong>数据分析</strong>、<strong>图表生成</strong>、<strong>文档处理</strong>等工作。</p>
+                        <p>试试在下方输入你的需求，或点击快捷指令快速开始 👇</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
     showWelcomePage();
 }
 
 // ==================== 字符计数 ====================
+
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+}
 
 function updateCharCount() {
     const inputBox = document.getElementById('input-box');
@@ -288,9 +377,9 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('show');
 }
 
-function showMainChat() {
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+function showMainChat(el) {
+    document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+    if (el) el.classList.add('active');
 }
 
 // ==================== 手风琴组件 ====================
@@ -307,100 +396,36 @@ function toggleAccordion(header) {
     header.classList.toggle('active', !isOpen);
 }
 
-// ==================== NL2SQL 功能 ====================
-
-async function analyzeNL2SQL() {
-    const input = document.getElementById('nl2sql-input');
-    const query = input.value.trim();
-    if (!query) {
-        showToast('请输入自然语言查询', 'warning');
-        return;
-    }
-
-    const resultArea = document.getElementById('nl2sql-result');
-    resultArea.style.display = 'block';
-    resultArea.innerHTML = '<p style="color: #60a5fa;">\u23f3 正在分析意图...</p>';
-
-    try {
-        const resp = await fetch('/api/nl2sql/analyze-intent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query })
-        });
-        const data = await resp.json();
-
-        let tagsHtml = '';
-        if (data.intent) tagsHtml += `<span class="intent-tag">\ud83c\udfaf 意图: ${data.intent}</span>`;
-        if (data.tables) tagsHtml += `<span class="intent-tag">\ud83d\udcdd 表: ${data.tables.join(', ')}</span>`;
-        if (data.columns) tagsHtml += `<span class="intent-tag">\ud83d\udcc8 列: ${data.columns.join(', ')}</span>`;
-        if (data.agg) tagsHtml += `<span class="intent-tag">\ud83d\udcca 聚合: ${data.agg}</span>`;
-
-        resultArea.innerHTML = `
-            <h4>\ud83c\udfaf 意图分析</h4>
-            <div class="intent-tags">${tagsHtml}</div>
-        `;
-
-        // 自动生成SQL
-        const sqlResp = await fetch('/api/nl2sql/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query, intent: data })
-        });
-        const sqlData = await sqlResp.json();
-
-        if (sqlData.sql) {
-            resultArea.innerHTML += `
-                <h4>\ud83d\udcbb 生成的SQL</h4>
-                <div class="sql-display">${sqlData.sql}</div>
-                <button class="btn btn-primary" onclick="executeNL2SQL('${sqlData.sql.replace(/'/g, "\\'")}')">\u25b6 执行查询</button>
-            `;
-        }
-    } catch (err) {
-        resultArea.innerHTML = `<p style="color: #ef4444;">\u274c 分析失败: ${err.message}</p>`;
-    }
-}
-
-async function executeNL2SQL(sql) {
-    const resultArea = document.getElementById('nl2sql-result');
-    resultArea.innerHTML += '<p style="color: #60a5fa; margin-top: 12px;">\u23f3 正在执行查询...</p>';
-
-    try {
-        const resp = await fetch('/api/databases/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sql: sql })
-        });
-        const data = await resp.json();
-
-        if (data.results) {
-            let tableHtml = '<table class="db-result-table"><thead><tr>';
-            if (data.columns && data.columns.length > 0) {
-                data.columns.forEach(col => { tableHtml += `<th>${col}</th>`; });
-            }
-            tableHtml += '</tr></thead><tbody>';
-            data.results.forEach(row => {
-                tableHtml += '<tr>';
-                Object.values(row).forEach(val => { tableHtml += `<td>${val}</td>`; });
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</tbody></table>';
-
-            resultArea.innerHTML += `
-                <h4>\ud83d\udcca 查询结果 (${data.results.length} 行)</h4>
-                <div style="overflow-x: auto;">${tableHtml}</div>
-            `;
-        } else if (data.error) {
-            resultArea.innerHTML += `<p style="color: #ef4444;">\u274c ${data.error}</p>`;
-        }
-    } catch (err) {
-        resultArea.innerHTML += `<p style="color: #ef4444;">\u274c 执行失败: ${err.message}</p>`;
-    }
-}
-
 // ==================== 事件监听 ====================
 
 // 快捷键支持
 document.addEventListener('keydown', function(e) {
+    // Escape to close modals
+    if (e.key === 'Escape') {
+        const openModal = document.querySelector('.modal-overlay.show');
+        if (openModal) {
+            openModal.classList.remove('show');
+            e.preventDefault();
+        }
+        // Also close sidebar
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && !sidebar.classList.contains('closed')) {
+            closeSidebar();
+        }
+    }
+
+    // Ctrl+Shift+N for new conversation
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'N') {
+        e.preventDefault();
+        createNewConversation();
+    }
+
+    // Ctrl+/ to toggle sidebar
+    if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        e.preventDefault();
+        toggleSidebar();
+    }
+
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         sendMessage();
@@ -427,6 +452,54 @@ document.addEventListener('click', function(e) {
         e.target.classList.remove('show');
     }
 });
+
+// ==================== 拖拽上传 ====================
+
+(function initDragDrop() {
+    const chatArea = document.getElementById('chat-area');
+    if (!chatArea) return;
+
+    let dragCounter = 0;
+
+    chatArea.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter++;
+        chatArea.classList.add('drag-over');
+    });
+
+    chatArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter--;
+        if (dragCounter === 0) {
+            chatArea.classList.remove('drag-over');
+        }
+    });
+
+    chatArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    chatArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter = 0;
+        chatArea.classList.remove('drag-over');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            // Open knowledge modal and trigger upload
+            openModal('knowledge-modal');
+            setTimeout(() => {
+                if (typeof uploadFiles === 'function') {
+                    uploadFiles(files);
+                }
+            }, 300);
+        }
+    });
+})();
 
 // ==================== 初始化 ====================
 

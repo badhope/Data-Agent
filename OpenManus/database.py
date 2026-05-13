@@ -216,8 +216,8 @@ def load_databases():
             with open(db_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 return {k: Database(**v) for k, v in data.items()}
-        except:
-            pass
+        except Exception as e:
+            print(f"Error loading databases: {e}")
     return {}
 
 def save_databases():

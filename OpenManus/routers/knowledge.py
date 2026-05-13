@@ -234,8 +234,8 @@ async def generate_kb_embeddings(kb_id: str):
         raise HTTPException(status_code=404, detail="知识库不存在")
 
     kb = knowledge_bases[kb_id]
-    api_key = current_settings.llm.api_key or ""
-    base_url = current_settings.llm.base_url or "https://api.openai.com/v1"
+    api_key = current_settings.llm.get("api_key", "") or ""
+    base_url = current_settings.llm.get("base_url", "https://api.openai.com/v1")
     embedding_model = kb.embedding_model or "text-embedding-3-small"
 
     if not api_key:

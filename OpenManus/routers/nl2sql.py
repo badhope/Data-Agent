@@ -73,7 +73,7 @@ async def generate_sql(request: Request):
     if not query:
         raise HTTPException(status_code=400, detail="请提供查询语句")
 
-    if not current_settings.llm.api_key:
+    if not current_settings.llm.get("api_key"):
         raise HTTPException(status_code=400, detail="请先配置API Key")
 
     # 获取数据库 schema 信息
@@ -137,6 +137,10 @@ async def nl2sql_execute(request: Request):
 
     if db_id not in databases:
         raise HTTPException(status_code=404, detail="数据库不存在")
+
+    sql_upper = sql.strip().upper()
+    if not sql_upper.startswith('SELECT') and not sql_upper.startswith('PRAGMA'):
+        raise HTTPException(status_code=403, detail="NL2SQL只允许执行SELECT查询")
 
     db = databases[db_id]
     try:

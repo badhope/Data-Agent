@@ -1,3 +1,12 @@
+// 通用工具函数
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
 // 全局变量
 let ws = null;
 let appSettings = {};
@@ -6,16 +15,29 @@ let currentKnowledgeBaseId = null;
 
 // Toast通知系统
 function showToast(message, type = 'info') {
+    // Remove existing toasts
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = 'toast';
+
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+
     toast.innerHTML = `
-        <span>${type === 'success' ? '\u2705' : type === 'error' ? '\u274c' : '\u2139\ufe0f'}</span>
-        <span>${message}</span>
+        <span style="margin-right: 8px;">${icons[type] || icons.info}</span>
+        <span>${escapeHtml(message)}</span>
     `;
+    toast.style.borderLeft = `3px solid ${colors[type] || colors.info}`;
+
     document.body.appendChild(toast);
 
-    setTimeout(() => toast.classList.add('show'), 10);
+    // Trigger show animation
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
 
+    // Auto remove after 3 seconds
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
@@ -68,4 +90,18 @@ function formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// 按钮加载状态
+function setButtonLoading(btn, loading) {
+    if (loading) {
+        btn._originalText = btn.textContent;
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.textContent = '⏳ 处理中...';
+    } else {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.textContent = btn._originalText || btn.textContent;
+    }
 }

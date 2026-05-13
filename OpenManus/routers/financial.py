@@ -6,10 +6,17 @@ DataAgent - 财报路由
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from fastapi.responses import JSONResponse
 from database import databases, save_databases
-import json, uuid, datetime, tempfile, shutil, sqlite3
+import json, uuid, datetime, tempfile, shutil, sqlite3, re
 from pathlib import Path
 
 router = APIRouter()
+
+
+def _validate_table_name(name: str) -> str:
+    """验证表名，防止SQL注入"""
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
+        raise HTTPException(status_code=400, detail=f"无效的表名: {name}")
+    return name
 
 
 # ==================== PDF 财报解析 ====================
@@ -76,6 +83,7 @@ async def extract_financial_tables(request: Request):
 
         for table_data in tables:
             table_name = table_data.get("name", f"table_{uuid.uuid4().hex[:8]}")
+            table_name = _validate_table_name(table_name)
             headers = table_data.get("headers", [])
             rows = table_data.get("data", [])
 

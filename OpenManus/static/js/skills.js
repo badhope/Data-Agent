@@ -1,9 +1,17 @@
 // 技能功能
 
-function showSkillTab(tab) {
+function showSkillTab(tab, el) {
     document.querySelectorAll('#prompt-modal .settings-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('#prompt-modal .settings-section').forEach(s => s.classList.remove('active'));
-    event.target.classList.add('active');
+    if (el) {
+        el.classList.add('active');
+    } else {
+        document.querySelectorAll('#prompt-modal .settings-tab').forEach(t => {
+            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
+                t.classList.add('active');
+            }
+        });
+    }
     document.getElementById(`skill-${tab}`).classList.add('active');
 }
 
@@ -12,21 +20,62 @@ async function loadSkills() {
         const res = await fetch('/api/skills');
         const skills = await res.json();
         const list = document.getElementById('skill-list-content');
-        list.innerHTML = skills.map(skill => `
-            <div class="skill-item">
-                <div class="skill-info">
-                    <div class="skill-icon">${skill.icon}</div>
-                    <div class="skill-details">
-                        <h4>${skill.name}</h4>
-                        <p>${skill.description}</p>
+        if (skills.length === 0) {
+            list.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 40px;">暂无技能，点击上方标签创建</div>';
+        } else {
+            list.innerHTML = skills.map(skill => `
+                <div class="skill-item">
+                    <div class="skill-info">
+                        <div class="skill-icon">${skill.icon}</div>
+                        <div class="skill-details">
+                            <h4>${skill.name}</h4>
+                            <p>${skill.description}</p>
+                        </div>
                     </div>
+                    <span class="skill-badge">${skill.type}</span>
                 </div>
-                <span class="skill-badge">${skill.type}</span>
-            </div>
-        `).join('');
+            `).join('');
+        }
     } catch (e) {
         console.log(e);
     }
+}
+
+function applySkillTemplate(templateId) {
+    const templates = {
+        'code-review': {
+            name: '代码审查专家',
+            icon: '🔍',
+            desc: '智能代码审查，发现潜在问题并提供优化建议',
+            purpose: '审查代码质量、安全性和最佳实践'
+        },
+        'data-analyst': {
+            name: '数据分析师',
+            icon: '📊',
+            desc: '数据清洗、统计分析和可视化报告',
+            purpose: '执行数据分析和可视化'
+        },
+        'translator': {
+            name: '翻译助手',
+            icon: '🌐',
+            desc: '多语言翻译与本地化支持',
+            purpose: '多语言翻译与本地化'
+        },
+        'writer': {
+            name: '文案撰写',
+            icon: '✍️',
+            desc: '营销文案、技术文档和创意写作',
+            purpose: '撰写营销文案和技术文档'
+        }
+    };
+    const t = templates[templateId];
+    if (!t) return;
+    document.getElementById('skill-name').value = t.name;
+    document.getElementById('skill-icon').value = t.icon;
+    document.getElementById('skill-desc').value = t.desc;
+    document.getElementById('skill-purpose').value = t.purpose;
+    showSkillTab('create');
+    showToast(`已加载"${t.name}"模板`, 'success');
 }
 
 async function createSkill() {

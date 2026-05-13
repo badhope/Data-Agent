@@ -1,5 +1,20 @@
 // MCP功能
 
+function showMcpTab(tab, el) {
+    document.querySelectorAll('#mcp-modal .settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#mcp-modal .settings-section').forEach(s => s.classList.remove('active'));
+    if (el) {
+        el.classList.add('active');
+    } else {
+        document.querySelectorAll('#mcp-modal .settings-tab').forEach(t => {
+            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
+                t.classList.add('active');
+            }
+        });
+    }
+    document.getElementById(`mcp-${tab}`).classList.add('active');
+}
+
 async function loadMcpServers() {
     try {
         const res = await fetch('/api/mcp/servers');

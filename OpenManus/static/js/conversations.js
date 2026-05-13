@@ -43,8 +43,8 @@ async function loadConversation(convId) {
         currentConversationId = conv.id;
         const chatArea = document.getElementById('chat-area');
         chatArea.innerHTML = conv.messages.map(msg => `
-            <div class="message ${msg.type}">
-                <div class="message-content">${msg.content}</div>
+            <div class="message ${escapeHtml(msg.type)}">
+                <div class="message-content">${escapeHtml(msg.content)}</div>
             </div>
         `).join('');
         loadConversations();
