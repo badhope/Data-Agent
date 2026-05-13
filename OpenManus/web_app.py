@@ -924,6 +924,41 @@ async def get():
             backdrop-filter: blur(10px);
         }
         
+        /* 工具栏 */
+        .input-tools {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: rgba(71, 85, 105, 0.4);
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-normal);
+            flex-shrink: 0;
+        }
+        
+        .tool-btn:hover {
+            background: rgba(71, 85, 105, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        .tool-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-secondary);
+        }
+        
+        /* 输入框容器 */
         .input-container { 
             display: flex; 
             gap: 12px; 
@@ -1001,6 +1036,43 @@ async def get():
                 transform: scale(4);
                 opacity: 0;
             }
+        }
+        
+        /* 快捷指令 */
+        .quick-commands {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            flex-wrap: wrap;
+        }
+        
+        .quick-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        
+        .quick-btn {
+            padding: 6px 12px;
+            background: rgba(71, 85, 105, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .quick-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: var(--accent-secondary);
         }
         
         /* 快捷键提示 */
@@ -1575,9 +1647,29 @@ async def get():
                 </div>
             </div>
             <div class="input-area">
+                <!-- 工具栏 -->
+                <div class="input-tools">
+                    <button class="tool-btn" onclick="document.getElementById('file-input').click()" title="上传文件">📎</button>
+                    <button class="tool-btn" onclick="openModal('knowledge-modal'); closeSidebar();" title="知识库">📚</button>
+                    <button class="tool-btn" onclick="toggleWebSearch()" title="联网搜索" id="web-search-btn">🔍</button>
+                    <button class="tool-btn" onclick="openModal('prompt-modal'); closeSidebar();" title="技能中心">💡</button>
+                    <button class="tool-btn" onclick="openModal('mcp-modal'); closeSidebar();" title="工具市场">🔌</button>
+                    <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx" style="display: none;" onchange="handleFileUpload(event)">
+                </div>
+                
+                <!-- 输入框区域 -->
                 <div class="input-container">
                     <textarea class="input-box" id="input-box" placeholder="输入您的需求...（Enter发送，Shift+Enter换行）" rows="2"></textarea>
                     <button class="send-btn" id="send-btn" onclick="sendMessage()">发送</button>
+                </div>
+                
+                <!-- 快捷指令 -->
+                <div class="quick-commands">
+                    <span class="quick-label">快捷指令：</span>
+                    <button class="quick-btn" onclick="insertCommand('生成Python代码')">🐍 Python</button>
+                    <button class="quick-btn" onclick="insertCommand('分析数据')">📊 数据分析</button>
+                    <button class="quick-btn" onclick="insertCommand('画一个图表')">📈 图表</button>
+                    <button class="quick-btn" onclick="insertCommand('写一段文案')">✍️ 写作</button>
                 </div>
             </div>
         </div>
@@ -1983,7 +2075,56 @@ async def get():
             inputBox.value = '';
             addMessage(content, 'user');
             document.getElementById('send-btn').disabled = true;
-            ws.send(JSON.stringify({ content: content }));
+            
+            const webSearchEnabled = document.getElementById('web-search-btn').classList.contains('active');
+            ws.send(JSON.stringify({ 
+                content: content,
+                options: {
+                    web_search: webSearchEnabled
+                }
+            }));
+        }
+        
+        // 切换联网搜索
+        function toggleWebSearch() {
+            const btn = document.getElementById('web-search-btn');
+            btn.classList.toggle('active');
+            if (btn.classList.contains('active')) {
+                showToast('已启用联网搜索', 'success');
+            } else {
+                showToast('已关闭联网搜索', 'info');
+            }
+        }
+        
+        // 插入快捷指令
+        function insertCommand(command) {
+            const inputBox = document.getElementById('input-box');
+            if (inputBox.value.length > 0) {
+                inputBox.value += '\n';
+            }
+            inputBox.value += command;
+            inputBox.focus();
+            inputBox.scrollTop = inputBox.scrollHeight;
+        }
+        
+        // 处理文件上传
+        function handleFileUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+            
+            for (const file of files) {
+                addMessage(`📎 已上传文件: ${file.name} (${formatFileSize(file.size)})`, 'system');
+            }
+            
+            event.target.value = '';
+            showToast(`已选择 ${files.length} 个文件`, 'success');
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
         function finishProcessing() {
