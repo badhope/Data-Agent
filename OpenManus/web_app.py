@@ -1,4 +1,4 @@
-"""DataAgent Web Interface with Sandbox & Thinking Chain Visualization"""
+"""DataAgent Web Interface - Unified Universal Agent with Sandbox"""
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -9,17 +9,16 @@ import tempfile
 import os
 import base64
 import sys
-from typing import Dict, Optional
+from typing import Dict
 from pathlib import Path
 
-app = FastAPI(title="Data Agent", description="DataAgent Web Interface")
+app = FastAPI(title="Data Agent", description="DataAgent Universal Agent")
 
 active_connections: Dict[str, WebSocket] = {}
 
 SANDBOX_DIR = Path(tempfile.mkdtemp(prefix="dataagent_sandbox_"))
 SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
 
-# Config Management
 CONFIG_PATH = Path(__file__).parent / "config" / "web_config.json"
 
 
@@ -49,28 +48,25 @@ def get_default_settings():
             "temperature": 0.7,
             "api_type": "Openai"
         },
-        "search": {
-            "engine": "Google",
-            "lang": "zh",
-            "country": "cn"
-        },
-        "browser": {
-            "headless": False,
-            "max_content_length": 2000
-        },
         "sandbox": {
-            "use_sandbox": False,
-            "timeout": 300,
-            "network_enabled": False
+            "enabled": True,
+            "timeout": 60,
+            "allow_network": False
         },
-        "prompts": {
-            "data_agent": "",
-            "browser_agent": "",
-            "swe_agent": "",
-            "analysis_agent": ""
+        "knowledge_base": {
+            "enabled": False,
+            "vector_db": "sqlite",
+            "chunk_size": 500,
+            "overlap": 50
+        },
+        "display": {
+            "theme": "dark",
+            "thinking_chain": True,
+            "code_highlight": True
         },
         "agent": {
-            "max_steps": 5
+            "max_steps": 5,
+            "auto_mode": True
         }
     }
 
@@ -102,7 +98,7 @@ class SandboxExecutor:
             return result
         except asyncio.TimeoutError:
             proc.kill()
-            return {"success": False, "stdout": "", "stderr": "Execution timed out", "returncode": -1, "images": []}
+            return {"success": False, "stdout": "", "stderr": "执行超时", "returncode": -1, "images": []}
         except Exception as e:
             return {"success": False, "stdout": "", "stderr": str(e), "returncode": -1, "images": []}
 
@@ -123,7 +119,7 @@ class SandboxExecutor:
             }
         except asyncio.TimeoutError:
             proc.kill()
-            return {"success": False, "stdout": "", "stderr": "Execution timed out", "returncode": -1}
+            return {"success": False, "stdout": "", "stderr": "执行超时", "returncode": -1}
         except Exception as e:
             return {"success": False, "stdout": "", "stderr": str(e), "returncode": -1}
 
@@ -142,33 +138,28 @@ class SandboxExecutor:
 sandbox = SandboxExecutor()
 
 
-async def run_agent_with_thinking(websocket: WebSocket, message: str, agent_type: str = "data"):
+async def run_universal_agent(websocket: WebSocket, message: str):
+    """万能智能体 - 自动识别意图，调度工具"""
     try:
         from app.agent.data import Data
-        from app.agent.browser import BrowserAgent
-        from app.agent.swe import SWEAgent
-        from app.agent.data_analysis import DataAnalysis
-
-        agent_map = {
-            "data": Data,
-            "browser": BrowserAgent,
-            "swe": SWEAgent,
-            "analysis": DataAnalysis,
-        }
-
-        agent_class = agent_map.get(agent_type, Data)
 
         await ws_send(websocket, "thinking", {
             "phase": "init",
-            "title": "🤔 理解问题",
-            "content": message[:200],
+            "title": "🤔 理解需求",
+            "content": f"正在分析您的问题: {message[:100]}...",
         })
 
-        agent = await agent_class.create()
+        agent = await Data.create()
         agent.max_steps = current_settings.get("agent", {}).get("max_steps", 5)
 
         if message:
             agent.update_memory("user", message)
+
+        await ws_send(websocket, "thinking", {
+            "phase": "analyze",
+            "title": "🧠 智能分析",
+            "content": "自动识别任务类型，调度最佳工具组合",
+        })
 
         should_act = await agent.think()
 
@@ -184,8 +175,8 @@ async def run_agent_with_thinking(websocket: WebSocket, message: str, agent_type
 
             await ws_send(websocket, "thinking", {
                 "phase": "tool_select",
-                "title": "🛠️ 使用工具",
-                "content": ", ".join(tool_names),
+                "title": "🛠️ 自动选择工具",
+                "content": f"智能选择: {', '.join(tool_names)}",
                 "tools": [{"name": n, "args": a} for n, a in zip(tool_names, tool_args)],
             })
 
@@ -193,8 +184,8 @@ async def run_agent_with_thinking(websocket: WebSocket, message: str, agent_type
 
             await ws_send(websocket, "thinking", {
                 "phase": "tool_result",
-                "title": "📋 执行结果",
-                "content": act_result[:300] if act_result else "完成",
+                "title": "📋 执行完成",
+                "content": act_result[:300] if act_result else "处理完成",
             })
 
             step_count = 1
@@ -207,13 +198,13 @@ async def run_agent_with_thinking(websocket: WebSocket, message: str, agent_type
                     names = [tc.function.name for tc in agent.tool_calls]
                     await ws_send(websocket, "thinking", {
                         "phase": "tool_select",
-                        "title": f"🛠️ 继续使用工具",
-                        "content": ", ".join(names),
+                        "title": f"🛠️ 继续处理",
+                        "content": f"使用工具: {', '.join(names)}",
                     })
                 act_result = await agent.act()
                 await ws_send(websocket, "thinking", {
                     "phase": "tool_result",
-                    "title": "📋 执行结果",
+                    "title": "📋 处理中",
                     "content": act_result[:300] if act_result else "完成",
                 })
 
@@ -233,6 +224,8 @@ async def run_agent_with_thinking(websocket: WebSocket, message: str, agent_type
 
     except Exception as e:
         await ws_send(websocket, "error", {"content": f"❌ 处理失败: {str(e)[:300]}"})
+        import traceback
+        traceback.print_exc()
 
 
 async def ws_send(websocket: WebSocket, msg_type: str, data: dict):
@@ -242,7 +235,6 @@ async def ws_send(websocket: WebSocket, msg_type: str, data: dict):
         pass
 
 
-# Settings API Endpoints
 @app.get("/api/settings")
 async def get_settings_endpoint():
     return JSONResponse(current_settings)
@@ -257,7 +249,6 @@ async def update_settings_endpoint(request: Request):
     return JSONResponse({"success": True, "settings": current_settings})
 
 
-# WebSocket Endpoint
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -265,15 +256,13 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_json()
             message = data.get("content", "")
-            agent_type = data.get("agent", "data")
-            await run_agent_with_thinking(websocket, message, agent_type)
+            await run_universal_agent(websocket, message)
     except WebSocketDisconnect:
         pass
     except Exception as e:
         pass
 
 
-# HTML Endpoint
 @app.get("/")
 async def get():
     html_content = """
@@ -282,7 +271,7 @@ async def get():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Data Agent - DataAgent</title>
+    <title>Data Agent - 万能智能助手</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; overflow: hidden; }
@@ -291,11 +280,12 @@ async def get():
             background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
             display: flex;
             height: 100vh;
+            color: #E2E8F0;
         }
 
         /* ===== Sidebar ===== */
         .sidebar {
-            width: 280px;
+            width: 300px;
             background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
             border-right: 1px solid #334155;
             display: flex;
@@ -307,109 +297,105 @@ async def get():
             transition: transform 0.3s ease;
         }
         .sidebar-header {
-            padding: 16px 18px;
+            padding: 24px 20px;
             border-bottom: 1px solid #334155;
-            flex-shrink: 0;
+            text-align: center;
         }
-        .sidebar-header h2 { color: white; font-size: 17px; margin-bottom: 4px; }
-        .sidebar-header p { color: #94A3B8; font-size: 11px; }
+        .sidebar-header h2 {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        .sidebar-header p {
+            color: #94A3B8;
+            font-size: 12px;
+        }
+
         .sidebar-body {
             flex: 1;
             overflow-y: auto;
-            padding: 12px 14px;
+            padding: 16px;
         }
-        .sidebar-body::-webkit-scrollbar { width: 3px; }
+        .sidebar-body::-webkit-scrollbar { width: 4px; }
         .sidebar-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
 
-        /* ===== Collapsible ===== */
-        .collapse-section {
-            margin-bottom: 6px;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            overflow: hidden;
-            background: rgba(30,41,59,0.5);
+        .capability-section {
+            margin-bottom: 16px;
         }
-        .collapse-header {
+        .capability-title {
+            color: #94A3B8;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .capability-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 10px 14px;
-            cursor: pointer;
-            user-select: none;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(30,41,59,0.6);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            transition: all 0.2s;
+        }
+        .capability-item:hover {
+            background: rgba(79,70,229,0.15);
+            border-color: #4F46E5;
+        }
+        .capability-icon {
+            font-size: 18px;
+        }
+        .capability-info h4 {
             color: #E2E8F0;
             font-size: 13px;
             font-weight: 600;
-            transition: background 0.2s;
+            margin-bottom: 2px;
         }
-        .collapse-header:hover { background: rgba(79,70,229,0.15); }
-        .collapse-header .arrow {
-            transition: transform 0.25s;
+        .capability-info p {
+            color: #64748B;
             font-size: 10px;
-            color: #94A3B8;
         }
-        .collapse-section.open .collapse-header .arrow { transform: rotate(90deg); }
-        .collapse-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-        .collapse-section.open .collapse-body { max-height: 600px; }
-        .collapse-body-inner { padding: 6px 10px 10px; }
-
-        /* ===== Agent Card ===== */
-        .agent-card {
-            background: linear-gradient(135deg, #334155 0%, #1E293B 100%);
-            border: 1px solid #475569;
-            border-radius: 8px;
-            padding: 9px 12px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .agent-card:hover { border-color: #4F46E5; }
-        .agent-card.active {
-            border-color: #4F46E5;
-            background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
-        }
-        .agent-card h4 { color: white; font-size: 12px; margin-bottom: 2px; }
-        .agent-card p { color: #94A3B8; font-size: 10px; }
 
         .status-badge {
             display: inline-block;
-            padding: 2px 8px;
+            padding: 4px 12px;
             background: #10B981;
-            border-radius: 10px;
-            font-size: 10px;
+            border-radius: 12px;
+            font-size: 11px;
             color: white;
-            margin-top: 6px;
+            margin-top: 12px;
         }
 
-        /* ===== Settings Button ===== */
-        .settings-btn-sidebar {
+        .settings-btn {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
             color: white;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 15px;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            margin-top: 16px;
         }
-        .settings-btn-sidebar:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(79,70,229,0.4);
+        .settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79,70,229,0.4);
         }
 
         /* ===== Main Content ===== */
         .main-content {
             flex: 1;
-            margin-left: 280px;
+            margin-left: 300px;
             display: flex;
             flex-direction: column;
             height: 100vh;
@@ -418,36 +404,47 @@ async def get():
         .header {
             background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
             color: white;
-            padding: 12px 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            padding: 16px 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
         }
-        .header-left { display: flex; align-items: center; gap: 10px; }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
         .menu-btn {
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
-            padding: 5px 10px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
         }
         .menu-btn:hover { background: rgba(255,255,255,0.3); }
-        .header h1 { font-size: 17px; font-weight: 600; }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
         .new-chat-btn {
             background: white;
             color: #4F46E5;
             border: none;
-            padding: 6px 14px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
+            transition: all 0.2s;
         }
-        .new-chat-btn:hover { background: #F1F5F9; }
+        .new-chat-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
 
         /* ===== Chat Area ===== */
         .chat-area {
@@ -459,62 +456,62 @@ async def get():
         .messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 24px;
         }
-        .messages::-webkit-scrollbar { width: 5px; }
+        .messages::-webkit-scrollbar { width: 6px; }
         .messages::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
 
-        .message { margin-bottom: 14px; animation: slideIn 0.3s ease-out; }
+        .message { margin-bottom: 20px; animation: slideIn 0.3s ease-out; }
         .message.user { text-align: right; }
         .message-content {
             display: inline-block;
-            max-width: 80%;
-            padding: 10px 14px;
-            border-radius: 14px;
-            line-height: 1.6;
-            font-size: 13px;
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            line-height: 1.7;
+            font-size: 14px;
             text-align: left;
         }
         .message.user .message-content {
             background: linear-gradient(135deg, #4F46E5, #4338CA);
             color: white;
-            border-bottom-right-radius: 4px;
+            border-bottom-right-radius: 6px;
         }
         .message.assistant .message-content {
             background: #1E293B;
             border: 1px solid #334155;
             color: #F1F5F9;
-            border-bottom-left-radius: 4px;
+            border-bottom-left-radius: 6px;
         }
         .message.system .message-content {
             background: #334155;
             color: #94A3B8;
-            font-size: 12px;
-            border-radius: 8px;
+            font-size: 13px;
+            border-radius: 10px;
         }
 
         /* ===== Thinking Chain ===== */
         .thinking-chain {
-            margin-bottom: 14px;
+            margin-bottom: 20px;
             animation: slideIn 0.3s ease-out;
         }
         .thinking-chain-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
+            gap: 10px;
+            padding: 12px 18px;
             background: linear-gradient(135deg, #312E81 0%, #1E1B4B 100%);
             border: 1px solid #4338CA;
-            border-radius: 10px 10px 0 0;
+            border-radius: 12px 12px 0 0;
             cursor: pointer;
             user-select: none;
         }
-        .thinking-chain-header:hover { background: linear-gradient(135deg, #3730A3 0%, #312E81 100%); }
-        .thinking-chain-header .chain-icon { font-size: 14px; }
-        .thinking-chain-header .chain-title { color: #C7D2FE; font-size: 12px; font-weight: 600; flex: 1; }
-        .thinking-chain-header .chain-toggle { color: #818CF8; font-size: 10px; }
-        .thinking-chain.open .thinking-chain-header { border-radius: 10px 10px 0 0; }
-        .thinking-chain:not(.open) .thinking-chain-header { border-radius: 10px; }
+        .thinking-chain-header:hover { background: linear-gradient(135deg, #3730A3 0%, #3120E0 100%); }
+        .thinking-chain-header .chain-icon { font-size: 16px; }
+        .thinking-chain-header .chain-title { color: #C7D2FE; font-size: 14px; font-weight: 600; flex: 1; }
+        .thinking-chain-header .chain-toggle { color: #818CF8; font-size: 12px; }
+        .thinking-chain.open .thinking-chain-header { border-radius: 12px 12px 0 0; }
+        .thinking-chain:not(.open) .thinking-chain-header { border-radius: 12px; }
 
         .thinking-chain-body {
             max-height: 0;
@@ -523,12 +520,12 @@ async def get():
             background: #0F172A;
             border: 1px solid #334155;
             border-top: none;
-            border-radius: 0 0 10px 10px;
+            border-radius: 0 0 12px 12px;
         }
-        .thinking-chain.open .thinking-chain-body { max-height: 2000px; }
+        .thinking-chain.open .thinking-chain-body { max-height: 3000px; }
 
         .thinking-step {
-            padding: 8px 14px;
+            padding: 12px 18px;
             border-bottom: 1px solid #1E293B;
             animation: fadeIn 0.3s ease;
         }
@@ -537,52 +534,53 @@ async def get():
         .step-header {
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
+            gap: 8px;
+            margin-bottom: 6px;
         }
         .step-phase {
             display: inline-block;
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
         }
         .step-phase.init { background: #4338CA; color: #C7D2FE; }
+        .step-phase.analyze { background: #7C3AED; color: #E9D5FF; }
         .step-phase.tool_select { background: #B45309; color: #FDE68A; }
         .step-phase.tool_result { background: #047857; color: #A7F3D0; }
 
-        .step-title { color: #E2E8F0; font-size: 11px; font-weight: 600; }
+        .step-title { color: #E2E8F0; font-size: 13px; font-weight: 600; }
         .step-content {
             color: #94A3B8;
-            font-size: 11px;
-            line-height: 1.5;
-            margin-top: 3px;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 4px;
             white-space: pre-wrap;
             word-break: break-all;
         }
 
         .step-tools {
-            margin-top: 6px;
+            margin-top: 10px;
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 6px;
         }
         .step-tool-tag {
             display: inline-flex;
             align-items: center;
-            gap: 3px;
-            padding: 2px 8px;
+            gap: 4px;
+            padding: 4px 12px;
             background: #1E293B;
             border: 1px solid #475569;
-            border-radius: 5px;
+            border-radius: 8px;
             color: #FCD34D;
-            font-size: 10px;
+            font-size: 12px;
         }
         .step-tool-args {
             color: #94A3B8;
-            font-size: 9px;
-            max-width: 200px;
+            font-size: 10px;
+            max-width: 250px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -590,100 +588,127 @@ async def get():
 
         /* ===== Sandbox Output ===== */
         .sandbox-output {
-            margin-top: 8px;
+            margin-top: 12px;
             background: #0D1117;
             border: 1px solid #30363D;
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
         }
         .sandbox-header {
-            padding: 6px 10px;
+            padding: 8px 14px;
             background: #161B22;
             border-bottom: 1px solid #30363D;
-            font-size: 10px;
+            font-size: 11px;
             color: #8B949E;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+        }
+        .sandbox-header .dots {
+            display: flex;
             gap: 6px;
         }
-        .sandbox-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .sandbox-header .dot { width: 10px; height: 10px; border-radius: 50%; }
         .sandbox-header .dot.red { background: #FF5F56; }
         .sandbox-header .dot.yellow { background: #FFBD2E; }
         .sandbox-header .dot.green { background: #27C93F; }
+        
         .sandbox-body {
-            padding: 10px;
+            padding: 14px;
             font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 11px;
-            line-height: 1.5;
+            font-size: 12px;
+            line-height: 1.6;
             color: #C9D1D9;
             white-space: pre-wrap;
             word-break: break-all;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
         }
-        .sandbox-body.success { border-left: 3px solid #10B981; }
-        .sandbox-body.error { border-left: 3px solid #EF4444; }
+        .sandbox-body.success { border-left: 4px solid #10B981; }
+        .sandbox-body.error { border-left: 4px solid #EF4444; }
+        
         .sandbox-image {
-            padding: 10px;
+            padding: 14px;
             text-align: center;
+            background: #161B22;
         }
         .sandbox-image img {
             max-width: 100%;
-            border-radius: 6px;
-            border: 1px solid #334155;
+            border-radius: 8px;
+            border: 2px solid #30363D;
+            cursor: pointer;
+            transition: transform 0.2s;
         }
+        .sandbox-image img:hover {
+            transform: scale(1.02);
+        }
+        
+        .download-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 8px 16px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .download-btn:hover { background: #2EA043; }
 
         /* ===== Input Area ===== */
         .input-area {
             flex-shrink: 0;
             background: #0F172A;
             border-top: 1px solid #334155;
-            padding: 14px 20px;
+            padding: 20px 24px;
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: flex-end;
         }
         .input-area textarea {
             flex: 1;
             background: #1E293B;
             border: 1px solid #475569;
-            border-radius: 12px;
-            padding: 10px 14px;
-            font-size: 13px;
+            border-radius: 14px;
+            padding: 12px 16px;
+            font-size: 14px;
             color: #F1F5F9;
             resize: none;
-            min-height: 42px;
-            max-height: 120px;
+            min-height: 48px;
+            max-height: 150px;
             font-family: inherit;
-            line-height: 1.5;
+            line-height: 1.6;
         }
         .input-area textarea:focus {
             outline: none;
             border-color: #4F46E5;
-            box-shadow: 0 0 0 2px rgba(79,70,229,0.2);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.2);
         }
         .input-area textarea::placeholder { color: #64748B; }
         .send-btn {
             background: #4F46E5;
             color: white;
             border: none;
-            padding: 10px 22px;
-            border-radius: 12px;
+            padding: 12px 28px;
+            border-radius: 14px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 600;
             transition: all 0.2s;
             flex-shrink: 0;
-            height: 42px;
+            height: 48px;
         }
-        .send-btn:hover { background: #4338CA; }
-        .send-btn:disabled { background: #334155; color: #64748B; cursor: not-allowed; }
+        .send-btn:hover { background: #4338CA; transform: translateY(-2px); }
+        .send-btn:disabled { background: #334155; color: #64748B; cursor: not-allowed; transform: none; }
 
         .status-bar {
             flex-shrink: 0;
             text-align: center;
-            padding: 5px;
-            font-size: 10px;
+            padding: 8px;
+            font-size: 11px;
             color: #64748B;
             background: #0F172A;
             border-top: 1px solid #1E293B;
@@ -692,14 +717,14 @@ async def get():
         /* ===== Typing ===== */
         .typing-indicator {
             display: none;
-            padding: 8px 14px;
+            padding: 12px 18px;
             color: #94A3B8;
-            font-size: 12px;
+            font-size: 13px;
         }
-        .typing-indicator.show { display: flex; align-items: center; gap: 6px; }
+        .typing-indicator.show { display: flex; align-items: center; gap: 8px; }
         .typing-dots span {
             display: inline-block;
-            width: 6px; height: 6px;
+            width: 8px; height: 8px;
             background: #4F46E5;
             border-radius: 50%;
             animation: typing 1.4s infinite;
@@ -708,10 +733,10 @@ async def get():
         .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes typing {
             0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-6px); opacity: 1; }
+            30% { transform: translateY(-8px); opacity: 1; }
         }
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
         @keyframes fadeIn {
@@ -732,10 +757,7 @@ async def get():
         .settings-modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.7);
             z-index: 1000;
             justify-content: center;
@@ -745,19 +767,19 @@ async def get():
         
         .settings-modal {
             background: #1E293B;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 85vh;
+            border-radius: 20px;
+            width: 92%;
+            max-width: 750px;
+            max-height: 88vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
             border: 1px solid #334155;
         }
         
         .settings-modal-header {
-            padding: 20px 24px;
+            padding: 24px 28px;
             border-bottom: 1px solid #334155;
             display: flex;
             justify-content: space-between;
@@ -766,14 +788,14 @@ async def get():
         }
         .settings-modal-title {
             color: #E2E8F0;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
         }
         .settings-modal-close {
             background: none;
             border: none;
             color: #94A3B8;
-            font-size: 28px;
+            font-size: 32px;
             cursor: pointer;
             line-height: 1;
             transition: color 0.2s;
@@ -782,20 +804,20 @@ async def get():
         
         .settings-tabs {
             display: flex;
-            gap: 4px;
-            padding: 12px 16px;
+            gap: 6px;
+            padding: 16px 20px;
             background: #0F172A;
             border-bottom: 1px solid #334155;
             overflow-x: auto;
         }
         .settings-tab {
-            padding: 8px 16px;
+            padding: 10px 20px;
             background: transparent;
             border: none;
             color: #94A3B8;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
             transition: all 0.2s;
             white-space: nowrap;
@@ -812,7 +834,7 @@ async def get():
         .settings-content {
             flex: 1;
             overflow-y: auto;
-            padding: 20px 24px;
+            padding: 24px 28px;
         }
         
         .settings-tab-content {
@@ -824,82 +846,82 @@ async def get():
         }
         
         .setting-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         .setting-row {
             display: flex;
-            gap: 16px;
+            gap: 20px;
         }
         .setting-row .setting-group { flex: 1; }
         .flex-1 { flex: 1; }
         
         .setting-label {
             color: #E2E8F0;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
         .setting-desc {
             color: #64748B;
-            font-size: 12px;
-            margin-bottom: 8px;
+            font-size: 13px;
+            margin-bottom: 10px;
         }
         .setting-input {
             width: 100%;
-            padding: 10px 14px;
+            padding: 12px 16px;
             background: #0F172A;
             border: 1px solid #334155;
-            border-radius: 10px;
+            border-radius: 12px;
             color: #E2E8F0;
-            font-size: 14px;
+            font-size: 15px;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         .setting-input:focus {
             outline: none;
             border-color: #4F46E5;
-            box-shadow: 0 0 0 3px rgba(79,70,229,0.2);
+            box-shadow: 0 0 0 4px rgba(79,70,229,0.2);
         }
         .setting-textarea {
-            min-height: 120px;
+            min-height: 140px;
             resize: vertical;
             font-family: inherit;
         }
         
         .setting-checkbox-group {
             background: rgba(79,70,229,0.05);
-            padding: 14px;
-            border-radius: 10px;
+            padding: 16px;
+            border-radius: 12px;
             border: 1px solid rgba(79,70,229,0.2);
         }
         .setting-checkbox-label {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             cursor: pointer;
         }
         .setting-checkbox-label input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             accent-color: #4F46E5;
             cursor: pointer;
         }
         .setting-checkbox-label span {
             color: #E2E8F0;
-            font-size: 14px;
+            font-size: 15px;
         }
         
         .settings-modal-footer {
-            padding: 16px 24px;
+            padding: 20px 28px;
             border-top: 1px solid #334155;
             display: flex;
             justify-content: flex-end;
-            gap: 12px;
+            gap: 14px;
             background: #0F172A;
         }
         .settings-btn {
-            padding: 10px 24px;
-            border-radius: 10px;
-            font-size: 14px;
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
@@ -909,18 +931,37 @@ async def get():
             background: #4F46E5;
             color: white;
         }
-        .settings-btn-primary:hover { background: #4338CA; }
+        .settings-btn-primary:hover { background: #4338CA; transform: translateY(-2px); }
         .settings-btn-secondary {
             background: #334155;
             color: #E2E8F0;
         }
         .settings-btn-secondary:hover { background: #475569; }
 
+        /* ===== Info Banner ===== */
+        .info-banner {
+            background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(67,56,202,0.1));
+            border: 1px solid rgba(79,70,229,0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .info-banner h3 {
+            color: #C7D2FE;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .info-banner p {
+            color: #94A3B8;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; }
-            .message-content { max-width: 90%; }
+            .message-content { max-width: 95%; }
         }
         @media (min-width: 769px) {
             .overlay { display: none !important; }
@@ -934,47 +975,83 @@ async def get():
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h2>🤖 Data Agent</h2>
-            <p>智能助手控制面板</p>
+            <p>万能智能助手</p>
             <span class="status-badge" id="ws-status">🟢 在线</span>
         </div>
+        
         <div class="sidebar-body">
-            <div class="collapse-section open">
-                <div class="collapse-header" onclick="toggleSection(this)">
-                    <span>🤖 代理模式</span><span class="arrow">▶</span>
+            <div class="capability-section">
+                <div class="capability-title">🧠 核心能力</div>
+                
+                <div class="capability-item">
+                    <span class="capability-icon">🧠</span>
+                    <div class="capability-info">
+                        <h4>智能意图识别</h4>
+                        <p>自动分析任务类型</p>
+                    </div>
                 </div>
-                <div class="collapse-body"><div class="collapse-body-inner">
-                    <div class="agent-card active" onclick="selectAgent('data')" id="agent-data">
-                        <h4>📋 Data 通用代理</h4><p>多工具协同处理复杂任务</p>
+                
+                <div class="capability-item">
+                    <span class="capability-icon">🐍</span>
+                    <div class="capability-info">
+                        <h4>Python 执行</h4>
+                        <p>代码编写与运行</p>
                     </div>
-                    <div class="agent-card" onclick="selectAgent('browser')" id="agent-browser">
-                        <h4>🌐 浏览器代理</h4><p>自动化网页操作</p>
-                    </div>
-                    <div class="agent-card" onclick="selectAgent('swe')" id="agent-swe">
-                        <h4>💻 SWE 软件工程代理</h4><p>代码开发与调试</p>
-                    </div>
-                    <div class="agent-card" onclick="selectAgent('analysis')" id="agent-analysis">
-                        <h4>📊 数据分析代理</h4><p>数据处理与可视化</p>
-                    </div>
-                </div></div>
-            </div>
-            <div class="collapse-section">
-                <div class="collapse-header" onclick="toggleSection(this)">
-                    <span>📊 系统信息</span><span class="arrow">▶</span>
                 </div>
-                <div class="collapse-body"><div class="collapse-body-inner" style="color:#94A3B8;font-size:11px;line-height:1.8;">
-                    <p>模型: <span id="setting-model">qwen-plus-latest</span></p>
-                    <p>API: 阿里百炼</p>
-                    <p>沙箱: 已启用</p>
-                    <p>Python: 已配置</p>
-                    <p>状态: <span id="sys-status">正常运行</span></p>
-                </div></div>
+                
+                <div class="capability-item">
+                    <span class="capability-icon">📊</span>
+                    <div class="capability-info">
+                        <h4>图表生成</h4>
+                        <p>数据可视化与下载</p>
+                    </div>
+                </div>
+                
+                <div class="capability-item">
+                    <span class="capability-icon">🔍</span>
+                    <div class="capability-info">
+                        <h4>网络搜索</h4>
+                        <p>实时信息检索</p>
+                    </div>
+                </div>
+                
+                <div class="capability-item">
+                    <span class="capability-icon">📝</span>
+                    <div class="capability-info">
+                        <h4>Markdown 文档</h4>
+                        <p>文档编写与格式化</p>
+                    </div>
+                </div>
+                
+                <div class="capability-item">
+                    <span class="capability-icon">📁</span>
+                    <div class="capability-info">
+                        <h4>文件操作</h4>
+                        <p>读取、编辑、管理</p>
+                    </div>
+                </div>
+                
+                <div class="capability-item">
+                    <span class="capability-icon">💻</span>
+                    <div class="capability-info">
+                        <h4>终端命令</h4>
+                        <p>系统命令执行</p>
+                    </div>
+                </div>
             </div>
             
-            <div style="padding-top: 12px;">
-                <button class="settings-btn-sidebar" onclick="openSettings()">
-                    ⚙️ 设置
-                </button>
+            <div class="capability-section">
+                <div class="capability-title">⚙️ 环境状态</div>
+                <div style="color:#94A3B8;font-size:12px;line-height:2;" id="env-status">
+                    <p>🤖 模型: <span id="setting-model">qwen-plus-latest</span></p>
+                    <p>📦 沙箱: <span id="setting-sandbox">已启用</span></p>
+                    <p>📚 知识库: <span id="setting-knowledge">未启用</span></p>
+                </div>
             </div>
+            
+            <button class="settings-btn" onclick="openSettings()">
+                ⚙️ 系统设置
+            </button>
         </div>
     </div>
     
@@ -982,33 +1059,34 @@ async def get():
     <div class="settings-modal-overlay" id="settings-modal">
         <div class="settings-modal">
             <div class="settings-modal-header">
-                <div class="settings-modal-title">⚙️ 设置</div>
+                <div class="settings-modal-title">⚙️ 系统设置</div>
                 <button class="settings-modal-close" onclick="closeSettings()">×</button>
             </div>
             
             <div class="settings-tabs">
-                <button class="settings-tab active" onclick="switchSettingTab('llm')" data-tab="llm">模型配置</button>
-                <button class="settings-tab" onclick="switchSettingTab('prompts')" data-tab="prompts">提示词</button>
-                <button class="settings-tab" onclick="switchSettingTab('search')" data-tab="search">搜索配置</button>
-                <button class="settings-tab" onclick="switchSettingTab('browser')" data-tab="browser">浏览器</button>
-                <button class="settings-tab" onclick="switchSettingTab('sandbox')" data-tab="sandbox">沙箱</button>
-                <button class="settings-tab" onclick="switchSettingTab('agent')" data-tab="agent">智能体</button>
+                <button class="settings-tab active" onclick="switchSettingTab('llm')" data-tab="llm">🤖 模型配置</button>
+                <button class="settings-tab" onclick="switchSettingTab('sandbox')" data-tab="sandbox">📦 沙箱环境</button>
+                <button class="settings-tab" onclick="switchSettingTab('knowledge')" data-tab="knowledge">📚 知识库</button>
+                <button class="settings-tab" onclick="switchSettingTab('display')" data-tab="display">🎨 显示设置</button>
             </div>
             
             <div class="settings-content" id="settings-content">
                 <!-- LLM Settings Tab -->
                 <div class="settings-tab-content active" data-tab="llm">
+                    <div class="info-banner">
+                        <h3>💡 模型配置提示</h3>
+                        <p>配置您要使用的 AI 模型。Data Agent 会根据任务自动选择合适的工具组合，无需手动切换。</p>
+                    </div>
+                    
                     <div class="setting-group">
-                        <div class="setting-label">模型名称</div>
-                        <div class="setting-desc">选择要使用的 LLM 模型</div>
+                        <div class="setting-label">模型选择</div>
+                        <div class="setting-desc">选择 AI 模型供应商和版本</div>
                         <select class="setting-input" id="setting-llm-model">
-                            <option value="qwen-plus-latest">qwen-plus-latest (阿里百炼)</option>
-                            <option value="qwen-turbo-latest">qwen-turbo-latest (阿里百炼)</option>
-                            <option value="gpt-4o">gpt-4o (OpenAI)</option>
-                            <option value="gpt-4">gpt-4 (OpenAI)</option>
-                            <option value="gpt-3.5-turbo">gpt-3.5-turbo (OpenAI)</option>
-                            <option value="claude-3-opus">claude-3-opus (Anthropic)</option>
-                            <option value="claude-3-sonnet">claude-3-sonnet (Anthropic)</option>
+                            <option value="qwen-plus-latest">通义千问 Plus (阿里百炼)</option>
+                            <option value="qwen-turbo-latest">通义千问 Turbo (阿里百炼)</option>
+                            <option value="gpt-4o">GPT-4o (OpenAI)</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo (OpenAI)</option>
+                            <option value="claude-3-5-sonnet">Claude 3.5 Sonnet (Anthropic)</option>
                         </select>
                     </div>
                     
@@ -1020,7 +1098,7 @@ async def get():
                     
                     <div class="setting-group">
                         <div class="setting-label">API Key</div>
-                        <div class="setting-desc">您的 API 密钥（将安全存储）</div>
+                        <div class="setting-desc">您的 API 密钥（将安全存储在本地）</div>
                         <input type="password" class="setting-input" id="setting-llm-api-key" placeholder="sk-...">
                     </div>
                     
@@ -1030,127 +1108,123 @@ async def get():
                             <input type="number" class="setting-input" id="setting-llm-max-tokens" value="4096" min="256" max="128000">
                         </div>
                         <div class="setting-group flex-1">
-                            <div class="setting-label">温度</div>
+                            <div class="setting-label">温度参数</div>
                             <input type="number" class="setting-input" id="setting-llm-temperature" value="0.7" min="0" max="2" step="0.1">
                         </div>
-                    </div>
-                    
-                    <div class="setting-group">
-                        <div class="setting-label">API 类型</div>
-                        <select class="setting-input" id="setting-llm-api-type">
-                            <option value="Openai">OpenAI 兼容</option>
-                            <option value="Azure">Azure OpenAI</option>
-                            <option value="Ollama">Ollama (本地)</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- Prompts Settings Tab -->
-                <div class="settings-tab-content" data-tab="prompts">
-                    <div class="setting-group">
-                        <div class="setting-label">Data 通用代理提示词</div>
-                        <div class="setting-desc">自定义 Data 代理的系统提示词</div>
-                        <textarea class="setting-input setting-textarea" id="setting-prompt-data" placeholder="输入自定义系统提示词..."></textarea>
-                    </div>
-                    
-                    <div class="setting-group">
-                        <div class="setting-label">浏览器代理提示词</div>
-                        <div class="setting-desc">自定义浏览器代理的系统提示词</div>
-                        <textarea class="setting-input setting-textarea" id="setting-prompt-browser" placeholder="输入自定义系统提示词..."></textarea>
-                    </div>
-                    
-                    <div class="setting-group">
-                        <div class="setting-label">SWE 软件工程代理提示词</div>
-                        <div class="setting-desc">自定义 SWE 代理的系统提示词</div>
-                        <textarea class="setting-input setting-textarea" id="setting-prompt-swe" placeholder="输入自定义系统提示词..."></textarea>
-                    </div>
-                    
-                    <div class="setting-group">
-                        <div class="setting-label">数据分析代理提示词</div>
-                        <div class="setting-desc">自定义数据分析代理的系统提示词</div>
-                        <textarea class="setting-input setting-textarea" id="setting-prompt-analysis" placeholder="输入自定义系统提示词..."></textarea>
-                    </div>
-                </div>
-                
-                <!-- Search Settings Tab -->
-                <div class="settings-tab-content" data-tab="search">
-                    <div class="setting-group">
-                        <div class="setting-label">默认搜索引擎</div>
-                        <select class="setting-input" id="setting-search-engine">
-                            <option value="Google">Google</option>
-                            <option value="DuckDuckGo">DuckDuckGo</option>
-                            <option value="Baidu">百度</option>
-                            <option value="Bing">Bing</option>
-                        </select>
-                    </div>
-                    
-                    <div class="setting-row">
-                        <div class="setting-group flex-1">
-                            <div class="setting-label">搜索语言</div>
-                            <select class="setting-input" id="setting-search-lang">
-                                <option value="zh">中文</option>
-                                <option value="en">English</option>
-                                <option value="ja">日本語</option>
-                                <option value="ko">한국어</option>
-                            </select>
-                        </div>
-                        <div class="setting-group flex-1">
-                            <div class="setting-label">搜索地区</div>
-                            <select class="setting-input" id="setting-search-country">
-                                <option value="cn">中国</option>
-                                <option value="us">美国</option>
-                                <option value="jp">日本</option>
-                                <option value="kr">韩国</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Browser Settings Tab -->
-                <div class="settings-tab-content" data-tab="browser">
-                    <div class="setting-group setting-checkbox-group">
-                        <label class="setting-checkbox-label">
-                            <input type="checkbox" id="setting-browser-headless">
-                            <span>无头模式（不显示浏览器窗口）</span>
-                        </label>
-                    </div>
-                    
-                    <div class="setting-group">
-                        <div class="setting-label">最大内容长度</div>
-                        <div class="setting-desc">单次获取网页内容的最大字符数</div>
-                        <input type="number" class="setting-input" id="setting-browser-max-content" value="2000" min="500" max="10000">
                     </div>
                 </div>
                 
                 <!-- Sandbox Settings Tab -->
                 <div class="settings-tab-content" data-tab="sandbox">
+                    <div class="info-banner">
+                        <h3>📦 沙箱环境说明</h3>
+                        <p>沙箱环境提供安全的代码执行空间。启用后，Data Agent 可以在隔离环境中执行 Python 代码、生成图表、运行命令等操作。</p>
+                    </div>
+                    
                     <div class="setting-group setting-checkbox-group">
                         <label class="setting-checkbox-label">
-                            <input type="checkbox" id="setting-sandbox-enabled">
-                            <span>启用沙箱环境</span>
+                            <input type="checkbox" id="setting-sandbox-enabled" checked>
+                            <span>启用沙箱环境（推荐开启）</span>
                         </label>
                     </div>
                     
                     <div class="setting-group">
-                        <div class="setting-label">执行超时（秒）</div>
-                        <div class="setting-desc">沙箱命令执行的超时时间</div>
-                        <input type="number" class="setting-input" id="setting-sandbox-timeout" value="300" min="10" max="3600">
+                        <div class="setting-label">执行超时时间（秒）</div>
+                        <div class="setting-desc">代码和命令的最大执行时间</div>
+                        <input type="number" class="setting-input" id="setting-sandbox-timeout" value="60" min="10" max="600">
                     </div>
                     
                     <div class="setting-group setting-checkbox-group">
                         <label class="setting-checkbox-label">
                             <input type="checkbox" id="setting-sandbox-network">
-                            <span>允许网络访问（谨慎开启）</span>
+                            <span>允许网络访问（谨慎开启，可能有安全风险）</span>
                         </label>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">沙箱内置环境</div>
+                        <div class="setting-desc">已预装的工具和库</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+                            <span style="background:#334155;padding:6px 12px;border-radius:8px;font-size:12px;">🐍 Python 3.x</span>
+                            <span style="background:#334155;padding:6px 12px;border-radius:8px;font-size:12px;">📊 Matplotlib</span>
+                            <span style="background:#334155;padding:6px 12px;border-radius:8px;font-size:12px;">📈 Pandas</span>
+                            <span style="background:#334155;padding:6px 12px;border-radius:8px;font-size:12px;">🔢 NumPy</span>
+                            <span style="background:#334155;padding:6px 12px;border-radius:8px;font-size:12px;">📝 Markdown</span>
+                            <span style="background:#334155;padding:6px 12px;border-radius:8px;font-size:12px;">💻 Bash</span>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Agent Settings Tab -->
-                <div class="settings-tab-content" data-tab="agent">
+                <!-- Knowledge Base Settings Tab -->
+                <div class="settings-tab-content" data-tab="knowledge">
+                    <div class="info-banner">
+                        <h3>📚 知识库配置</h3>
+                        <p>启用知识库可以让 Data Agent 基于您的文档进行问答，提供更精准的领域知识支持。</p>
+                    </div>
+                    
+                    <div class="setting-group setting-checkbox-group">
+                        <label class="setting-checkbox-label">
+                            <input type="checkbox" id="setting-knowledge-enabled">
+                            <span>启用知识库功能</span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">向量数据库</div>
+                        <div class="setting-desc">选择知识库的存储方式</div>
+                        <select class="setting-input" id="setting-knowledge-vector-db">
+                            <option value="sqlite">SQLite (轻量级)</option>
+                            <option value="chroma">Chroma (推荐)</option>
+                            <option value="milvus">Milvus (大规模)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <div class="setting-group flex-1">
+                            <div class="setting-label">文档分块大小</div>
+                            <input type="number" class="setting-input" id="setting-knowledge-chunk-size" value="500" min="100" max="2000">
+                        </div>
+                        <div class="setting-group flex-1">
+                            <div class="setting-label">重叠大小</div>
+                            <input type="number" class="setting-input" id="setting-knowledge-overlap" value="50" min="0" max="500">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Display Settings Tab -->
+                <div class="settings-tab-content" data-tab="display">
+                    <div class="info-banner">
+                        <h3>🎨 界面显示设置</h3>
+                        <p>自定义 Data Agent 的界面外观和行为，提升使用体验。</p>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-label">主题模式</div>
+                        <select class="setting-input" id="setting-display-theme">
+                            <option value="dark">🌙 深色主题（当前）</option>
+                            <option value="light">☀️ 浅色主题</option>
+                            <option value="auto">🔄 跟随系统</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-group setting-checkbox-group">
+                        <label class="setting-checkbox-label">
+                            <input type="checkbox" id="setting-display-thinking" checked>
+                            <span>显示思维链（推荐开启）</span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-group setting-checkbox-group">
+                        <label class="setting-checkbox-label">
+                            <input type="checkbox" id="setting-display-highlight" checked>
+                            <span>代码语法高亮</span>
+                        </label>
+                    </div>
+                    
                     <div class="setting-group">
                         <div class="setting-label">最大执行步数</div>
-                        <div class="setting-desc">智能体执行的最大循环步数</div>
-                        <input type="number" class="setting-input" id="setting-agent-max-steps" value="5" min="1" max="50">
+                        <div class="setting-desc">Agent 自动执行的最大循环次数</div>
+                        <input type="number" class="setting-input" id="setting-agent-max-steps" value="5" min="1" max="20">
                     </div>
                 </div>
             </div>
@@ -1168,10 +1242,10 @@ async def get():
             <div class="header-left">
                 <button class="menu-btn" onclick="toggleSidebar()">☰</button>
                 <h1>Data Agent</h1>
-                <span id="current-agent" style="font-size:12px;opacity:0.8;margin-left:8px;">Data 通用代理</span>
+                <span style="font-size:13px;opacity:0.9;margin-left:10px;">万能智能助手</span>
             </div>
             <div>
-                <button class="new-chat-btn" onclick="newChat()">+ 新建对话</button>
+                <button class="new-chat-btn" onclick="newChat()">✨ 新建对话</button>
             </div>
         </div>
 
@@ -1179,35 +1253,46 @@ async def get():
             <div class="messages" id="messages">
                 <div class="message assistant">
                     <div class="message-content">
-                        👋 你好！我是 <strong>Data</strong>，您的智能助手。<br><br>
-                        我运行在<strong>沙箱环境</strong>中，您可以清楚地看到我的<strong>思维链</strong>——每一步的思考、推理、工具选择和执行结果。<br><br>
-                        <strong>🧠 思维链可视化：</strong><br>
-                        • 🎯 意图识别 — 理解您的需求<br>
-                        • 💭 思考推理 — 分析决策过程<br>
-                        • 🛠️ 工具选择 — 选择合适的工具<br>
-                        • 🎯 执行结果 — 查看工具输出<br><br>
-                        <strong>📦 沙箱环境：</strong><br>
-                        • Python 代码安全执行<br>
-                        • 图表可视化输出<br>
-                        • Bash 命令执行<br><br>
-                        点击侧边栏的 <strong>⚙️ 设置</strong> 按钮来配置 API 和其他选项！
+                        👋 <strong>欢迎使用 Data Agent！</strong><br><br>
+                        我是您的<strong>万能智能助手</strong>，具备以下核心能力：<br><br>
+                        
+                        <strong>🧠 智能自动化：</strong><br>
+                        • 自动识别您的需求意图<br>
+                        • 智能调度最佳工具组合<br>
+                        • 无需手动选择模式<br><br>
+                        
+                        <strong>📦 强大的沙箱环境：</strong><br>
+                        • <strong>Python 编程</strong> - 数据分析、算法实现<br>
+                        • <strong>图表生成</strong> - Matplotlib、Seaborn，可视化下载<br>
+                        • <strong>Markdown 文档</strong> - 格式化输出<br>
+                        • <strong>网络搜索</strong> - 实时信息检索<br>
+                        • <strong>文件操作</strong> - 读取、编辑、管理<br>
+                        • <strong>终端命令</strong> - Bash 命令执行<br><br>
+                        
+                        <strong>💡 使用示例：</strong><br>
+                        • "帮我分析这份 CSV 数据并生成图表"<br>
+                        • "搜索最新的 AI 技术趋势"<br>
+                        • "写一个排序算法并可视化"<br>
+                        • "帮我整理会议记录为 Markdown"<br><br>
+                        
+                        直接输入您的需求，我会自动处理！🎯
                     </div>
                 </div>
             </div>
 
             <div class="typing-indicator" id="typing">
                 <div class="typing-dots"><span></span><span></span><span></span></div>
-                <span>正在思考...</span>
+                <span>正在智能分析...</span>
             </div>
 
             <div class="input-area">
-                <textarea id="input" placeholder="输入您的消息... (Enter 发送, Shift+Enter 换行)" rows="1" oninput="autoResize(this)" onkeydown="handleKeyDown(event)"></textarea>
+                <textarea id="input" placeholder="输入您的需求... (Enter 发送, Shift+Enter 换行)" rows="1" oninput="autoResize(this)" onkeydown="handleKeyDown(event)"></textarea>
                 <button class="send-btn" id="send-btn" onclick="sendMessage()">发送</button>
             </div>
         </div>
 
         <div class="status-bar">
-            🟢 在线 | WebSocket | 沙箱已启用 | 思维链可视化 | Data Agent v2.0
+            🟢 在线 | WebSocket 连接 | 沙箱已启用 | 思维链可视化 | Data Agent v2.0 - 万能智能助手
         </div>
     </div>
 
@@ -1216,9 +1301,7 @@ async def get():
         const inputEl = document.getElementById('input');
         const sendBtn = document.getElementById('send-btn');
         const typingEl = document.getElementById('typing');
-        const currentAgentSpan = document.getElementById('current-agent');
         let ws = null;
-        let currentAgent = 'data';
         let isProcessing = false;
         let currentThinkingChain = null;
         let thinkingStepCount = 0;
@@ -1231,7 +1314,7 @@ async def get():
 
             ws.onopen = function() {
                 document.getElementById('ws-status').textContent = '🟢 在线';
-                document.getElementById('sys-status').textContent = '正常运行';
+                document.getElementById('ws-status').style.background = '#10B981';
             };
 
             ws.onmessage = function(event) {
@@ -1244,11 +1327,15 @@ async def get():
                 }
             };
 
-            ws.onerror = function() { finishProcessing(); };
+            ws.onerror = function() { 
+                finishProcessing();
+                document.getElementById('ws-status').textContent = '🔴 连接错误';
+                document.getElementById('ws-status').style.background = '#EF4444';
+            };
 
             ws.onclose = function() {
                 document.getElementById('ws-status').textContent = '🔴 重连中';
-                document.getElementById('sys-status').textContent = '重连中...';
+                document.getElementById('ws-status').style.background = '#EF4444';
                 setTimeout(connectWS, 3000);
             };
         }
@@ -1281,7 +1368,7 @@ async def get():
             const title = data.title;
             const content = data.content;
 
-            if (phase === 'init') {
+            if (phase === 'init' || phase === 'analyze') {
                 thinkingStepCount = 0;
                 currentThinkingChain = createThinkingChain(title);
             }
@@ -1308,27 +1395,30 @@ async def get():
         function handleSandboxResult(data) {
             const result = data.result;
             if (!currentThinkingChain) {
-                currentThinkingChain = createThinkingChain('📦 沙箱执行结果');
+                currentThinkingChain = createThinkingChain('📦 执行结果');
             }
 
             let html = '';
             if (result.stdout) {
                 html += '<div class="sandbox-output">';
-                html += '<div class="sandbox-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span> 终端输出</div>';
+                html += '<div class="sandbox-header"><div class="dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div><span>终端输出</span></div>';
                 html += '<div class="sandbox-body ' + (result.success ? 'success' : 'error') + '">' + escapeHtml(result.stdout) + '</div>';
                 html += '</div>';
             }
             if (result.stderr && !result.success) {
                 html += '<div class="sandbox-output">';
-                html += '<div class="sandbox-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span> 错误输出</div>';
+                html += '<div class="sandbox-header"><div class="dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div><span>错误信息</span></div>';
                 html += '<div class="sandbox-body error">' + escapeHtml(result.stderr) + '</div>';
                 html += '</div>';
             }
             if (result.images && result.images.length > 0) {
                 for (const img of result.images) {
                     html += '<div class="sandbox-output">';
-                    html += '<div class="sandbox-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span> 📊 图表输出: ' + escapeHtml(img.name) + '</div>';
-                    html += '<div class="sandbox-image"><img src="data:image/png;base64,' + img.data + '" alt="' + escapeHtml(img.name) + '"></div>';
+                    html += '<div class="sandbox-header"><div class="dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div><span>📊 图表: ' + escapeHtml(img.name) + '</span></div>';
+                    html += '<div class="sandbox-image">';
+                    html += '<img src="data:image/png;base64,' + img.data + '" alt="' + escapeHtml(img.name) + '" onclick="downloadImage(this)">';
+                    html += '<a href="data:image/png;base64,' + img.data + '" download="' + escapeHtml(img.name) + '" class="download-btn">⬇️ 下载图表</a>';
+                    html += '</div>';
                     html += '</div>';
                 }
             }
@@ -1343,6 +1433,13 @@ async def get():
 
             currentThinkingChain.classList.add('open');
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function downloadImage(imgElement) {
+            const link = document.createElement('a');
+            link.href = imgElement.src;
+            link.download = 'chart_' + Date.now() + '.png';
+            link.click();
         }
 
         // ===== Thinking Chain UI =====
@@ -1373,7 +1470,7 @@ async def get():
             if (step.tools && step.tools.length > 0) {
                 toolsHtml = '<div class="step-tools">';
                 for (const tool of step.tools) {
-                    const argsStr = JSON.stringify(tool.args).substring(0, 80);
+                    const argsStr = JSON.stringify(tool.args).substring(0, 100);
                     toolsHtml += '<span class="step-tool-tag">🔧 ' + escapeHtml(tool.name) + ' <span class="step-tool-args">' + escapeHtml(argsStr) + '</span></span>';
                 }
                 toolsHtml += '</div>';
@@ -1408,9 +1505,16 @@ async def get():
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        function showTyping() { typingEl.classList.add('show'); messagesDiv.scrollTop = messagesDiv.scrollHeight; }
+        function showTyping() { 
+            typingEl.classList.add('show'); 
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; 
+        }
         function hideTyping() { typingEl.classList.remove('show'); }
-        function finishProcessing() { isProcessing = false; sendBtn.disabled = false; hideTyping(); }
+        function finishProcessing() { 
+            isProcessing = false; 
+            sendBtn.disabled = false; 
+            hideTyping(); 
+        }
 
         // ===== Send =====
         function sendMessage() {
@@ -1434,7 +1538,7 @@ async def get():
             showTyping();
 
             try {
-                ws.send(JSON.stringify({ content: content, agent: currentAgent }));
+                ws.send(JSON.stringify({ content: content }));
             } catch(e) {
                 addMessage('❌ 发送失败: ' + e.message, 'system');
                 finishProcessing();
@@ -1453,13 +1557,13 @@ async def get():
 
         function autoResize(el) {
             el.style.height = 'auto';
-            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+            el.style.height = Math.min(el.scrollHeight, 150) + 'px';
         }
 
         function newChat() {
             messagesDiv.innerHTML = '';
             currentThinkingChain = null;
-            addMessage('👋 你好！我是 <strong>Data</strong>，您的智能助手。', 'assistant');
+            addMessage('👋 <strong>欢迎使用 Data Agent！</strong><br><br>请输入您的需求，我会自动识别意图并处理！', 'assistant');
         }
 
         // ===== Sidebar =====
@@ -1468,27 +1572,6 @@ async def get():
             const overlay = document.getElementById('overlay');
             sidebar.classList.toggle('open');
             overlay.classList.toggle('show');
-        }
-
-        function toggleSection(header) {
-            const section = header.parentElement;
-            section.classList.toggle('open');
-        }
-
-        function selectAgent(agent) {
-            currentAgent = agent;
-            document.querySelectorAll('.agent-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            document.getElementById('agent-' + agent).classList.add('active');
-            
-            const agentNames = {
-                'data': 'Data 通用代理',
-                'browser': '浏览器代理',
-                'swe': 'SWE 软件工程代理',
-                'analysis': '数据分析代理'
-            };
-            currentAgentSpan.textContent = agentNames[agent];
         }
 
         // ===== Settings =====
@@ -1519,7 +1602,7 @@ async def get():
                 appSettings = await response.json();
                 populateSettings(appSettings);
             } catch(e) {
-                console.error('Failed to load settings:', e);
+                console.error('加载设置失败:', e);
             }
         }
 
@@ -1530,33 +1613,28 @@ async def get():
             document.getElementById('setting-llm-api-key').value = settings.llm.api_key;
             document.getElementById('setting-llm-max-tokens').value = settings.llm.max_tokens;
             document.getElementById('setting-llm-temperature').value = settings.llm.temperature;
-            document.getElementById('setting-llm-api-type').value = settings.llm.api_type;
-            
-            // Prompts
-            document.getElementById('setting-prompt-data').value = settings.prompts.data_agent;
-            document.getElementById('setting-prompt-browser').value = settings.prompts.browser_agent;
-            document.getElementById('setting-prompt-swe').value = settings.prompts.swe_agent;
-            document.getElementById('setting-prompt-analysis').value = settings.prompts.analysis_agent;
-            
-            // Search
-            document.getElementById('setting-search-engine').value = settings.search.engine;
-            document.getElementById('setting-search-lang').value = settings.search.lang;
-            document.getElementById('setting-search-country').value = settings.search.country;
-            
-            // Browser
-            document.getElementById('setting-browser-headless').checked = settings.browser.headless;
-            document.getElementById('setting-browser-max-content').value = settings.browser.max_content_length;
             
             // Sandbox
-            document.getElementById('setting-sandbox-enabled').checked = settings.sandbox.use_sandbox;
+            document.getElementById('setting-sandbox-enabled').checked = settings.sandbox.enabled;
             document.getElementById('setting-sandbox-timeout').value = settings.sandbox.timeout;
-            document.getElementById('setting-sandbox-network').checked = settings.sandbox.network_enabled;
+            document.getElementById('setting-sandbox-network').checked = settings.sandbox.allow_network;
             
-            // Agent
+            // Knowledge Base
+            document.getElementById('setting-knowledge-enabled').checked = settings.knowledge_base.enabled;
+            document.getElementById('setting-knowledge-vector-db').value = settings.knowledge_base.vector_db;
+            document.getElementById('setting-knowledge-chunk-size').value = settings.knowledge_base.chunk_size;
+            document.getElementById('setting-knowledge-overlap').value = settings.knowledge_base.overlap;
+            
+            // Display
+            document.getElementById('setting-display-theme').value = settings.display.theme;
+            document.getElementById('setting-display-thinking').checked = settings.display.thinking_chain;
+            document.getElementById('setting-display-highlight').checked = settings.display.code_highlight;
             document.getElementById('setting-agent-max-steps').value = settings.agent.max_steps;
             
-            // Update UI
+            // Update Sidebar
             document.getElementById('setting-model').textContent = settings.llm.model;
+            document.getElementById('setting-sandbox').textContent = settings.sandbox.enabled ? '已启用' : '已禁用';
+            document.getElementById('setting-knowledge').textContent = settings.knowledge_base.enabled ? '已启用' : '未启用';
         }
 
         async function saveSettings() {
@@ -1567,30 +1645,27 @@ async def get():
                     api_key: document.getElementById('setting-llm-api-key').value,
                     max_tokens: parseInt(document.getElementById('setting-llm-max-tokens').value),
                     temperature: parseFloat(document.getElementById('setting-llm-temperature').value),
-                    api_type: document.getElementById('setting-llm-api-type').value
-                },
-                search: {
-                    engine: document.getElementById('setting-search-engine').value,
-                    lang: document.getElementById('setting-search-lang').value,
-                    country: document.getElementById('setting-search-country').value
-                },
-                browser: {
-                    headless: document.getElementById('setting-browser-headless').checked,
-                    max_content_length: parseInt(document.getElementById('setting-browser-max-content').value)
+                    api_type: "Openai"
                 },
                 sandbox: {
-                    use_sandbox: document.getElementById('setting-sandbox-enabled').checked,
+                    enabled: document.getElementById('setting-sandbox-enabled').checked,
                     timeout: parseInt(document.getElementById('setting-sandbox-timeout').value),
-                    network_enabled: document.getElementById('setting-sandbox-network').checked
+                    allow_network: document.getElementById('setting-sandbox-network').checked
                 },
-                prompts: {
-                    data_agent: document.getElementById('setting-prompt-data').value,
-                    browser_agent: document.getElementById('setting-prompt-browser').value,
-                    swe_agent: document.getElementById('setting-prompt-swe').value,
-                    analysis_agent: document.getElementById('setting-prompt-analysis').value
+                knowledge_base: {
+                    enabled: document.getElementById('setting-knowledge-enabled').checked,
+                    vector_db: document.getElementById('setting-knowledge-vector-db').value,
+                    chunk_size: parseInt(document.getElementById('setting-knowledge-chunk-size').value),
+                    overlap: parseInt(document.getElementById('setting-knowledge-overlap').value)
+                },
+                display: {
+                    theme: document.getElementById('setting-display-theme').value,
+                    thinking_chain: document.getElementById('setting-display-thinking').checked,
+                    code_highlight: document.getElementById('setting-display-highlight').checked
                 },
                 agent: {
-                    max_steps: parseInt(document.getElementById('setting-agent-max-steps').value)
+                    max_steps: parseInt(document.getElementById('setting-agent-max-steps').value),
+                    auto_mode: true
                 }
             };
             
@@ -1601,7 +1676,7 @@ async def get():
                     body: JSON.stringify(newSettings)
                 });
                 appSettings = newSettings;
-                document.getElementById('setting-model').textContent = newSettings.llm.model;
+                populateSettings(newSettings);
                 closeSettings();
                 addMessage('✅ 设置已保存', 'system');
             } catch(e) {
@@ -1621,28 +1696,25 @@ async def get():
                             temperature: 0.7,
                             api_type: "Openai"
                         },
-                        search: {
-                            engine: "Google",
-                            lang: "zh",
-                            country: "cn"
-                        },
-                        browser: {
-                            headless: false,
-                            max_content_length: 2000
-                        },
                         sandbox: {
-                            use_sandbox: false,
-                            timeout: 300,
-                            network_enabled: false
+                            enabled: true,
+                            timeout: 60,
+                            allow_network: false
                         },
-                        prompts: {
-                            data_agent: "",
-                            browser_agent: "",
-                            swe_agent: "",
-                            analysis_agent: ""
+                        knowledge_base: {
+                            enabled: false,
+                            vector_db: "sqlite",
+                            chunk_size: 500,
+                            overlap: 50
+                        },
+                        display: {
+                            theme: "dark",
+                            thinking_chain: true,
+                            code_highlight: true
                         },
                         agent: {
-                            max_steps: 5
+                            max_steps: 5,
+                            auto_mode: true
                         }
                     };
                     
@@ -1653,7 +1725,6 @@ async def get():
                     });
                     
                     populateSettings(defaultSettings);
-                    document.getElementById('setting-model').textContent = defaultSettings.llm.model;
                     addMessage('✅ 设置已重置为默认', 'system');
                 } catch(e) {
                     addMessage('❌ 重置设置失败: ' + e.message, 'system');

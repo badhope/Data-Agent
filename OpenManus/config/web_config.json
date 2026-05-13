@@ -1,0 +1,33 @@
+{
+  "llm": {
+    "model": "qwen-plus-latest",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "api_key": "",
+    "max_tokens": 4096,
+    "temperature": 0.7,
+    "api_type": "Openai"
+  },
+  "search": {
+    "engine": "Google",
+    "lang": "zh",
+    "country": "cn"
+  },
+  "browser": {
+    "headless": false,
+    "max_content_length": 2000
+  },
+  "sandbox": {
+    "use_sandbox": false,
+    "timeout": 300,
+    "network_enabled": false
+  },
+  "prompts": {
+    "data_agent": "你好吧",
+    "browser_agent": "",
+    "swe_agent": "",
+    "analysis_agent": ""
+  },
+  "agent": {
+    "max_steps": 5
+  }
+}
