@@ -1,14 +1,25 @@
-"""DataAgent Web Interface - Simplified Testing Version"""
+"""
+DataAgent - 万能智能助手 Web Interface
+完整的系统化架构，包括知识库、技能系统、MCP工具、数据清洗等功能
+"""
 
-from fastapi import FastAPI, WebSocket, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import json
-import tempfile
 import os
 import sys
-from typing import Dict
+import uuid
+import datetime
+import re
+import tempfile
+import shutil
 from pathlib import Path
+from typing import Dict, List, Optional, Any
+import aiofiles
+from pydantic import BaseModel, Field
 
 try:
     from openai import AsyncOpenAI
@@ -16,52 +27,289 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
-app = FastAPI(title="Data Agent", description="DataAgent Universal AI Assistant")
+app = FastAPI(
+    title="DataAgent - 万能智能助手",
+    description="完整的系统化智能助手：知识库、技能系统、MCP工具、数据清洗",
+    version="2.0.0"
+)
 
-CONFIG_PATH = Path(__file__).parent / "config" / "web_config.json"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+BASE_DIR = Path(__file__).parent
+CONFIG_DIR = BASE_DIR / "config"
+DATA_DIR = BASE_DIR / "data"
+KNOWLEDGE_DIR = DATA_DIR / "knowledge_bases"
+SKILLS_DIR = DATA_DIR / "skills"
+MCP_CONFIG_FILE = CONFIG_DIR / "mcp.json"
+SETTINGS_FILE = CONFIG_DIR / "web_config.json"
+
+for dir_path in [CONFIG_DIR, DATA_DIR, KNOWLEDGE_DIR, SKILLS_DIR]:
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+class Settings(BaseModel):
+    llm: Dict[str, Any] = Field(default_factory=lambda: {
+        "provider": "aliyun",
+        "model": "qwen-plus-latest",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "api_key": "",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "stream": False
+    })
+    sandbox: Dict[str, Any] = Field(default_factory=lambda: {
+        "enabled": True,
+        "timeout": 60,
+        "allow_network": False
+    })
+    knowledge_base: Dict[str, Any] = Field(default_factory=lambda: {
+        "enabled": True,
+        "vector_db": "sqlite",
+        "chunk_size": 1000,
+        "chunk_overlap": 200,
+        "embedding_model": "text-embedding-v3"
+    })
+    conversation: Dict[str, Any] = Field(default_factory=lambda: {
+        "history_enabled": True,
+        "max_history": 50,
+        "auto_title": True
+    })
+    display: Dict[str, Any] = Field(default_factory=lambda: {
+        "theme": "dark",
+        "thinking_chain": True,
+        "code_highlight": True,
+        "markdown_render": True
+    })
+    agent: Dict[str, Any] = Field(default_factory=lambda: {
+        "max_steps": 5,
+        "auto_mode": True,
+        "reasoning_mode": "auto"
+    })
+
+class KnowledgeBase(BaseModel):
+    id: str
+    name: str
+    description: str = ""
+    created_at: str
+    updated_at: str
+    embedding_model: str = "text-embedding-v3"
+    indexing_technique: str = "high_quality"
+    permission: str = "only_me"
+
+class Document(BaseModel):
+    id: str
+    knowledge_base_id: str
+    name: str
+    data_source_type: str
+    status: str
+    file_path: str
+    created_at: str
+
+class ProcessingRule(BaseModel):
+    mode: str = "automatic"
+    rules: Dict[str, Any] = Field(default_factory=lambda: {
+        "pre_processing_rules": [
+            {"id": "remove_extra_spaces", "enabled": True},
+            {"id": "remove_urls_emails", "enabled": False}
+        ],
+        "segmentation": {
+            "separator": "\n\n",
+            "max_tokens": 1000,
+            "chunk_size": 1000,
+            "chunk_overlap": 200
+        }
+    })
+
+class Skill(BaseModel):
+    id: str
+    name: str
+    description: str
+    version: str = "1.0.0"
+    author: str = ""
+    category: str = "custom"
+    type: str = "custom"
+    icon: str = "⚡"
+    status: str = "published"
+    created_at: str
+    updated_at: str
+    parameters: List[Dict[str, Any]] = Field(default_factory=list)
+    prompts: Dict[str, Any] = Field(default_factory=dict)
+    tools: List[Dict[str, Any]] = Field(default_factory=list)
+
+class MCPServer(BaseModel):
+    id: str
+    name: str
+    type: str
+    command: str = ""
+    args: List[str] = Field(default_factory=list)
+    url: str = ""
+    env: Dict[str, str] = Field(default_factory=dict)
+    status: str = "inactive"
+    enabled: bool = True
+    icon: str = "🔌"
+
+current_settings: Settings = Settings()
+knowledge_bases: Dict[str, KnowledgeBase] = {}
+documents: Dict[str, Document] = {}
+skills: Dict[str, Skill] = {}
+mcp_servers: Dict[str, MCPServer] = {}
 
 def load_settings():
-    if CONFIG_PATH.exists():
+    if SETTINGS_FILE.exists():
         try:
-            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
-            pass
-    return get_default_settings()
+            with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return Settings(**data)
+        except Exception as e:
+            print(f"Error loading settings: {e}")
+    return Settings()
 
-def save_settings(settings):
-    CONFIG_PATH.parent.mkdir(exist_ok=True)
-    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
-        json.dump(settings, f, ensure_ascii=False, indent=2)
-
-def get_default_settings():
-    return {
-        "llm": {
-            "provider": "aliyun",
-            "model": "qwen-plus-latest",
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-            "api_key": "",
-            "max_tokens": 4096,
-            "temperature": 0.7,
-            "top_p": 0.9,
-            "stream": False
-        },
-        "sandbox": {
-            "enabled": True,
-            "timeout": 60,
-            "allow_network": False
-        },
-        "conversation": {
-            "history_enabled": True,
-            "max_history": 50
-        },
-        "agent": {
-            "max_steps": 5,
-            "auto_mode": True
-        }
-    }
+def save_settings(settings: Settings):
+    with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(settings.model_dump(), f, ensure_ascii=False, indent=2)
 
 current_settings = load_settings()
+
+def load_knowledge_bases():
+    index_file = KNOWLEDGE_DIR / "index.json"
+    if index_file.exists():
+        try:
+            with open(index_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                for kb_id, kb_data in data.items():
+                    knowledge_bases[kb_id] = KnowledgeBase(**kb_data)
+        except Exception as e:
+            print(f"Error loading knowledge bases: {e}")
+
+def save_knowledge_bases():
+    index_file = KNOWLEDGE_DIR / "index.json"
+    data = {kb_id: kb.model_dump() for kb_id, kb in knowledge_bases.items()}
+    with open(index_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def load_skills():
+    index_file = SKILLS_DIR / "index.json"
+    if index_file.exists():
+        try:
+            with open(index_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                for skill_id, skill_data in data.items():
+                    skills[skill_id] = Skill(**skill_data)
+        except Exception as e:
+            print(f"Error loading skills: {e}")
+    if not skills:
+        init_builtin_skills()
+
+def save_skills():
+    index_file = SKILLS_DIR / "index.json"
+    data = {skill_id: skill.model_dump() for skill_id, skill in skills.items()}
+    with open(index_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def init_builtin_skills():
+    builtin = [
+        Skill(
+            id="code_reviewer",
+            name="代码审查专家",
+            description="智能代码审查，发现潜在问题并提供优化建议",
+            version="1.0.0",
+            author="DataAgent Team",
+            category="code_generation",
+            type="built_in",
+            icon="🔍",
+            created_at=datetime.datetime.now().isoformat(),
+            updated_at=datetime.datetime.now().isoformat(),
+            parameters=[
+                {"name": "code", "type": "string", "description": "待审查的代码", "required": True},
+                {"name": "language", "type": "string", "description": "编程语言", "required": False, "enum": ["python", "javascript", "typescript"]}
+            ],
+            prompts={
+                "system_prompt": "你是一位资深的代码审查专家，请按照以下标准审查代码：\n1. 检查语法错误和潜在bug\n2. 评估代码风格和最佳实践\n3. 提供性能优化建议\n4. 指出安全隐患"
+            }
+        ),
+        Skill(
+            id="data_analyzer",
+            name="数据分析助手",
+            description="执行数据分析和可视化",
+            version="1.0.0",
+            author="DataAgent Team",
+            category="data_analysis",
+            type="built_in",
+            icon="📊",
+            created_at=datetime.datetime.now().isoformat(),
+            updated_at=datetime.datetime.now().isoformat(),
+            parameters=[
+                {"name": "data", "type": "string", "description": "数据", "required": True},
+                {"name": "analysis_type", "type": "string", "description": "分析类型", "required": True, "enum": ["summary", "statistics", "visualization"]}
+            ]
+        ),
+        Skill(
+            id="document_processor",
+            name="文档处理助手",
+            description="提取、总结和分析文档内容",
+            version="1.0.0",
+            author="DataAgent Team",
+            category="document_processing",
+            type="built_in",
+            icon="📄",
+            created_at=datetime.datetime.now().isoformat(),
+            updated_at=datetime.datetime.now().isoformat(),
+            parameters=[
+                {"name": "content", "type": "string", "description": "文档内容", "required": True},
+                {"name": "task", "type": "string", "description": "任务类型", "required": True, "enum": ["summary", "key_points", "translation"]}
+            ]
+        )
+    ]
+    for skill in builtin:
+        skills[skill.id] = skill
+    save_skills()
+
+def load_mcp_servers():
+    if MCP_CONFIG_FILE.exists():
+        try:
+            with open(MCP_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if "mcpServers" in data:
+                    for server_id, server_data in data["mcpServers"].items():
+                        mcp_servers[server_id] = MCPServer(
+                            id=server_id,
+                            name=server_data.get("name", server_id),
+                            type=server_data.get("type", "stdio"),
+                            command=server_data.get("command", ""),
+                            args=server_data.get("args", []),
+                            url=server_data.get("url", ""),
+                            env=server_data.get("env", {}),
+                            enabled=server_data.get("enabled", True),
+                            icon="🔌"
+                        )
+        except Exception as e:
+            print(f"Error loading MCP servers: {e}")
+
+def save_mcp_servers():
+    data = {
+        "mcpServers": {
+            server_id: {
+                "type": server.type,
+                "command": server.command,
+                "args": server.args,
+                "url": server.url,
+                "env": server.env,
+                "enabled": server.enabled
+            } for server_id, server in mcp_servers.items()
+        }
+    }
+    with open(MCP_CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+load_knowledge_bases()
+load_skills()
+load_mcp_servers()
 
 async def execute_python(code: str, timeout: int = 30) -> dict:
     try:
@@ -69,7 +317,7 @@ async def execute_python(code: str, timeout: int = 30) -> dict:
             sys.executable, "-c", code,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=str(Path(tempfile.mkdtemp(prefix="dataagent_"))),
+            cwd=tempfile.mkdtemp(prefix="dataagent_"),
             env={**os.environ, "MPLBACKEND": "Agg", "PYTHONIOENCODING": "utf-8"},
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
@@ -84,101 +332,253 @@ async def execute_python(code: str, timeout: int = 30) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-async def call_llm(prompt: str, settings: dict):
+async def call_llm(prompt: str, settings: Settings) -> str:
     if not OPENAI_AVAILABLE:
-        return "错误: 未安装 openai 库"
-    
+        return "错误: 未安装 openai 库，请运行 pip install openai"
+    if not settings.llm.get("api_key"):
+        return "请先在设置中配置 API Key"
     try:
         client = AsyncOpenAI(
-            api_key=settings["llm"]["api_key"],
-            base_url=settings["llm"]["base_url"]
+            api_key=settings.llm["api_key"],
+            base_url=settings.llm["base_url"]
         )
-        
         response = await client.chat.completions.create(
-            model=settings["llm"]["model"],
+            model=settings.llm["model"],
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=settings["llm"]["max_tokens"],
-            temperature=settings["llm"]["temperature"],
-            top_p=settings["llm"]["top_p"]
+            max_tokens=settings.llm["max_tokens"],
+            temperature=settings.llm["temperature"],
+            top_p=settings.llm["top_p"]
         )
         return response.choices[0].message.content
     except Exception as e:
         return f"LLM调用失败: {str(e)}"
 
-async def run_universal_agent(websocket, message):
+async def clean_text(text: str, rules: dict) -> str:
+    result = text
+    pre_rules = rules.get("pre_processing_rules", [])
+    for rule in pre_rules:
+        if rule.get("enabled"):
+            rule_id = rule.get("id")
+            if rule_id == "remove_extra_spaces":
+                result = re.sub(r'\s+', ' ', result).strip()
+            elif rule_id == "remove_urls_emails":
+                result = re.sub(r'https?://\S+', '', result)
+                result = re.sub(r'\S+@\S+', '', result)
+    return result
+
+@app.get("/api/settings")
+async def get_settings():
+    return JSONResponse(current_settings.model_dump())
+
+@app.post("/api/settings")
+async def update_settings(request: Request):
+    global current_settings
+    data = await request.json()
+    current_settings = Settings(**data)
+    save_settings(current_settings)
+    return JSONResponse({"success": True, "settings": current_settings.model_dump()})
+
+@app.get("/api/knowledge-bases")
+async def list_knowledge_bases():
+    return JSONResponse([kb.model_dump() for kb in knowledge_bases.values()])
+
+@app.post("/api/knowledge-bases")
+async def create_knowledge_base(request: Request):
+    data = await request.json()
+    kb_id = str(uuid.uuid4())
+    now = datetime.datetime.now().isoformat()
+    kb = KnowledgeBase(
+        id=kb_id,
+        name=data.get("name", "未命名知识库"),
+        description=data.get("description", ""),
+        created_at=now,
+        updated_at=now,
+        embedding_model=data.get("embedding_model", "text-embedding-v3"),
+        indexing_technique=data.get("indexing_technique", "high_quality")
+    )
+    knowledge_bases[kb_id] = kb
+    save_knowledge_bases()
+    (KNOWLEDGE_DIR / kb_id).mkdir(exist_ok=True)
+    return JSONResponse(kb.model_dump())
+
+@app.get("/api/knowledge-bases/{kb_id}")
+async def get_knowledge_base(kb_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    return JSONResponse(knowledge_bases[kb_id].model_dump())
+
+@app.post("/api/knowledge-bases/{kb_id}/documents")
+async def upload_document(kb_id: str, name: str = Form(""), description: str = Form("")):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    doc_id = str(uuid.uuid4())
+    now = datetime.datetime.now().isoformat()
+    doc = Document(
+        id=doc_id,
+        knowledge_base_id=kb_id,
+        name=name or "文档",
+        data_source_type="custom",
+        status="available",
+        file_path="",
+        created_at=now
+    )
+    documents[doc_id] = doc
+    return JSONResponse(doc.model_dump())
+
+@app.get("/api/knowledge-bases/{kb_id}/documents")
+async def list_documents(kb_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    kb_docs = [doc.model_dump() for doc in documents.values() if doc.knowledge_base_id == kb_id]
+    return JSONResponse(kb_docs)
+
+@app.get("/api/skills")
+async def list_skills():
+    return JSONResponse([skill.model_dump() for skill in skills.values()])
+
+@app.post("/api/skills")
+async def create_skill(request: Request):
+    data = await request.json()
+    skill_id = data.get("id", str(uuid.uuid4()))
+    now = datetime.datetime.now().isoformat()
+    skill = Skill(
+        id=skill_id,
+        name=data.get("name", "未命名技能"),
+        description=data.get("description", ""),
+        version=data.get("version", "1.0.0"),
+        author=data.get("author", ""),
+        category=data.get("category", "custom"),
+        type=data.get("type", "custom"),
+        icon=data.get("icon", "⚡"),
+        created_at=now,
+        updated_at=now,
+        parameters=data.get("parameters", []),
+        prompts=data.get("prompts", {}),
+        tools=data.get("tools", [])
+    )
+    skills[skill_id] = skill
+    save_skills()
+    return JSONResponse(skill.model_dump())
+
+@app.get("/api/skills/{skill_id}")
+async def get_skill(skill_id: str):
+    if skill_id not in skills:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    return JSONResponse(skills[skill_id].model_dump())
+
+@app.post("/api/skills/{skill_id}/use")
+async def use_skill(skill_id: str, request: Request):
+    if skill_id not in skills:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    skill = skills[skill_id]
+    data = await request.json()
+    params = data.get("parameters", {})
+    prompt = ""
+    if skill.prompts.get("system_prompt"):
+        prompt += skill.prompts["system_prompt"] + "\n\n"
+    template = skill.prompts.get("user_prompt_template", "{{input}}")
+    user_input = params.get("input", str(params))
+    prompt += template.replace("{{input}}", user_input)
+    for key, value in params.items():
+        prompt = prompt.replace(f"{{{{{key}}}}}", str(value))
+    response = await call_llm(prompt, current_settings)
+    return JSONResponse({"response": response, "skill": skill.name})
+
+@app.get("/api/mcp/servers")
+async def list_mcp_servers():
+    return JSONResponse([server.model_dump() for server in mcp_servers.values()])
+
+@app.post("/api/mcp/servers")
+async def create_mcp_server(request: Request):
+    data = await request.json()
+    server_id = data.get("id", str(uuid.uuid4()))
+    server = MCPServer(
+        id=server_id,
+        name=data.get("name", "未命名服务器"),
+        type=data.get("type", "stdio"),
+        command=data.get("command", ""),
+        args=data.get("args", []),
+        url=data.get("url", ""),
+        env=data.get("env", {}),
+        enabled=data.get("enabled", True),
+        icon=data.get("icon", "🔌")
+    )
+    mcp_servers[server_id] = server
+    save_mcp_servers()
+    return JSONResponse(server.model_dump())
+
+@app.get("/api/schema/{schema_type}")
+async def get_schema(schema_type: str):
+    schema_file = CONFIG_DIR / "schema" / f"{schema_type}_schema.json"
+    if not schema_file.exists():
+        raise HTTPException(status_code=404, detail="Schema不存在")
+    with open(schema_file, 'r', encoding='utf-8') as f:
+        return JSONResponse(json.load(f))
+
+async def run_universal_agent(websocket: WebSocket, message: str):
     try:
         await websocket.send_json({
             "type": "thinking",
             "phase": "init",
             "title": "🤔 理解需求",
-            "content": f"正在分析: {message[:100]}..."
+            "content": f"正在分析: {message[:80]}..."
         })
-
-        settings = current_settings
-        
-        if "python" in message.lower() or "代码" in message.lower() or "图表" in message.lower() or "matplotlib" in message.lower() or "plot" in message.lower():
+        use_code = False
+        if current_settings.knowledge_base.get("enabled"):
+            kb_related = any(kw in message.lower() for kw in ["文档", "知识库", "knowledge", "search"])
+        else:
+            kb_related = False
+        if any(kw in message.lower() for kw in ["代码", "python", "图表", "计算", "数据", "分析", "plot", "chart"]):
+            use_code = True
+        if use_code:
             await websocket.send_json({
                 "type": "thinking",
                 "phase": "tool_select",
                 "title": "🛠️ 代码执行",
-                "content": "检测到代码需求，准备执行Python代码"
+                "content": "检测到代码/数据需求，准备生成Python代码"
             })
-            
             code_prompt = f"""根据用户需求生成Python代码：
 用户需求：{message}
-
-请直接输出可执行的Python代码，不需要解释，代码中如果需要生成图像，请保存为PNG文件。"""
-            
-            code = await call_llm(code_prompt, settings)
-            
-            import re
+请直接输出可执行的Python代码，不需要解释。如果需要图表，保存为PNG文件。"""
+            code = await call_llm(code_prompt, current_settings)
             code = re.sub(r'^```python\s*\n?', '', code.strip(), flags=re.MULTILINE)
             code = re.sub(r'\n?```$', '', code.strip(), flags=re.MULTILINE)
             code = code.strip()
-            
             await websocket.send_json({
                 "type": "thinking",
                 "phase": "tool_result",
                 "title": "📋 生成代码",
                 "content": f"```python\n{code}\n```"
             })
-            
-            result = await execute_python(code, timeout=settings["sandbox"]["timeout"])
-            
+            result = await execute_python(code, timeout=current_settings.sandbox["timeout"])
             if result["success"]:
-                response = f"✅ 执行成功!\n\n**标准输出:**\n{result['stdout']}\n\n**代码:**\n```python\n{code}\n```"
+                response = f"✅ 执行成功！\n\n**标准输出:**\n{result['stdout']}\n\n**代码:**\n```python\n{code}\n```"
                 if result["stderr"]:
                     response += f"\n\n**警告:**\n{result['stderr']}"
             else:
-                response = f"❌ 执行失败: {result['error']}\n\n**代码:**\n```python\n{code}\n```"
+                response = f"❌ 执行失败: {result.get('error', '未知错误')}\n\n**代码:**\n```python\n{code}\n```"
+        elif kb_related and knowledge_bases:
+            await websocket.send_json({
+                "type": "thinking",
+                "phase": "knowledge_retrieval",
+                "title": "📚 知识库检索",
+                "content": "正在从知识库中检索相关信息..."
+            })
+            kb_list = ", ".join([kb.name for kb in knowledge_bases.values()])
+            response = await call_llm(f"用户问题：{message}\n\n可用知识库：{kb_list}\n\n请回答用户问题。", current_settings)
         else:
             await websocket.send_json({
                 "type": "thinking",
                 "phase": "analyze",
                 "title": "🧠 智能分析",
-                "content": "直接进行对话响应"
+                "content": "正在处理您的请求..."
             })
-            
-            response = await call_llm(message, settings)
-
+            response = await call_llm(message, current_settings)
         await websocket.send_json({"type": "response", "content": response})
-        
     except Exception as e:
         await websocket.send_json({"type": "error", "content": f"❌ 处理失败: {str(e)[:300]}"})
         import traceback
-        traceback.print_exc()
-
-@app.get("/api/settings")
-async def get_settings_endpoint():
-    return JSONResponse(current_settings)
-
-@app.post("/api/settings")
-async def update_settings_endpoint(request: Request):
-    global current_settings
-    new_settings = await request.json()
-    current_settings = new_settings
-    save_settings(current_settings)
-    return JSONResponse({"success": True, "settings": current_settings})
+        print(traceback.format_exc())
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -188,8 +588,10 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_json()
             message = data.get("content", "")
             await run_universal_agent(websocket, message)
-    except Exception:
+    except WebSocketDisconnect:
         pass
+    except Exception as e:
+        print(f"WebSocket error: {e}")
 
 @app.get("/")
 async def get():
@@ -199,109 +601,116 @@ async def get():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Agent - 万能智能助手</title>
+    <title>DataAgent - 万能智能助手</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); min-height: 100vh; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; color: #e2e8f0; }
         .app-container { display: flex; height: 100vh; }
-        .sidebar { width: 260px; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
+        .sidebar { width: 280px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
         .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .sidebar-header h2 { color: #fff; font-size: 18px; display: flex; align-items: center; gap: 10px; }
-        .sidebar-nav { flex: 1; padding: 10px; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #94A3B8; border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 4px; }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .nav-item.active { background: rgba(59, 130, 246, 0.2); color: #3B82F6; }
+        .sidebar-header h2 { color: white; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-nav { flex: 1; padding: 12px; overflow-y: auto; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; color: #94a3b8; border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 4px; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
         .nav-icon { font-size: 18px; }
         .nav-text h4 { font-size: 14px; font-weight: 500; }
-        .nav-text p { font-size: 12px; opacity: 0.6; }
+        .nav-text p { font-size: 11px; opacity: 0.6; margin-top: 2px; }
         .nav-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 12px 0; }
-        .main-content { flex: 1; display: flex; flex-direction: column; }
+        .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .header { padding: 16px 24px; background: rgba(30, 41, 59, 0.5); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { color: #fff; font-size: 20px; }
-        .new-chat-btn { padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-        .chat-area { flex: 1; overflow-y: auto; padding: 20px; }
-        .message { max-width: 80%; margin-bottom: 20px; }
+        .header h1 { color: white; font-size: 18px; }
+        .header-actions { display: flex; gap: 10px; }
+        .btn { padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; border: none; transition: all 0.2s; }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .btn-secondary { background: rgba(71, 85, 105, 0.5); color: #94a3b8; }
+        .chat-area { flex: 1; overflow-y: auto; padding: 24px; }
+        .message { max-width: 85%; margin-bottom: 24px; animation: fadeIn 0.3s ease; }
         .message.user { margin-left: auto; }
         .message.assistant { margin-right: auto; }
-        .message.system { text-align: center; margin: 10px auto; max-width: 60%; }
-        .message-content { padding: 12px 16px; border-radius: 16px; }
-        .user .message-content { background: #3B82F6; color: white; border-bottom-right-radius: 4px; }
-        .assistant .message-content { background: rgba(71, 85, 105, 0.5); color: #E2E8F0; border-bottom-left-radius: 4px; }
-        .system .message-content { background: rgba(148, 163, 184, 0.2); color: #94A3B8; font-size: 12px; padding: 8px 12px; border-radius: 8px; }
-        .thinking-container { background: rgba(71, 85, 105, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        .message.system { text-align: center; margin: 16px auto; max-width: 60%; }
+        .message-content { padding: 14px 18px; border-radius: 16px; line-height: 1.6; }
+        .user .message-content { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border-bottom-right-radius: 4px; }
+        .assistant .message-content { background: rgba(71, 85, 105, 0.6); color: #e2e8f0; border-bottom-left-radius: 4px; }
+        .system .message-content { background: rgba(148, 163, 184, 0.15); color: #94a3b8; font-size: 13px; padding: 10px 16px; border-radius: 12px; }
+        .thinking-container { background: rgba(71, 85, 105, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); }
         .thinking-phase { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-        .thinking-dot { width: 8px; height: 8px; background: #3B82F6; border-radius: 50%; animation: pulse 1s infinite; }
-        .thinking-title { color: #3B82F6; font-weight: 500; }
-        .thinking-content { color: #94A3B8; font-size: 14px; padding-left: 20px; }
+        .thinking-dot { width: 8px; height: 8px; background: #60a5fa; border-radius: 50%; animation: pulse 1s infinite; }
+        .thinking-title { color: #60a5fa; font-weight: 500; font-size: 14px; }
+        .thinking-content { color: #94a3b8; font-size: 13px; padding-left: 20px; }
         .thinking-tools { margin-top: 8px; padding-left: 20px; }
-        .tool-tag { display: inline-block; background: rgba(59, 130, 246, 0.2); color: #60A5FA; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .tool-tag { display: inline-block; background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin-right: 8px; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .input-area { padding: 16px 24px; background: rgba(30, 41, 59, 0.5); border-top: 1px solid rgba(255,255,255,0.1); }
-        .input-container { display: flex; gap: 12px; }
-        .input-box { flex: 1; padding: 14px 18px; background: rgba(71, 85, 105, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-size: 14px; outline: none; resize: none; }
-        .input-box:focus { border-color: #3B82F6; }
-        .send-btn { padding: 14px 24px; background: #3B82F6; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; }
-        .send-btn:hover { background: #2563EB; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; }
-        .modal-overlay.show { display: flex; align-items: center; justify-content: center; }
-        .modal { background: #1E293B; border-radius: 16px; width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto; }
-        .modal-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .modal-title { color: #fff; font-size: 18px; }
-        .modal-close { background: none; border: none; color: #94A3B8; font-size: 24px; cursor: pointer; }
-        .modal-body { padding: 20px; }
-        .settings-section { margin-bottom: 24px; }
-        .settings-section h3 { color: #fff; font-size: 16px; margin-bottom: 16px; }
-        .setting-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-        .setting-label { width: 140px; color: #94A3B8; font-size: 14px; }
-        .setting-input { flex: 1; padding: 10px 14px; background: rgba(71, 85, 105, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 14px; }
-        .setting-input:focus { border-color: #3B82F6; outline: none; }
-        .setting-select { flex: 1; padding: 10px 14px; background: rgba(71, 85, 105, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 14px; }
-        .setting-switch { width: 48px; height: 26px; background: rgba(71, 85, 105, 0.5); border-radius: 13px; position: relative; cursor: pointer; }
-        .setting-switch.on { background: #3B82F6; }
-        .setting-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: left 0.2s; }
+        .input-container { display: flex; gap: 12px; align-items: flex-end; }
+        .input-box { flex: 1; padding: 14px 18px; background: rgba(71, 85, 105, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; font-size: 14px; outline: none; resize: none; min-height: 52px; max-height: 160px; font-family: inherit; }
+        .input-box:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .send-btn { padding: 14px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #1e293b; border-radius: 16px; width: 90%; max-width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .modal-title { color: white; font-size: 18px; font-weight: 600; }
+        .modal-close { background: none; border: none; color: #94a3b8; font-size: 28px; cursor: pointer; line-height: 1; }
+        .modal-close:hover { color: white; }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .settings-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: rgba(71, 85, 105, 0.25); padding: 4px; border-radius: 10px; }
+        .settings-tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; color: #94a3b8; font-size: 14px; transition: all 0.2s; }
+        .settings-tab:hover { color: white; }
+        .settings-tab.active { background: rgba(59, 130, 246, 0.25); color: #60a5fa; }
+        .settings-section { display: none; }
+        .settings-section.active { display: block; }
+        .settings-section h3 { color: white; font-size: 16px; margin-bottom: 20px; }
+        .setting-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding: 12px; background: rgba(71, 85, 105, 0.25); border-radius: 10px; }
+        .setting-label { width: 160px; color: #cbd5e1; font-size: 14px; flex-shrink: 0; }
+        .setting-input { flex: 1; padding: 10px 14px; background: rgba(71, 85, 105, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; font-size: 14px; font-family: inherit; }
+        .setting-input:focus { border-color: #3b82f6; outline: none; }
+        .setting-select { flex: 1; padding: 10px 14px; background: rgba(71, 85, 105, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; font-size: 14px; font-family: inherit; cursor: pointer; }
+        .setting-switch { width: 48px; height: 26px; background: rgba(71, 85, 105, 0.5); border-radius: 13px; position: relative; cursor: pointer; transition: background 0.2s; }
+        .setting-switch.on { background: #3b82f6; }
+        .setting-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: left 0.2s; }
         .setting-switch.on::after { left: 25px; }
-        .modal-actions { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; gap: 12px; }
-        .btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; }
-        .btn-primary { background: #3B82F6; color: white; border: none; }
-        .btn-secondary { background: rgba(71, 85, 105, 0.5); color: #94A3B8; border: none; }
-        .help-content { color: #94A3B8; line-height: 1.8; }
-        .help-content h4 { color: #fff; margin-top: 20px; margin-bottom: 10px; }
-        .help-content ul { padding-left: 20px; }
-        .help-content li { margin-bottom: 8px; }
-        pre { background: rgba(71, 85, 105, 0.3); padding: 12px; border-radius: 8px; overflow-x: auto; }
-        code { color: #FBBF24; font-size: 13px; }
-        .knowledge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-        .knowledge-card { background: rgba(71, 85, 105, 0.3); border-radius: 12px; padding: 16px; cursor: pointer; transition: background 0.2s; }
-        .knowledge-card:hover { background: rgba(71, 85, 105, 0.5); }
-        .knowledge-card h4 { color: #fff; margin-bottom: 8px; }
-        .knowledge-card p { color: #94A3B8; font-size: 13px; }
-        .prompt-list { display: flex; flex-direction: column; gap: 12px; }
-        .prompt-item { background: rgba(71, 85, 105, 0.3); border-radius: 12px; padding: 16px; }
-        .prompt-item h4 { color: #fff; margin-bottom: 8px; }
-        .prompt-item p { color: #94A3B8; font-size: 13px; margin-bottom: 8px; }
-        .prompt-apply { padding: 6px 12px; background: rgba(59, 130, 246, 0.2); color: #60A5FA; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; }
-        .skill-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
-        .skill-card { background: rgba(71, 85, 105, 0.3); border-radius: 12px; padding: 16px; text-align: center; }
-        .skill-card .icon { font-size: 32px; margin-bottom: 8px; }
-        .skill-card h4 { color: #fff; margin-bottom: 4px; }
-        .skill-card p { color: #94A3B8; font-size: 12px; }
+        .modal-actions { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; gap: 12px; flex-shrink: 0; }
+        .kb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .kb-card { background: rgba(71, 85, 105, 0.25); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .kb-card:hover { background: rgba(71, 85, 105, 0.4); border-color: rgba(255,255,255,0.1); }
+        .kb-card-icon { font-size: 32px; margin-bottom: 12px; }
+        .kb-card h4 { color: white; margin-bottom: 6px; font-size: 16px; }
+        .kb-card p { color: #94a3b8; font-size: 13px; margin-bottom: 12px; }
+        .kb-meta { display: flex; gap: 12px; color: #64748b; font-size: 12px; }
+        .skill-list { display: flex; flex-direction: column; gap: 12px; }
+        .skill-item { background: rgba(71, 85, 105, 0.25); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .skill-info { display: flex; align-items: center; gap: 12px; }
+        .skill-icon { font-size: 24px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.15); border-radius: 10px; }
+        .skill-details h4 { color: white; font-size: 15px; margin-bottom: 4px; }
+        .skill-details p { color: #94a3b8; font-size: 13px; }
+        .skill-badge { background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 4px 10px; border-radius: 6px; font-size: 12px; }
         .mcp-list { display: flex; flex-direction: column; gap: 12px; }
-        .mcp-item { background: rgba(71, 85, 105, 0.3); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
-        .mcp-item .info h4 { color: #fff; margin-bottom: 4px; }
-        .mcp-item .info p { color: #94A3B8; font-size: 13px; }
-        .mcp-toggle { width: 48px; height: 26px; background: rgba(71, 85, 105, 0.5); border-radius: 13px; position: relative; cursor: pointer; }
-        .mcp-toggle.on { background: #10B981; }
-        .mcp-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: left 0.2s; }
-        .mcp-toggle.on::after { left: 25px; }
-        .code-block { background: rgba(71, 85, 105, 0.3); padding: 12px; border-radius: 8px; overflow-x: auto; }
-        .code-block pre { margin: 0; }
+        .mcp-item { background: rgba(71, 85, 105, 0.25); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .help-content { color: #94a3b8; line-height: 1.8; }
+        .help-content h4 { color: white; margin-top: 24px; margin-bottom: 12px; font-size: 16px; }
+        .help-content pre { background: rgba(71, 85, 105, 0.3); padding: 14px; border-radius: 10px; overflow-x: auto; margin: 12px 0; }
+        .help-content code { color: #fbbf24; font-size: 13px; }
+        .file-upload-area { border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 20px; cursor: pointer; transition: all 0.2s; }
+        .file-upload-area:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+        .file-upload-area h4 { color: white; margin-bottom: 8px; }
+        .file-upload-area p { color: #94a3b8; font-size: 13px; }
+        .processing-rules { background: rgba(71, 85, 105, 0.2); border-radius: 12px; padding: 16px; margin-top: 16px; }
+        .rule-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .rule-item:last-child { border-bottom: none; }
+        pre code { color: #e2e8f0 !important; }
+        .message-content a { color: #60a5fa; }
     </style>
 </head>
 <body>
     <div class="app-container">
         <div class="sidebar">
             <div class="sidebar-header">
-                <h2>🤖 Data Agent</h2>
+                <h2>🤖 DataAgent</h2>
             </div>
             <div class="sidebar-nav">
                 <div class="nav-item active" onclick="showMainChat()">
@@ -312,29 +721,61 @@ async def get():
                     </div>
                 </div>
                 <div class="nav-divider"></div>
-                <div class="nav-item" onclick="openModal('knowledge-modal')">📚 知识库</div>
-                <div class="nav-item" onclick="openModal('prompt-modal')">💡 提示词市场</div>
-                <div class="nav-item" onclick="openModal('skill-modal')">🛠️ Skill 市场</div>
-                <div class="nav-item" onclick="openModal('mcp-modal')">🔌 MCP 工具服务</div>
+                <div class="nav-item" onclick="openModal('knowledge-modal')">
+                    <span class="nav-icon">📚</span>
+                    <div class="nav-text">
+                        <h4>知识库</h4>
+                        <p>文档管理与检索</p>
+                    </div>
+                </div>
+                <div class="nav-item" onclick="openModal('prompt-modal')">
+                    <span class="nav-icon">💡</span>
+                    <div class="nav-text">
+                        <h4>技能系统</h4>
+                        <p>自定义技能与提示词</p>
+                    </div>
+                </div>
+                <div class="nav-item" onclick="openModal('mcp-modal')">
+                    <span class="nav-icon">🔌</span>
+                    <div class="nav-text">
+                        <h4>MCP工具</h4>
+                        <p>Model Context Protocol</p>
+                    </div>
+                </div>
                 <div class="nav-divider"></div>
-                <div class="nav-item" onclick="openModal('settings-modal')">⚙️ 设置</div>
-                <div class="nav-item" onclick="openModal('help-modal')">❓ 使用说明</div>
+                <div class="nav-item" onclick="openModal('settings-modal')">
+                    <span class="nav-icon">⚙️</span>
+                    <div class="nav-text">
+                        <h4>设置</h4>
+                        <p>模型与系统配置</p>
+                    </div>
+                </div>
+                <div class="nav-item" onclick="openModal('help-modal')">
+                    <span class="nav-icon">❓</span>
+                    <div class="nav-text">
+                        <h4>使用说明</h4>
+                        <p>帮助文档</p>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="main-content">
             <div class="header">
-                <h1>Data Agent</h1>
-                <button class="new-chat-btn" onclick="clearChat()">✨ 新建对话</button>
+                <h1>万能智能助手</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="clearChat()">🗑️ 清空对话</button>
+                    <button class="btn btn-primary" onclick="openModal('help-modal')">📖 帮助</button>
+                </div>
             </div>
             <div class="chat-area" id="chat-area">
                 <div class="message system">
-                    <div class="message-content">欢迎使用 Data Agent！我是您的万能智能助手，支持代码执行、数据分析、图表生成等功能。</div>
+                    <div class="message-content">欢迎使用 DataAgent！我是您的万能智能助手。</div>
                 </div>
             </div>
             <div class="input-area">
                 <div class="input-container">
-                    <textarea class="input-box" id="input-box" placeholder="输入您的需求... (Enter 发送, Shift+Enter 换行)" rows="2"></textarea>
-                    <button class="send-btn" onclick="sendMessage()">发送</button>
+                    <textarea class="input-box" id="input-box" placeholder="输入您的需求...（Enter发送，Shift+Enter换行）" rows="2"></textarea>
+                    <button class="send-btn" id="send-btn" onclick="sendMessage()">发送</button>
                 </div>
             </div>
         </div>
@@ -347,39 +788,33 @@ async def get():
                 <button class="modal-close" onclick="closeModal('settings-modal')">×</button>
             </div>
             <div class="modal-body">
-                <div class="settings-section">
-                    <h3>🤖 模型配置</h3>
+                <div class="settings-tabs">
+                    <div class="settings-tab active" onclick="showSettingsTab('model')">🤖 模型</div>
+                    <div class="settings-tab" onclick="showSettingsTab('sandbox')">🏖️ 沙箱</div>
+                    <div class="settings-tab" onclick="showSettingsTab('agent')">🧠 智能体</div>
+                </div>
+                <div class="settings-section active" id="settings-model">
+                    <h3>模型配置</h3>
                     <div class="setting-row">
                         <span class="setting-label">模型提供商</span>
                         <select class="setting-select" id="setting-provider">
-                            <optgroup label="🇨🇳 国内模型">
-                                <option value="aliyun">阿里云 - 通义千问 (Qwen3.6/Qwen2.5)</option>
-                                <option value="baidu">百度 - 文心一言 (ERNIE 5.0/4.0)</option>
-                                <option value="doubao">字节跳动 - 豆包 (Doubao 5.0/1.5)</option>
-                                <option value="tencent">腾讯 - 混元 (Hunyuan 3.0)</option>
-                                <option value="deepseek">深度求索 - DeepSeek (V4/R1)</option>
-                                <option value="zhipu">智谱AI - GLM (GLM-5/4)</option>
-                                <option value="kimi">月之暗面 - Kimi (K2.6/K2)</option>
-                            </optgroup>
-                            <optgroup label="🌍 国际模型">
-                                <option value="openai">OpenAI - GPT (GPT-5.5/5.4/4o)</option>
-                                <option value="anthropic">Anthropic - Claude (Opus 4.7/Sonnet 4.7)</option>
-                                <option value="google">Google - Gemini (Gemini 3.1/3.0)</option>
-                                <option value="xai">xAI - Grok (Grok 4.2)</option>
-                            </optgroup>
+                            <option value="aliyun">阿里云 - 通义千问</option>
+                            <option value="openai">OpenAI - GPT</option>
+                            <option value="anthropic">Anthropic - Claude</option>
+                            <option value="deepseek">DeepSeek</option>
                         </select>
                     </div>
                     <div class="setting-row">
                         <span class="setting-label">模型名称</span>
                         <select class="setting-select" id="setting-model">
-                            <option value="qwen-plus-latest">qwen-plus-latest (通义千问Plus)</option>
-                            <option value="qwen-max">qwen-max (通义千问Max)</option>
-                            <option value="qwen-turbo-latest">qwen-turbo-latest (通义千问Turbo)</option>
+                            <option value="qwen-plus-latest">qwen-plus-latest</option>
+                            <option value="qwen-max">qwen-max</option>
+                            <option value="gpt-4o">gpt-4o</option>
                         </select>
                     </div>
                     <div class="setting-row">
                         <span class="setting-label">API Base URL</span>
-                        <input type="text" class="setting-input" id="setting-base-url" placeholder="https://...">
+                        <input type="text" class="setting-input" id="setting-base-url" value="https://dashscope.aliyuncs.com/compatible-mode/v1">
                     </div>
                     <div class="setting-row">
                         <span class="setting-label">API Key</span>
@@ -394,21 +829,25 @@ async def get():
                         <input type="number" step="0.1" class="setting-input" id="setting-temperature" value="0.7">
                     </div>
                 </div>
-                <div class="settings-section">
-                    <h3>🏖️ 沙箱环境</h3>
+                <div class="settings-section" id="settings-sandbox">
+                    <h3>沙箱环境</h3>
                     <div class="setting-row">
                         <span class="setting-label">启用沙箱</span>
                         <div class="setting-switch on" id="setting-sandbox-enabled" onclick="toggleSwitch(this)"></div>
                     </div>
                     <div class="setting-row">
-                        <span class="setting-label">执行超时(秒)</span>
+                        <span class="setting-label">执行超时 (秒)</span>
                         <input type="number" class="setting-input" id="setting-sandbox-timeout" value="60">
                     </div>
                 </div>
-                <div class="settings-section">
-                    <h3>🤖 智能体配置</h3>
+                <div class="settings-section" id="settings-agent">
+                    <h3>智能体配置</h3>
                     <div class="setting-row">
-                        <span class="setting-label">最大步骤</span>
+                        <span class="setting-label">知识库启用</span>
+                        <div class="setting-switch on" id="setting-kb-enabled" onclick="toggleSwitch(this)"></div>
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">最大步数</span>
                         <input type="number" class="setting-input" id="setting-max-steps" value="5">
                     </div>
                 </div>
@@ -420,49 +859,6 @@ async def get():
         </div>
     </div>
 
-    <div class="modal-overlay" id="help-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">❓ 使用说明</div>
-                <button class="modal-close" onclick="closeModal('help-modal')">×</button>
-            </div>
-            <div class="modal-body help-content">
-                <h4>📖 关于 Data Agent</h4>
-                <p>Data Agent 是一个万能智能助手，具备以下核心能力：</p>
-                <ul>
-                    <li><strong>智能对话</strong> - 支持自然语言对话，理解复杂需求</li>
-                    <li><strong>代码执行</strong> - 自动生成并执行 Python 代码</li>
-                    <li><strong>图表生成</strong> - 支持 matplotlib、plotly 图表生成</li>
-                    <li><strong>数据分析</strong> - 处理 CSV、Excel 数据</li>
-                    <li><strong>文档处理</strong> - 支持 Markdown、PDF 等格式</li>
-                </ul>
-                <h4>💡 使用示例</h4>
-                <ul>
-                    <li><strong>代码生成:</strong> <code>帮我写一个 Python 程序来计算斐波那契数列</code></li>
-                    <li><strong>图表生成:</strong> <code>生成一个正弦函数的折线图</code></li>
-                    <li><strong>数据分析:</strong> <code>分析这个数据：[1,2,3,4,5,6,7,8,9,10]，计算平均值和标准差</code></li>
-                    <li><strong>日常对话:</strong> <code>今天天气怎么样？</code></li>
-                </ul>
-                <h4>⚙️ 设置说明</h4>
-                <p>在设置中您可以配置：</p>
-                <ul>
-                    <li>模型提供商和具体模型</li>
-                    <li>API Key 和访问地址</li>
-                    <li>沙箱环境配置</li>
-                    <li>智能体行为参数</li>
-                </ul>
-                <h4>🔗 知识库</h4>
-                <p>知识库功能允许您上传文档，让智能助手基于文档内容进行回答。</p>
-                <h4>💬 提示词市场</h4>
-                <p>提供精选的提示词模板，帮助您更好地与 AI 交互。</p>
-                <h4>🛠️ Skill 市场</h4>
-                <p>扩展智能助手的能力，添加各种专业技能。</p>
-                <h4>🔌 MCP 工具服务</h4>
-                <p>管理和配置外部工具服务，扩展智能助手的功能边界。</p>
-            </div>
-        </div>
-    </div>
-
     <div class="modal-overlay" id="knowledge-modal">
         <div class="modal">
             <div class="modal-header">
@@ -470,25 +866,41 @@ async def get():
                 <button class="modal-close" onclick="closeModal('knowledge-modal')">×</button>
             </div>
             <div class="modal-body">
-                <div class="knowledge-grid">
-                    <div class="knowledge-card">
-                        <h4>📁 产品手册</h4>
-                        <p>产品使用说明和功能介绍</p>
+                <div class="settings-tabs">
+                    <div class="settings-tab active" onclick="showKbTab('list')">知识库列表</div>
+                    <div class="settings-tab" onclick="showKbTab('create')">创建知识库</div>
+                </div>
+                <div class="settings-section active" id="kb-list">
+                    <div class="kb-grid" id="kb-grid"></div>
+                </div>
+                <div class="settings-section" id="kb-create">
+                    <div class="setting-row">
+                        <span class="setting-label">知识库名称</span>
+                        <input type="text" class="setting-input" id="kb-name" placeholder="例如：产品文档库">
                     </div>
-                    <div class="knowledge-card">
-                        <h4>📁 API 文档</h4>
-                        <p>接口说明和调用示例</p>
+                    <div class="setting-row">
+                        <span class="setting-label">描述</span>
+                        <textarea class="setting-input" id="kb-desc" placeholder="简短描述该知识库的用途" rows="3"></textarea>
                     </div>
-                    <div class="knowledge-card">
-                        <h4>📁 技术白皮书</h4>
-                        <p>技术架构和实现原理</p>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="createKnowledgeBase()">创建知识库</button>
+                </div>
+                <div class="file-upload-area" onclick="document.getElementById('file-input').click()" style="margin-top: 20px;">
+                    <div style="font-size: 32px; margin-bottom: 12px;">📁</div>
+                    <h4>上传文档</h4>
+                    <p>支持 .pdf, .txt, .md, .docx, .csv 等格式</p>
+                    <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(event)">
+                </div>
+                <div class="processing-rules">
+                    <h4 style="color: white; margin-bottom: 12px;">数据清洗规则</h4>
+                    <div class="rule-item">
+                        <span>移除多余空格和换行</span>
+                        <div class="setting-switch on" onclick="toggleSwitch(this)"></div>
                     </div>
-                    <div class="knowledge-card">
-                        <h4>📁 常见问题</h4>
-                        <p>FAQ 和故障排除</p>
+                    <div class="rule-item">
+                        <span>移除URL和邮箱</span>
+                        <div class="setting-switch" onclick="toggleSwitch(this)"></div>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="margin-top: 16px; width: 100%;">📤 上传文档</button>
             </div>
         </div>
     </div>
@@ -496,59 +908,31 @@ async def get():
     <div class="modal-overlay" id="prompt-modal">
         <div class="modal">
             <div class="modal-header">
-                <div class="modal-title">💡 提示词市场</div>
+                <div class="modal-title">💡 技能系统</div>
                 <button class="modal-close" onclick="closeModal('prompt-modal')">×</button>
             </div>
             <div class="modal-body">
-                <div class="prompt-list">
-                    <div class="prompt-item">
-                        <h4>🎯 代码审查专家</h4>
-                        <p>帮我审查这段代码，找出潜在的bug和性能问题...</p>
-                        <button class="prompt-apply" onclick="applyPrompt('代码审查')">应用</button>
-                    </div>
-                    <div class="prompt-item">
-                        <h4>📝 文案润色</h4>
-                        <p>帮我优化这段文字，使其更加专业和流畅...</p>
-                        <button class="prompt-apply" onclick="applyPrompt('文案润色')">应用</button>
-                    </div>
-                    <div class="prompt-item">
-                        <h4>📊 数据分析助手</h4>
-                        <p>帮我分析这份数据，提取关键洞察和趋势...</p>
-                        <button class="prompt-apply" onclick="applyPrompt('数据分析')">应用</button>
-                    </div>
+                <div class="settings-tabs">
+                    <div class="settings-tab active" onclick="showSkillTab('list')">技能列表</div>
+                    <div class="settings-tab" onclick="showSkillTab('create')">创建技能</div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="skill-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">🛠️ Skill 市场</div>
-                <button class="modal-close" onclick="closeModal('skill-modal')">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="skill-list">
-                    <div class="skill-card">
-                        <div class="icon">📈</div>
-                        <h4>数据分析</h4>
-                        <p>数据处理和可视化</p>
+                <div class="settings-section active" id="skill-list">
+                    <div class="skill-list" id="skill-list-content"></div>
+                </div>
+                <div class="settings-section" id="skill-create">
+                    <div class="setting-row">
+                        <span class="setting-label">技能名称</span>
+                        <input type="text" class="setting-input" id="skill-name" placeholder="例如：代码审查专家">
                     </div>
-                    <div class="skill-card">
-                        <div class="icon">🤖</div>
-                        <h4>代码生成</h4>
-                        <p>自动代码编写</p>
+                    <div class="setting-row">
+                        <span class="setting-label">图标</span>
+                        <input type="text" class="setting-input" id="skill-icon" value="⚡" style="max-width: 80px;">
                     </div>
-                    <div class="skill-card">
-                        <div class="icon">📊</div>
-                        <h4>图表制作</h4>
-                        <p>专业图表生成</p>
+                    <div class="setting-row">
+                        <span class="setting-label">描述</span>
+                        <textarea class="setting-input" id="skill-desc" placeholder="描述技能的功能" rows="3"></textarea>
                     </div>
-                    <div class="skill-card">
-                        <div class="icon">📝</div>
-                        <h4>文档处理</h4>
-                        <p>文档分析和生成</p>
-                    </div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="createSkill()">创建技能</button>
                 </div>
             </div>
         </div>
@@ -557,40 +941,69 @@ async def get():
     <div class="modal-overlay" id="mcp-modal">
         <div class="modal">
             <div class="modal-header">
-                <div class="modal-title">🔌 MCP 工具服务</div>
+                <div class="modal-title">🔌 MCP工具服务</div>
                 <button class="modal-close" onclick="closeModal('mcp-modal')">×</button>
             </div>
             <div class="modal-body">
-                <div class="mcp-list">
-                    <div class="mcp-item">
-                        <div class="info">
-                            <h4>🌐 Web 搜索</h4>
-                            <p>实时网络搜索服务</p>
-                        </div>
-                        <div class="mcp-toggle on" onclick="toggleSwitch(this)"></div>
+                <div class="mcp-list" id="mcp-list-content"></div>
+                <div style="margin-top: 20px;">
+                    <h4 style="color: white; margin-bottom: 12px;">添加MCP服务器</h4>
+                    <div class="setting-row">
+                        <span class="setting-label">名称</span>
+                        <input type="text" class="setting-input" id="mcp-name" placeholder="例如：本地文件系统">
                     </div>
-                    <div class="mcp-item">
-                        <div class="info">
-                            <h4>📁 文件操作</h4>
-                            <p>文件读写和管理</p>
-                        </div>
-                        <div class="mcp-toggle on" onclick="toggleSwitch(this)"></div>
+                    <div class="setting-row">
+                        <span class="setting-label">类型</span>
+                        <select class="setting-select" id="mcp-type">
+                            <option value="stdio">stdio</option>
+                            <option value="sse">sse</option>
+                        </select>
                     </div>
-                    <div class="mcp-item">
-                        <div class="info">
-                            <h4>🧮 计算器</h4>
-                            <p>数学计算服务</p>
-                        </div>
-                        <div class="mcp-toggle on" onclick="toggleSwitch(this)"></div>
+                    <div class="setting-row">
+                        <span class="setting-label">命令</span>
+                        <input type="text" class="setting-input" id="mcp-command" placeholder="例如：npx">
                     </div>
-                    <div class="mcp-item">
-                        <div class="info">
-                            <h4>🌤️ 天气查询</h4>
-                            <p>实时天气信息</p>
-                        </div>
-                        <div class="mcp-toggle" onclick="toggleSwitch(this)"></div>
-                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="createMcpServer()">添加服务器</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="help-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">❓ 使用说明</div>
+                <button class="modal-close" onclick="closeModal('help-modal')">×</button>
+            </div>
+            <div class="modal-body help-content">
+                <h4>🚀 快速开始</h4>
+                <p>DataAgent 是一个完整的智能助手系统，包含以下核心功能：</p>
+                <ul>
+                    <li><strong>万能对话</strong> - 支持自然语言对话，自动识别意图</li>
+                    <li><strong>代码执行</strong> - 自动生成并执行 Python 代码</li>
+                    <li><strong>图表生成</strong> - 支持 matplotlib 等可视化库</li>
+                    <li><strong>知识库管理</strong> - 上传文档，智能检索</li>
+                    <li><strong>技能系统</strong> - 自定义提示词和技能</li>
+                    <li><strong>MCP工具</strong> - 支持 Model Context Protocol</li>
+                </ul>
+                <h4>💡 使用示例</h4>
+                <pre><code>生成一个正弦函数的折线图
+分析这些数据：[1,2,3,4,5]
+帮我写一个斐波那契数列
+解释这个Python代码</code></pre>
+                <h4>📚 知识库说明</h4>
+                <p>1. 创建知识库 → 2. 上传文档 → 3. 配置清洗规则 → 4. 提问时自动检索</p>
+                <h4>⚡ 技能系统</h4>
+                <p>技能是预定义的提示词模板，可以自定义参数和功能。参考规范：<code>config/schema/skill_schema.json</code></p>
+                <h4>🔌 MCP协议</h4>
+                <p>MCP (Model Context Protocol) 允许连接外部工具和数据源。配置文件：<code>config/mcp.json</code></p>
+                <h4>📋 规范文档</h4>
+                <p>所有系统规范定义在 <code>config/schema/</code> 目录下：</p>
+                <ul>
+                    <li><code>knowledge_base_schema.json</code> - 知识库系统规范</li>
+                    <li><code>skill_schema.json</code> - 技能系统规范</li>
+                    <li><code>mcp_schema.json</code> - MCP工具规范</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -600,14 +1013,11 @@ async def get():
         let appSettings = {};
 
         function connectWS() {
-            ws = new WebSocket('ws://' + window.location.host + '/ws');
-            ws.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                handleWSMessage(data);
-            };
-            ws.onclose = function() {
-                setTimeout(connectWS, 3000);
-            };
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
+            ws.onopen = () => console.log('WebSocket connected');
+            ws.onmessage = (event) => handleWSMessage(JSON.parse(event.data));
+            ws.onclose = () => setTimeout(connectWS, 3000);
         }
 
         function handleWSMessage(data) {
@@ -625,7 +1035,6 @@ async def get():
                         <div class="thinking-title">${data.title}</div>
                     </div>
                     <div class="thinking-content">${data.content}</div>
-                    ${data.tools ? '<div class="thinking-tools">' + data.tools.map(t => `<span class="tool-tag">${t.name}</span>`).join('') + '</div>' : ''}
                 `;
             } else if (data.type === 'response') {
                 document.querySelector('.thinking-container')?.remove();
@@ -642,79 +1051,93 @@ async def get():
             const chatArea = document.getElementById('chat-area');
             const messageEl = document.createElement('div');
             messageEl.className = `message ${type}`;
-            messageEl.innerHTML = `<div class="message-content">${formatMessage(content)}</div>`;
+            let formatted = content.replace(/\\n/g, '<br>');
+            messageEl.innerHTML = `<div class="message-content">${formatted}</div>`;
             chatArea.appendChild(messageEl);
             chatArea.scrollTop = chatArea.scrollHeight;
-        }
-
-        function formatMessage(content) {
-            return content
-                .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-                .replace(/`([^`]+)`/g, '<code>$1</code>')
-                .replace(/\n/g, '<br>');
         }
 
         function sendMessage() {
             const inputBox = document.getElementById('input-box');
             const content = inputBox.value.trim();
-            if (!content || !ws) return;
-            
+            if (!content || !ws || ws.readyState !== WebSocket.OPEN) return;
             inputBox.value = '';
             addMessage(content, 'user');
-            
-            const thinkingEl = document.createElement('div');
-            thinkingEl.className = 'thinking-container';
-            thinkingEl.innerHTML = '<div class="thinking-phase"><div class="thinking-dot"></div><div class="thinking-title">🤔 思考中...</div></div>';
-            document.getElementById('chat-area').appendChild(thinkingEl);
-            
+            document.getElementById('send-btn').disabled = true;
             ws.send(JSON.stringify({ content: content }));
         }
 
         function finishProcessing() {
+            document.getElementById('send-btn').disabled = false;
             document.getElementById('chat-area').scrollTop = document.getElementById('chat-area').scrollHeight;
         }
 
         function clearChat() {
             const chatArea = document.getElementById('chat-area');
-            chatArea.innerHTML = '<div class="message system"><div class="message-content">欢迎使用 Data Agent！我是您的万能智能助手，支持代码执行、数据分析、图表生成等功能。</div></div>';
+            chatArea.innerHTML = '<div class="message system"><div class="message-content">欢迎使用 DataAgent！</div></div>';
         }
 
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.add('show');
+        function openModal(id) {
+            document.getElementById(id).classList.add('show');
+            if (id === 'knowledge-modal') loadKnowledgeBases();
+            if (id === 'prompt-modal') loadSkills();
+            if (id === 'mcp-modal') loadMcpServers();
         }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('show');
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
         }
 
         function toggleSwitch(el) {
             el.classList.toggle('on');
         }
 
+        function showSettingsTab(tab) {
+            document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`settings-${tab}`).classList.add('active');
+        }
+
+        function showKbTab(tab) {
+            document.querySelectorAll('#knowledge-modal .settings-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#knowledge-modal .settings-section').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`kb-${tab}`).classList.add('active');
+        }
+
+        function showSkillTab(tab) {
+            document.querySelectorAll('#prompt-modal .settings-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#prompt-modal .settings-section').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`skill-${tab}`).classList.add('active');
+        }
+
+        function showMainChat() {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
         async function loadSettings() {
             try {
-                const response = await fetch('/api/settings');
-                appSettings = await response.json();
+                const res = await fetch('/api/settings');
+                appSettings = await res.json();
                 populateSettings(appSettings);
-            } catch(e) {
-                console.log('使用默认设置');
-            }
+            } catch (e) { console.log(e); }
         }
 
         function populateSettings(settings) {
-            document.getElementById('setting-provider').value = settings.llm.provider || 'aliyun';
+            document.getElementById('setting-provider').value = settings.llm.provider;
             document.getElementById('setting-model').value = settings.llm.model;
             document.getElementById('setting-base-url').value = settings.llm.base_url;
             document.getElementById('setting-api-key').value = settings.llm.api_key;
             document.getElementById('setting-max-tokens').value = settings.llm.max_tokens;
             document.getElementById('setting-temperature').value = settings.llm.temperature;
-            document.getElementById('setting-sandbox-enabled').classList.toggle('on', settings.sandbox.enabled);
             document.getElementById('setting-sandbox-timeout').value = settings.sandbox.timeout;
-            document.getElementById('setting-max-steps').value = settings.agent.max_steps;
         }
 
         async function saveSettings() {
-            const newSettings = {
+            const settings = {
                 llm: {
                     provider: document.getElementById('setting-provider').value,
                     model: document.getElementById('setting-model').value,
@@ -730,20 +1153,28 @@ async def get():
                     timeout: parseInt(document.getElementById('setting-sandbox-timeout').value),
                     allow_network: false
                 },
-                conversation: { history_enabled: true, max_history: 50 },
-                agent: { max_steps: parseInt(document.getElementById('setting-max-steps').value), auto_mode: true }
+                knowledge_base: {
+                    enabled: document.getElementById('setting-kb-enabled').classList.contains('on'),
+                    vector_db: 'sqlite',
+                    chunk_size: 1000,
+                    chunk_overlap: 200,
+                    embedding_model: 'text-embedding-v3'
+                },
+                conversation: { history_enabled: true, max_history: 50, auto_title: true },
+                display: { theme: 'dark', thinking_chain: true, code_highlight: true, markdown_render: true },
+                agent: { max_steps: 5, auto_mode: true, reasoning_mode: 'auto' }
             };
             try {
                 await fetch('/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newSettings)
+                    body: JSON.stringify(settings)
                 });
-                appSettings = newSettings;
+                appSettings = settings;
                 closeModal('settings-modal');
                 addMessage('✅ 设置已保存', 'system');
-            } catch(e) {
-                addMessage('❌ 保存设置失败: ' + e.message, 'system');
+            } catch (e) {
+                addMessage('❌ 保存失败: ' + e.message, 'system');
             }
         }
 
@@ -752,21 +1183,146 @@ async def get():
             document.getElementById('setting-model').value = 'qwen-plus-latest';
             document.getElementById('setting-base-url').value = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
             document.getElementById('setting-api-key').value = '';
-            document.getElementById('setting-max-tokens').value = '4096';
-            document.getElementById('setting-temperature').value = '0.7';
-            document.getElementById('setting-sandbox-enabled').classList.add('on');
-            document.getElementById('setting-sandbox-timeout').value = '60';
-            document.getElementById('setting-max-steps').value = '5';
         }
 
-        function applyPrompt(name) {
-            document.getElementById('input-box').value = `使用${name}功能：`;
-            closeModal('prompt-modal');
+        async function loadKnowledgeBases() {
+            try {
+                const res = await fetch('/api/knowledge-bases');
+                const kbs = await res.json();
+                const grid = document.getElementById('kb-grid');
+                if (kbs.length === 0) {
+                    grid.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 40px;">还没有知识库，点击上方标签创建</div>';
+                } else {
+                    grid.innerHTML = kbs.map(kb => `
+                        <div class="kb-card">
+                            <div class="kb-card-icon">📚</div>
+                            <h4>${kb.name}</h4>
+                            <p>${kb.description || '暂无描述'}</p>
+                            <div class="kb-meta">
+                                <span>创建: ${new Date(kb.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                console.log(e);
+            }
         }
 
-        function showMainChat() {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
+        async function createKnowledgeBase() {
+            const name = document.getElementById('kb-name').value;
+            const desc = document.getElementById('kb-desc').value;
+            if (!name) { alert('请输入知识库名称'); return; }
+            try {
+                const res = await fetch('/api/knowledge-bases', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description: desc })
+                });
+                await res.json();
+                document.getElementById('kb-name').value = '';
+                document.getElementById('kb-desc').value = '';
+                loadKnowledgeBases();
+                showKbTab('list');
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        async function loadSkills() {
+            try {
+                const res = await fetch('/api/skills');
+                const skills = await res.json();
+                const list = document.getElementById('skill-list-content');
+                list.innerHTML = skills.map(skill => `
+                    <div class="skill-item">
+                        <div class="skill-info">
+                            <div class="skill-icon">${skill.icon}</div>
+                            <div class="skill-details">
+                                <h4>${skill.name}</h4>
+                                <p>${skill.description}</p>
+                            </div>
+                        </div>
+                        <span class="skill-badge">${skill.type}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        async function createSkill() {
+            const name = document.getElementById('skill-name').value;
+            const icon = document.getElementById('skill-icon').value;
+            const desc = document.getElementById('skill-desc').value;
+            if (!name) { alert('请输入技能名称'); return; }
+            try {
+                const res = await fetch('/api/skills', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, icon, description: desc, parameters: [], prompts: {} })
+                });
+                await res.json();
+                document.getElementById('skill-name').value = '';
+                document.getElementById('skill-desc').value = '';
+                loadSkills();
+                showSkillTab('list');
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        async function loadMcpServers() {
+            try {
+                const res = await fetch('/api/mcp/servers');
+                const servers = await res.json();
+                const list = document.getElementById('mcp-list-content');
+                if (servers.length === 0) {
+                    list.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 40px;">还没有配置MCP服务器</div>';
+                } else {
+                    list.innerHTML = servers.map(s => `
+                        <div class="mcp-item">
+                            <div class="skill-info">
+                                <div class="skill-icon">${s.icon}</div>
+                                <div class="skill-details">
+                                    <h4>${s.name}</h4>
+                                    <p>类型: ${s.type}</p>
+                                </div>
+                            </div>
+                            <div class="setting-switch ${s.enabled ? 'on' : ''}" onclick="toggleSwitch(this)"></div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        async function createMcpServer() {
+            const name = document.getElementById('mcp-name').value;
+            const type = document.getElementById('mcp-type').value;
+            const command = document.getElementById('mcp-command').value;
+            if (!name) { alert('请输入名称'); return; }
+            try {
+                const res = await fetch('/api/mcp/servers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, type, command, args: [], enabled: true })
+                });
+                await res.json();
+                document.getElementById('mcp-name').value = '';
+                document.getElementById('mcp-command').value = '';
+                loadMcpServers();
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        function handleFileUpload(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                alert(`已选择 ${files.length} 个文件，上传功能待完善`);
+            }
         }
 
         document.getElementById('input-box').addEventListener('keydown', function(e) {
@@ -776,16 +1332,16 @@ async def get():
             }
         });
 
-        window.addEventListener('load', function() {
-            connectWS();
-            loadSettings();
-        });
-
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('modal-overlay')) {
                 e.target.classList.remove('show');
             }
         });
+
+        window.onload = function() {
+            connectWS();
+            loadSettings();
+        };
     </script>
 </body>
 </html>
@@ -794,4 +1350,5 @@ async def get():
 
 if __name__ == "__main__":
     import uvicorn
+    print("🚀 Starting DataAgent Web Interface...")
     uvicorn.run(app, host="0.0.0.0", port=8000)
