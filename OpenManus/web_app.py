@@ -639,66 +639,110 @@ async def run_universal_agent(websocket: WebSocket, message: str):
     try:
         await websocket.send_json({
             "type": "thinking",
-            "phase": "init",
             "title": "🤔 理解需求",
-            "content": f"正在分析: {message[:80]}..."
+            "content": f"正在分析用户需求: {message[:80]}..."
         })
+        
         use_code = False
+        kb_related = False
+        search_enabled = False
+        
         if current_settings.knowledge_base.get("enabled"):
-            kb_related = any(kw in message.lower() for kw in ["文档", "知识库", "knowledge", "search"])
-        else:
-            kb_related = False
-        if any(kw in message.lower() for kw in ["代码", "python", "图表", "计算", "数据", "分析", "plot", "chart"]):
+            kb_related = any(kw in message.lower() for kw in ["文档", "知识库", "knowledge", "search", "查找"])
+        
+        if any(kw in message.lower() for kw in ["代码", "python", "图表", "计算", "数据", "分析", "plot", "chart", "execute"]):
             use_code = True
+        
         if use_code:
             await websocket.send_json({
                 "type": "thinking",
-                "phase": "tool_select",
-                "title": "🛠️ 代码执行",
+                "title": "🛠️ 工具选择",
                 "content": "检测到代码/数据需求，准备生成Python代码"
             })
+            
             code_prompt = f"""根据用户需求生成Python代码：
 用户需求：{message}
 请直接输出可执行的Python代码，不需要解释。如果需要图表，保存为PNG文件。"""
+            
+            await websocket.send_json({
+                "type": "thinking",
+                "title": "💬 调用模型",
+                "content": "正在向AI模型请求生成代码..."
+            })
+            
             code = await call_llm(code_prompt, current_settings)
             code = re.sub(r'^```python\s*\n?', '', code.strip(), flags=re.MULTILINE)
             code = re.sub(r'\n?```$', '', code.strip(), flags=re.MULTILINE)
             code = code.strip()
+            
             await websocket.send_json({
                 "type": "thinking",
-                "phase": "tool_result",
                 "title": "📋 生成代码",
                 "content": f"```python\n{code}\n```"
             })
+            
+            await websocket.send_json({
+                "type": "thinking",
+                "title": "▶️ 执行代码",
+                "content": "正在沙箱环境中执行代码..."
+            })
+            
             result = await execute_python(code, timeout=current_settings.sandbox["timeout"])
+            
             if result["success"]:
                 response = f"✅ 执行成功！\n\n**标准输出:**\n{result['stdout']}\n\n**代码:**\n```python\n{code}\n```"
                 if result["stderr"]:
                     response += f"\n\n**警告:**\n{result['stderr']}"
             else:
                 response = f"❌ 执行失败: {result.get('error', '未知错误')}\n\n**代码:**\n```python\n{code}\n```"
+        
         elif kb_related and knowledge_bases:
             await websocket.send_json({
                 "type": "thinking",
-                "phase": "knowledge_retrieval",
                 "title": "📚 知识库检索",
                 "content": "正在从知识库中检索相关信息..."
             })
+            
             kb_list = ", ".join([kb.name for kb in knowledge_bases.values()])
-            response = await call_llm(f"用户问题：{message}\n\n可用知识库：{kb_list}\n\n请回答用户问题。", current_settings)
+            
+            await websocket.send_json({
+                "type": "thinking",
+                "title": "🔍 检索内容",
+                "content": f"可用知识库: {kb_list}"
+            })
+            
+            response = await call_llm(f"用户问题：{message}\n\n可用知识库：{kb_list}\n\n请基于知识库内容回答用户问题。", current_settings)
+        
         else:
             await websocket.send_json({
                 "type": "thinking",
-                "phase": "analyze",
                 "title": "🧠 智能分析",
                 "content": "正在处理您的请求..."
             })
+            
+            await websocket.send_json({
+                "type": "thinking",
+                "title": "💬 调用模型",
+                "content": "正在向AI模型发送请求..."
+            })
+            
             response = await call_llm(message, current_settings)
-        await websocket.send_json({"type": "response", "content": response})
+        
+        await websocket.send_json({"type": "stream_start"})
+        
+        chunk_size = 50
+        for i in range(0, len(response), chunk_size):
+            chunk = response[i:i+chunk_size]
+            await websocket.send_json({"type": "stream_data", "content": chunk})
+            await asyncio.sleep(0.05)
+        
+        await websocket.send_json({"type": "stream_end"})
+        
     except Exception as e:
-        await websocket.send_json({"type": "error", "content": f"❌ 处理失败: {str(e)[:300]}"})
+        error_msg = f"❌ 处理失败: {str(e)[:300]}"
+        await websocket.send_json({"type": "error", "content": error_msg})
         import traceback
-        print(traceback.format_exc())
+        print(f"Error in run_universal_agent: {traceback.format_exc()}")
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -914,6 +958,130 @@ async def get():
         @keyframes blink {
             0%, 50% { opacity: 1; }
             51%, 100% { opacity: 0; }
+        }
+        
+        /* ==================== 思考动画样式 ==================== */
+        .thinking-container {
+            max-width: 85%;
+            margin: 16px auto;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .thinking-item {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .thinking-item:last-child {
+            border-bottom: none;
+        }
+        
+        .thinking-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+        
+        .thinking-header:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .thinking-badge {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .thinking-title {
+            flex: 1;
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .thinking-toggle {
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform var(--transition-fast);
+        }
+        
+        .thinking-content {
+            padding: 0 16px 12px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            line-height: 1.6;
+            overflow: hidden;
+            max-height: 200px;
+            transition: max-height var(--transition-normal), padding var(--transition-normal);
+        }
+        
+        .thinking-content.collapsed {
+            max-height: 0;
+            padding-bottom: 0;
+        }
+        
+        /* 思考中脉冲动画 */
+        .thinking-item.active .thinking-badge {
+            animation: thinkingPulse 1.5s infinite;
+        }
+        
+        @keyframes thinkingPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+            }
+        }
+        
+        /* ==================== 流式输出样式 ==================== */
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 4px;
+        }
+        
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            animation: typingDot 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typingDot {
+            0%, 80%, 100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        /* 流式消息样式 */
+        .message.streaming .message-content {
+            background: rgba(71, 85, 105, 0.4);
         }
         
         /* ==================== 企业级输入区域 ==================== */
@@ -1967,6 +2135,7 @@ async def get():
 
         function handleWSMessage(data) {
             const chatArea = document.getElementById('chat-area');
+            
             if (data.type === 'thinking') {
                 let thinkingEl = document.querySelector('.thinking-container');
                 if (!thinkingEl) {
@@ -1974,22 +2143,94 @@ async def get():
                     thinkingEl.className = 'thinking-container';
                     chatArea.appendChild(thinkingEl);
                 }
-                thinkingEl.innerHTML = `
-                    <div class="thinking-phase">
-                        <div class="thinking-dot"></div>
+                
+                const existingPhases = thinkingEl.querySelectorAll('.thinking-item').length;
+                const phaseNum = existingPhases + 1;
+                
+                const phaseEl = document.createElement('div');
+                phaseEl.className = 'thinking-item';
+                phaseEl.innerHTML = `
+                    <div class="thinking-header" onclick="toggleThinking(this)">
+                        <div class="thinking-badge">${phaseNum}</div>
                         <div class="thinking-title">${data.title}</div>
+                        <div class="thinking-toggle">▼</div>
                     </div>
                     <div class="thinking-content">${data.content}</div>
                 `;
+                
+                thinkingEl.appendChild(phaseEl);
+                chatArea.scrollTop = chatArea.scrollHeight;
+                
+            } else if (data.type === 'stream_start') {
+                document.querySelector('.thinking-container')?.remove();
+                
+                const messageEl = document.createElement('div');
+                messageEl.className = 'message assistant streaming';
+                messageEl.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-text"></div>
+                        <span class="typing-indicator">
+                            <span class="typing-dot"></span>
+                            <span class="typing-dot"></span>
+                            <span class="typing-dot"></span>
+                        </span>
+                    </div>
+                `;
+                chatArea.appendChild(messageEl);
+                chatArea.scrollTop = chatArea.scrollHeight;
+                
+            } else if (data.type === 'stream_data') {
+                const streamingEl = document.querySelector('.message.streaming');
+                if (streamingEl) {
+                    const textEl = streamingEl.querySelector('.message-text');
+                    const indicator = streamingEl.querySelector('.typing-indicator');
+                    
+                    textEl.innerHTML += data.content.replace(/\\n/g, '<br>');
+                    indicator.style.display = 'inline-block';
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                }
+                
+            } else if (data.type === 'stream_end') {
+                const streamingEl = document.querySelector('.message.streaming');
+                if (streamingEl) {
+                    streamingEl.classList.remove('streaming');
+                    const indicator = streamingEl.querySelector('.typing-indicator');
+                    if (indicator) indicator.remove();
+                    
+                    const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                    streamingEl.innerHTML += `<div style="font-size: 11px; color: #6b7280; margin-top: 4px; padding-left: 8px;">${time}</div>`;
+                }
+                finishProcessing();
+                
             } else if (data.type === 'response') {
                 document.querySelector('.thinking-container')?.remove();
                 addMessage(data.content, 'assistant');
                 finishProcessing();
             } else if (data.type === 'error') {
                 document.querySelector('.thinking-container')?.remove();
-                addMessage(data.content, 'system');
+                document.querySelector('.message.streaming')?.remove();
+                
+                const messageEl = document.createElement('div');
+                messageEl.className = 'message system error';
+                messageEl.innerHTML = `
+                    <div class="message-content">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">❌</span>
+                            <span style="color: #ef4444;">${data.content}</span>
+                        </div>
+                    </div>
+                `;
+                chatArea.appendChild(messageEl);
+                chatArea.scrollTop = chatArea.scrollHeight;
                 finishProcessing();
             }
+        }
+        
+        function toggleThinking(header) {
+            const content = header.nextElementSibling;
+            const toggle = header.querySelector('.thinking-toggle');
+            content.classList.toggle('collapsed');
+            toggle.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
         }
 
         function addMessage(content, type) {
