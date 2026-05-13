@@ -14,12 +14,27 @@
     "timeout": 60,
     "allow_network": false
   },
+  "knowledge_base": {
+    "enabled": true,
+    "vector_db": "sqlite",
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "embedding_model": "text-embedding-v3"
+  },
   "conversation": {
     "history_enabled": true,
-    "max_history": 50
+    "max_history": 50,
+    "auto_title": true
+  },
+  "display": {
+    "theme": "dark",
+    "thinking_chain": true,
+    "code_highlight": true,
+    "markdown_render": true
   },
   "agent": {
     "max_steps": 5,
-    "auto_mode": true
+    "auto_mode": true,
+    "reasoning_mode": "auto"
   }
 }
