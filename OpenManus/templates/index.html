@@ -22,7 +22,7 @@
 
     <div class="app-container">
         <!-- ==================== 侧边栏 ==================== -->
-        <div class="sidebar" id="sidebar">
+        <div class="sidebar closed" id="sidebar">
             <div class="sidebar-header">
                 <h2>🤖 DataAgent</h2>
             </div>
@@ -108,7 +108,7 @@
             <!-- ====== 顶部导航栏 ====== -->
             <div class="header">
                 <div class="header-left">
-                    <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()">☰</button>
+                    <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(71,85,105,0.3);border:none;color:#94a3b8;font-size:20px;cursor:pointer;padding:0;border-radius:8px;flex-shrink:0;">☰</button>
                     <h1>DataAgent</h1>
                     <span class="header-status">
                         <span class="status-dot" id="header-ws-status"></span>
@@ -176,7 +176,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">⚙️ 设置</div>
-                <button class="modal-close" onclick="closeModal('settings-modal')">×</button>
+                <button class="modal-close" onclick="closeModal('settings-modal')">← 返回</button>
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
@@ -322,7 +322,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">📚 知识库</div>
-                <button class="modal-close" onclick="closeModal('knowledge-modal')">×</button>
+                <button class="modal-close" onclick="closeModal('knowledge-modal')">← 返回</button>
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
@@ -388,7 +388,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">💡 技能系统</div>
-                <button class="modal-close" onclick="closeModal('prompt-modal')">×</button>
+                <button class="modal-close" onclick="closeModal('prompt-modal')">← 返回</button>
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
@@ -456,7 +456,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">🔌 MCP工具服务</div>
-                <button class="modal-close" onclick="closeModal('mcp-modal')">×</button>
+                <button class="modal-close" onclick="closeModal('mcp-modal')">← 返回</button>
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
@@ -520,7 +520,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">🗄️ 数据库管理</div>
-                <button class="modal-close" onclick="closeModal('database-modal')">×</button>
+                <button class="modal-close" onclick="closeModal('database-modal')">← 返回</button>
             </div>
             <div class="modal-body">
                 <div class="settings-tabs">
@@ -584,7 +584,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">🧠 NL2SQL - 自然语言转SQL</div>
-                <button class="modal-close" onclick="closeModal('nl2sql-modal')">×</button>
+                <button class="modal-close" onclick="closeModal('nl2sql-modal')">← 返回</button>
             </div>
             <div class="modal-body">
                 <!-- 自然语言输入 -->
@@ -638,7 +638,7 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-title">❓ 使用说明</div>
-                <button class="modal-close" onclick="closeModal('help-modal')">×</button>
+                <button class="modal-close" onclick="closeModal('help-modal')">← 返回</button>
             </div>
             <div class="modal-body help-content">
                 <!-- 手风琴式帮助内容 -->

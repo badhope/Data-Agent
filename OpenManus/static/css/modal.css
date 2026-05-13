@@ -3,8 +3,8 @@
 .modal { background: #1e293b; border-radius: 16px; width: 90%; max-width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
 .modal-header { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .modal-title { color: white; font-size: 18px; font-weight: 600; }
-.modal-close { background: none; border: none; color: #94a3b8; font-size: 28px; cursor: pointer; line-height: 1; }
-.modal-close:hover { color: white; }
+.modal-close { display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: rgba(71, 85, 105, 0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #94a3b8; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+.modal-close:hover { background: rgba(71, 85, 105, 0.6); color: white; border-color: rgba(255,255,255,0.2); }
 .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
 .settings-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: rgba(71, 85, 105, 0.25); padding: 4px; border-radius: 10px; }
 .settings-tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; color: #94a3b8; font-size: 14px; transition: all 0.2s; }
