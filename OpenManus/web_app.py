@@ -723,9 +723,61 @@ async def get():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DataAgent - 万能智能助手</title>
     <style>
+        /* ==================== 企业级设计系统 ==================== */
+        :root {
+            /* 主色调 */
+            --bg-primary: #0a0f1c;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1f2937;
+            --bg-elevated: #374151;
+            
+            /* 强调色 */
+            --accent-primary: #3b82f6;
+            --accent-secondary: #60a5fa;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-error: #ef4444;
+            
+            /* 文字色 */
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-tertiary: #9ca3af;
+            --text-muted: #6b7280;
+            
+            /* 边框和分隔 */
+            --border-subtle: rgba(255,255,255,0.1);
+            --border-default: rgba(255,255,255,0.2);
+            
+            /* 阴影 */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
+            --shadow-glow: 0 0 20px rgba(59,130,246,0.3);
+            
+            /* 动画 */
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* 基础重置 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; color: #e2e8f0; }
-        .app-container { display: flex; height: 100vh; }
+        html { font-size: 16px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, 'Noto Sans SC', sans-serif; 
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%); 
+            min-height: 100vh; 
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* ==================== 核心布局 ==================== */
+        .app-container { 
+            display: flex; 
+            height: 100vh;
+            overflow: hidden;
+        }
         .sidebar { width: 280px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
         .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar-header h2 { color: white; font-size: 20px; display: flex; align-items: center; gap: 10px; }
@@ -762,14 +814,209 @@ async def get():
         .thinking-tools { margin-top: 8px; padding-left: 20px; }
         .tool-tag { display: inline-block; background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin-right: 8px; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .input-area { padding: 16px 24px; background: rgba(30, 41, 59, 0.5); border-top: 1px solid rgba(255,255,255,0.1); }
-        .input-container { display: flex; gap: 12px; align-items: flex-end; }
-        .input-box { flex: 1; padding: 14px 18px; background: rgba(71, 85, 105, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; font-size: 14px; outline: none; resize: none; min-height: 52px; max-height: 160px; font-family: inherit; }
-        .input-box:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-        .send-btn { padding: 14px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 500; }
-        .send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 企业级消息动画 */
+        .message { 
+            max-width: 85%; 
+            margin-bottom: 24px; 
+            animation: messageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .message.user { margin-left: auto; }
+        .message.assistant { margin-right: auto; }
+        .message.system { text-align: center; margin: 16px auto; max-width: 60%; }
+        
+        .message-content { 
+            padding: 14px 18px; 
+            border-radius: 16px; 
+            line-height: 1.7;
+            position: relative;
+            word-wrap: break-word;
+        }
+        
+        .user .message-content { 
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
+            color: white; 
+            border-bottom-right-radius: 4px;
+            box-shadow: var(--shadow-glow);
+        }
+        
+        .assistant .message-content { 
+            background: rgba(71, 85, 105, 0.6); 
+            color: #e2e8f0; 
+            border-bottom-left-radius: 4px;
+        }
+        
+        .system .message-content { 
+            background: rgba(148, 163, 184, 0.15); 
+            color: #94a3b8; 
+            font-size: 13px; 
+            padding: 10px 16px; 
+            border-radius: 12px; 
+        }
+        
+        /* 消息操作菜单 */
+        .message-actions {
+            display: none;
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 4px;
+            gap: 4px;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .message:hover .message-actions {
+            display: flex;
+        }
+        
+        .message-action-btn {
+            padding: 6px 10px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: var(--transition-fast);
+        }
+        
+        .message-action-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        /* 打字机效果 */
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--accent-primary);
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        /* ==================== 企业级输入区域 ==================== */
+        .input-area { 
+            padding: 16px 24px; 
+            background: rgba(30, 41, 59, 0.5); 
+            border-top: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .input-container { 
+            display: flex; 
+            gap: 12px; 
+            align-items: flex-end;
+        }
+        
+        .input-box { 
+            flex: 1; 
+            padding: 14px 18px; 
+            background: rgba(71, 85, 105, 0.5); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 12px; 
+            color: white; 
+            font-size: 14px; 
+            outline: none; 
+            resize: none; 
+            min-height: 52px; 
+            max-height: 160px; 
+            font-family: inherit;
+            transition: var(--transition-normal);
+        }
+        
+        .input-box:focus { 
+            border-color: var(--accent-primary); 
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: rgba(71, 85, 105, 0.7);
+        }
+        
+        .input-box::placeholder {
+            color: var(--text-muted);
+        }
+        
+        /* 发送按钮涟漪效果 */
+        .send-btn {
+            position: relative;
+            overflow: hidden;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 500;
+            transition: var(--transition-normal);
+        }
+        
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* 涟漪效果 */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: rippleEffect 0.6s linear;
+            pointer-events: none;
+        }
+        
+        @keyframes rippleEffect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        /* 快捷键提示 */
+        .input-hint {
+            position: absolute;
+            bottom: -24px;
+            right: 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            opacity: 0;
+            transition: var(--transition-fast);
+        }
+        
+        .input-box:focus + .input-hint {
+            opacity: 1;
+        }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-overlay.show { display: flex; }
         .modal { background: #1e293b; border-radius: 16px; width: 90%; max-width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
@@ -1658,10 +1905,76 @@ async def get():
             const messageEl = document.createElement('div');
             messageEl.className = `message ${type}`;
             let formatted = content.replace(/\\n/g, '<br>');
-            messageEl.innerHTML = `<div class="message-content">${formatted}</div>`;
+            
+            const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            
+            messageEl.innerHTML = `
+                <div class="message-content">
+                    <div class="message-text">${formatted}</div>
+                    <div class="message-actions">
+                        <button class="message-action-btn" onclick="copyMessage(this)" title="复制">📋</button>
+                    </div>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px; ${type === 'user' ? 'text-align: right; padding-right: 8px;' : 'padding-left: 8px;'}">${time}</div>
+            `;
+            
             chatArea.appendChild(messageEl);
             chatArea.scrollTop = chatArea.scrollHeight;
         }
+        
+        function copyMessage(btn) {
+            const text = btn.closest('.message-content').querySelector('.message-text').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('已复制到剪贴板', 'success');
+            }).catch(() => {
+                showToast('复制失败', 'error');
+            });
+        }
+        
+        // Toast通知系统
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // 涟漪效果
+        function createRipple(event) {
+            const button = event.currentTarget;
+            const circle = document.createElement('span');
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+            
+            const rect = button.getBoundingClientRect();
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${event.clientX - rect.left - radius}px`;
+            circle.style.top = `${event.clientY - rect.top - radius}px`;
+            circle.className = 'ripple';
+            
+            const ripple = button.getElementsByClassName('ripple')[0];
+            if (ripple) ripple.remove();
+            
+            button.appendChild(circle);
+        }
+        
+        // 快捷键支持
+        document.addEventListener('keydown', function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
 
         function sendMessage() {
             const inputBox = document.getElementById('input-box');
