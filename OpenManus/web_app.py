@@ -705,6 +705,27 @@ async def get():
         pre code { color: #e2e8f0 !important; }
         .message-content a { color: #60a5fa; }
         
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+        }
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
         /* ==================== 移动端响应式适配 ==================== */
         @media screen and (max-width: 768px) {
             /* 汉堡菜单按钮 - 默认隐藏侧边栏 */
@@ -726,18 +747,6 @@ async def get():
             
             .sidebar.open {
                 left: 0;
-            }
-            
-            /* 侧边栏遮罩层 */
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 1000;
             }
             
             .sidebar-overlay.show {
@@ -1185,7 +1194,7 @@ async def get():
         <div class="main-content">
             <div class="header">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()" style="display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 8px;">☰</button>
+                    <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()">☰</button>
                     <h1>万能智能助手</h1>
                 </div>
                 <div class="header-actions">
