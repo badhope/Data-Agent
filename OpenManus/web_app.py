@@ -822,7 +822,10 @@ async def get():
             height: 100vh;
             overflow: hidden;
         }
-        .sidebar { width: 280px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
+        .sidebar { width: 280px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; transition: transform 0.3s ease; }
+        .sidebar.closed { transform: translateX(-100%); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
+        .sidebar-overlay.show { display: block; }
         .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar-header h2 { color: white; font-size: 20px; display: flex; align-items: center; gap: 10px; }
         .sidebar-nav { flex: 1; padding: 12px; overflow-y: auto; }
@@ -1322,17 +1325,6 @@ async def get():
             padding: 8px;
         }
         
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-        
         /* ==================== 移动端响应式适配 ==================== */
         @media screen and (max-width: 768px) {
             /* 汉堡菜单按钮 - 默认隐藏侧边栏 */
@@ -1340,24 +1332,20 @@ async def get():
                 display: flex;
             }
             
-            /* 侧边栏 - 移动端默认隐藏 */
+            /* 侧边栏 - 移动端 */
             .sidebar {
                 position: fixed;
-                left: -280px;
+                left: 0;
                 top: 0;
                 bottom: 0;
                 width: 280px;
                 z-index: 1001;
-                transition: left 0.3s ease;
+                transition: transform 0.3s ease;
                 box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
             }
             
-            .sidebar.open {
-                left: 0;
-            }
-            
-            .sidebar-overlay.show {
-                display: block;
+            .sidebar.closed {
+                transform: translateX(-100%);
             }
             
             /* 主内容区 - 占据全屏 */
@@ -2381,15 +2369,22 @@ async def get():
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.toggle('open');
+            sidebar.classList.toggle('closed');
             overlay.classList.toggle('show');
         }
 
         function closeSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.remove('open');
+            sidebar.classList.add('closed');
             overlay.classList.remove('show');
+        }
+
+        function openSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.remove('closed');
+            overlay.classList.add('show');
         }
 
         function openModal(id) {
