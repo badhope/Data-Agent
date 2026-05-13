@@ -351,48 +351,80 @@ class NL2SQLEngine:
         )
 
     def _generate_sql_from_intent(self, intent_analysis: IntentAnalysis, query: str) -> str:
-        """根据意图生成SQL（简化示例）"""
+        """更智能的SQL生成"""
         entities = intent_analysis.entities
+        query_lower = query.lower()
         
         company_code = None
         if 'company' in entities:
             company_map = {
                 '贵州茅台': 'SH600519',
-                '平安银行': 'SZ000001', 
+                '平安银行': 'SZ000001',
                 '中国平安': 'SH601318'
             }
             company_code = company_map.get(entities['company'])
         
-        year = entities.get('year')
-        metrics = entities.get('metrics', [])
+        # 智能提取公司
+        if not company_code:
+            if '贵州茅台' in query or '茅台' in query:
+                company_code = 'SH600519'
+            elif '平安银行' in query:
+                company_code = 'SZ000001'
+            elif '中国平安' in query:
+                company_code = 'SH601318'
         
-        # 构建简单的查询
+        # 智能提取年份
+        year = entities.get('year')
+        if not year:
+            import re
+            year_match = re.search(r'20\d{2}|20\d{2}年', query)
+            if year_match:
+                year_str = year_match.group()
+                year = int(year_str[:4])
+        
+        # 智能选择字段
+        select_fields = ['c.company_name', 'fm.year']
+        
+        # 根据查询关键词选择字段
+        field_map = {
+            '营收': 'fm.revenue', '营业收入': 'fm.revenue',
+            '净利润': 'fm.net_profit', '利润': 'fm.net_profit',
+            '总资产': 'fm.total_assets', '资产': 'fm.total_assets',
+            '总负债': 'fm.total_liabilities', '负债': 'fm.total_liabilities',
+            '所有者权益': 'fm.equity', '权益': 'fm.equity',
+            '现金流': 'fm.cash_from_operating',
+        }
+        
+        for keyword, field in field_map.items():
+            if keyword in query:
+                select_fields.append(field)
+        
+        # 默认字段
+        if len(select_fields) == 2:
+            select_fields.extend(['fm.revenue', 'fm.net_profit', 'fm.total_assets'])
+        
+        select_clause = ', '.join(select_fields)
+        
+        # 构建WHERE条件
+        where_conditions = []
         if company_code:
-            if year:
-                base_sql = f"""
-                    SELECT c.company_name, fm.year, fm.revenue, fm.net_profit, fm.total_assets
-                    FROM financial_metrics fm
-                    JOIN companies c ON fm.company_code = c.company_code
-                    WHERE fm.company_code = '{company_code}' AND fm.year = {year}
-                """
-            else:
-                base_sql = f"""
-                    SELECT c.company_name, fm.year, fm.revenue, fm.net_profit, fm.total_assets
-                    FROM financial_metrics fm
-                    JOIN companies c ON fm.company_code = c.company_code
-                    WHERE fm.company_code = '{company_code}'
-                    ORDER BY fm.year DESC
-                """
-            return base_sql.strip()
-        else:
-            # 返回所有公司的财务数据
-            return """
-                SELECT c.company_name, fm.year, fm.revenue, fm.net_profit
-                FROM financial_metrics fm
-                JOIN companies c ON fm.company_code = c.company_code
-                ORDER BY fm.year DESC
-                LIMIT 10
-            """.strip()
+            where_conditions.append(f"fm.company_code = '{company_code}'")
+        if year:
+            where_conditions.append(f"fm.year = {year}")
+        
+        where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+        
+        # 构建完整SQL
+        sql = f"""
+            SELECT {select_clause}
+            FROM financial_metrics fm
+            JOIN companies c ON fm.company_code = c.company_code
+            WHERE {where_clause}
+            ORDER BY fm.year DESC
+            LIMIT 20
+        """
+        
+        return sql.strip()
 
     def format_result(self, sql_query: SQLQuery) -> Dict[str, Any]:
         """格式化查询结果"""

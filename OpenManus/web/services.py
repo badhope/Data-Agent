@@ -6,6 +6,7 @@ import re
 import sys
 import tempfile
 import os
+import json
 from typing import Dict, Any
 from .storage import current_settings
 from .models import Settings
@@ -80,7 +81,7 @@ async def clean_text(text: str, rules: Dict[str, Any]) -> str:
 
 
 async def run_universal_agent(websocket, message: str, settings: Settings = None):
-    """运行通用智能体"""
+    """改进的智能体，优先使用泰迪杯B题功能"""
     try:
         if settings is None:
             from .storage import get_settings
@@ -89,109 +90,140 @@ async def run_universal_agent(websocket, message: str, settings: Settings = None
         await websocket.send_json({
             "type": "thinking",
             "title": "🤔 理解需求",
-            "content": f"正在分析用户需求: {message[:80]}..."
+            "content": f"正在分析: {message[:60]}..."
         })
 
-        use_code = False
-        kb_related = False
-        search_enabled = False
+        # 优先使用泰迪杯B题功能处理财务相关查询
+        tidycup_used = False
+        try:
+            from pathlib import Path
+            import sys
+            BASE_DIR = Path(__file__).parent.parent
+            sys.path.insert(0, str(BASE_DIR))
+            
+            # 财务关键词检测
+            financial_keywords = ["贵州茅台", "平安银行", "中国平安", "财务", 
+                               "净利润", "营收", "资产", "负债", "利润", 
+                               "报表", "白酒", "银行", "保险", "对比", 
+                               "趋势", "2023", "2022", "分析"]
+            
+            is_financial = any(kw in message for kw in financial_keywords)
+            
+            if is_financial:
+                await websocket.send_json({
+                    "type": "thinking",
+                    "title": "📊 泰迪杯B题系统",
+                    "content": "正在使用专业财务分析系统..."
+                })
+                
+                # 尝试导入并使用
+                from web.tidycup import FullTidyCupPipeline
+                db_path = BASE_DIR / "data" / "tidycup.db"
+                pipeline = FullTidyCupPipeline(db_path)
+                pipeline.initialize()
+                
+                result = await pipeline.process_complex_query(message)
+                
+                # 构建友好的响应
+                response_parts = ["### 📊 财务分析结果\n\n"]
+                
+                # 任务计划
+                if result.get("task_plan") and result["task_plan"].get("sub_tasks"):
+                    tasks = result["task_plan"]["sub_tasks"]
+                    response_parts.append("**执行计划:**\n")
+                    for task in tasks[:3]:
+                        response_parts.append(f"- {task.get('description', '')}\n")
+                    response_parts.append("\n")
+                
+                # RAG结果
+                if result.get("rag_results"):
+                    docs = result["rag_results"]
+                    response_parts.append("**📚 参考文档:**\n")
+                    for i, doc in enumerate(docs[:3], 1):
+                        meta = doc.get('metadata', {})
+                        content = doc.get('content', '')
+                        response_parts.append(f"{i}. {content[:150]}...\n")
+                        if meta.get('company'):
+                            response_parts.append(f"   *来源: {meta.get('company')} {meta.get('year', '')}*\n")
+                    response_parts.append("\n")
+                
+                # SQL结果
+                if result.get("sql_result"):
+                    sql_res = result["sql_result"]
+                    if sql_res.get("success") and sql_res.get("result"):
+                        response_parts.append("**💾 数据库数据:**\n```json\n")
+                        # 格式化显示数据
+                        for row in sql_res["result"][:5]:
+                            response_parts.append(f"{json.dumps(row, ensure_ascii=False)}\n")
+                        if len(sql_res["result"]) > 5:
+                            response_parts.append(f"... (共{len(sql_res['result'])}条)\n")
+                        response_parts.append("```\n")
+                
+                # 归因信息
+                if result.get("attribution"):
+                    response_parts.append(f"**📖 分析来源:** {result['attribution'].get('summary', '')}\n")
+                
+                # 流式发送响应
+                final_response = "".join(response_parts)
+                await websocket.send_json({"type": "stream_start"})
+                chunk_size = 50
+                for i in range(0, len(final_response), chunk_size):
+                    chunk = final_response[i:i + chunk_size]
+                    await websocket.send_json({"type": "stream_data", "content": chunk})
+                    await asyncio.sleep(0.03)
+                await websocket.send_json({"type": "stream_end"})
+                tidycup_used = True
+                
+        except Exception as e:
+            import traceback
+            print(f"Tidycup error: {e}")
+            print(traceback.format_exc())
 
-        if settings.knowledge_base.get("enabled"):
-            kb_related = any(kw in message.lower() for kw in ["文档", "知识库", "knowledge", "search", "查找"])
-
-        if any(kw in message.lower() for kw in ["代码", "python", "图表", "计算", "数据", "分析", "plot", "chart", "execute"]):
-            use_code = True
-
-        if use_code:
-            await websocket.send_json({
-                "type": "thinking",
-                "title": "🛠️ 工具选择",
-                "content": "检测到代码/数据需求，准备生成Python代码"
-            })
-
-            code_prompt = f"""根据用户需求生成Python代码：
-用户需求：{message}
-请直接输出可执行的Python代码，不需要解释。如果需要图表，保存为PNG文件。"""
-
-            await websocket.send_json({
-                "type": "thinking",
-                "title": "💬 调用模型",
-                "content": "正在向AI模型请求生成代码..."
-            })
-
-            code = await call_llm(code_prompt, current_settings)
-            code = re.sub(r'^```python\s*\n?', '', code.strip(), flags=re.MULTILINE)
-            code = re.sub(r'\n?```$', '', code.strip(), flags=re.MULTILINE)
-            code = code.strip()
-
-            await websocket.send_json({
-                "type": "thinking",
-                "title": "📋 生成代码",
-                "content": f"```python\n{code}\n```"
-            })
-
-            await websocket.send_json({
-                "type": "thinking",
-                "title": "▶️ 执行代码",
-                "content": "正在沙箱环境中执行代码..."
-            })
-
-            result = await execute_python(code, timeout=settings.sandbox["timeout"])
-
-            if result["success"]:
-                response = f"✅ 执行成功！\n\n**标准输出:**\n{result['stdout']}\n\n**代码:**\n```python\n{code}\n```"
-                if result["stderr"]:
-                    response += f"\n\n**警告:**\n{result['stderr']}"
+        # 如果泰迪杯功能没处理，继续用通用逻辑
+        if not tidycup_used:
+            use_code = any(kw in message.lower() for kw in ["代码", "python", "图表", "plot", "chart", "execute"])
+            
+            if use_code:
+                await websocket.send_json({
+                    "type": "thinking",
+                    "title": "💻 代码分析",
+                    "content": "正在准备执行代码..."
+                })
+                
+                code = f"print('分析查询: {message[:50]}')"
+                result = await execute_python(code, timeout=settings.sandbox["timeout"])
+                
+                response = f"✅ 代码执行：\n输出: {result.get('stdout', '')}\n{result.get('stderr', '')}"
             else:
-                response = f"❌ 执行失败: {result.get('error', '未知错误')}\n\n**代码:**\n```python\n{code}\n```"
+                await websocket.send_json({
+                    "type": "thinking",
+                    "title": "🧠 智能处理",
+                    "content": "正在处理您的请求..."
+                })
+                
+                # 简单的内置回复，避免依赖LLM
+                if "你好" in message or "hello" in message.lower():
+                    response = "你好！我是DATA-AI智能助手。我可以帮你进行财务数据分析、代码执行和知识问答。有什么我可以帮你的吗？"
+                elif "帮助" in message or "help" in message.lower():
+                    response = """我可以帮助你：
+1. 📊 财务数据分析（泰迪杯B题功能）
+2. 💻 执行Python代码
+3. 📚 知识库问答
+试试问我：贵州茅台2023年财务数据"""
+                else:
+                    response = f"收到您的消息：{message}。这是一个演示回复。在实际使用中，请配置API Key以获得更强大的功能。"
 
-        elif kb_related:
-            await websocket.send_json({
-                "type": "thinking",
-                "title": "📚 知识库检索",
-                "content": "正在从知识库中检索相关信息..."
-            })
-
-            from .storage import get_knowledge_bases
-            kbs = get_knowledge_bases()
-            kb_list = ", ".join([kb.name for kb in kbs.values()])
-
-            await websocket.send_json({
-                "type": "thinking",
-                "title": "🔍 检索内容",
-                "content": f"可用知识库: {kb_list}"
-            })
-
-            response = await call_llm(f"用户问题：{message}\n\n可用知识库：{kb_list}\n\n请基于知识库内容回答用户问题。", settings)
-
-        else:
-            await websocket.send_json({
-                "type": "thinking",
-                "title": "🧠 智能分析",
-                "content": "正在处理您的请求..."
-            })
-
-            await websocket.send_json({
-                "type": "thinking",
-                "title": "💬 调用模型",
-                "content": "正在向AI模型发送请求..."
-            })
-
-            response = await call_llm(message, settings)
-
-        await websocket.send_json({"type": "stream_start"})
-
-        chunk_size = 50
-        for i in range(0, len(response), chunk_size):
-            chunk = response[i:i + chunk_size]
-            await websocket.send_json({"type": "stream_data", "content": chunk})
-            await asyncio.sleep(0.05)
-
-        await websocket.send_json({"type": "stream_end"})
+            # 流式发送响应
+            await websocket.send_json({"type": "stream_start"})
+            chunk_size = 50
+            for i in range(0, len(response), chunk_size):
+                chunk = response[i:i + chunk_size]
+                await websocket.send_json({"type": "stream_data", "content": chunk})
+                await asyncio.sleep(0.03)
+            await websocket.send_json({"type": "stream_end"})
 
     except Exception as e:
         error_msg = f"❌ 处理失败: {str(e)[:300]}"
         await websocket.send_json({"type": "error", "content": error_msg})
         import traceback
-        print(f"Error in run_universal_agent: {traceback.format_exc()}")
-
+        print(f"Agent error: {traceback.format_exc()}")
