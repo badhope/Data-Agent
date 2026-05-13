@@ -24,7 +24,7 @@ Data-Agent 是一个企业级智能办公助手平台，基于 Dify 构建，结
 - CPU >= 2 核
 - RAM >= 4 GiB
 - Docker & Docker Compose
-- Python 3.10+
+- Python 3.12+
 - Node.js 22+
 
 ### 一键部署（推荐）
@@ -60,7 +60,7 @@ cp .env.example .env.local
 pnpm install
 pnpm dev
 
-# 4. 安装后端依赖并启动（需要 Python 3.10+）
+# 4. 安装后端依赖并启动（需要 Python 3.12+）
 cd ../api
 uv sync
 flask upgrade-db
@@ -99,7 +99,7 @@ Data-Agent/
 | 组件 | 技术 |
 |------|------|
 | 前端 | Next.js 16, React 19, TypeScript, Tailwind CSS |
-| 后端 | Python 3.10+, Flask, LangChain, Celery |
+| 后端 | Python 3.12+, Flask, LangChain, Celery |
 | 数据库 | PostgreSQL 15, Redis |
 | 向量数据库 | Weaviate / Qdrant / PGVector / Milvus（可选） |
 | 部署 | Docker, Docker Compose, Nginx |
@@ -137,7 +137,7 @@ Data-Agent is an enterprise-grade intelligent office assistant platform built on
 - CPU >= 2 Cores
 - RAM >= 4 GiB
 - Docker & Docker Compose
-- Python 3.10+
+- Python 3.12+
 - Node.js 22+
 
 ### One-Click Deployment (Recommended)
@@ -171,7 +171,7 @@ cp .env.example .env.local
 pnpm install
 pnpm dev
 
-# 4. Install and start backend (Python 3.10+)
+# 4. Install and start backend (Python 3.12+)
 cd ../api
 uv sync
 flask upgrade-db

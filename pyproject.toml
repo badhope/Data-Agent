@@ -7,7 +7,7 @@ license = {text = "MIT"}
 authors = [
     { name = "LangChain Team", email = "engineering@langchain.dev" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "langchain>=0.3.0",
     "langchain-core>=0.3.0",
@@ -36,12 +36,12 @@ build-backend = "hatchling.build"
 packages = ["langchain_office_assistant"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true

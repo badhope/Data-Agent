@@ -3,10 +3,7 @@ import threading
 from pathlib import Path
 from typing import Dict, List, Optional
 
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib
+import tomllib
 
 from pydantic import BaseModel, Field
 

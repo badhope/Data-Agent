@@ -2,12 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Optional, TypeVar, TypedDict
-
-try:
-    from typing import NotRequired
-except ImportError:
-    from typing_extensions import NotRequired
+from typing import NotRequired, TypedDict
 
 
 class AdminConfig(TypedDict):
@@ -51,7 +46,6 @@ class StressTestState(TypedDict):
     api_key: NotRequired[ApiKeyConfig]
 
 
-T = TypeVar("T")
 
 
 class ConfigHelper:
@@ -64,7 +58,7 @@ class ConfigHelper:
 
     """Helper class for reading and writing configuration files."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         """Initialize ConfigHelper with base directory.
 
         Args:
@@ -93,7 +87,7 @@ class ConfigHelper:
             filename += ".json"
         return self.base_dir / filename
 
-    def read_config(self, filename: str) -> Optional[T]:
+    def read_config[T](self, filename: str) -> T | None:
         """Read a configuration file with generic return type.
 
         DEPRECATED: Use read_state() or get_state_section() for new code.
@@ -185,7 +179,7 @@ class ConfigHelper:
             print(f"❌ Error deleting {filename}: {e}")
             return False
 
-    def read_state(self) -> Optional[StressTestState]:
+    def read_state(self) -> StressTestState | None:
         """Read the entire stress test state.
 
         Returns:
@@ -241,7 +235,7 @@ class ConfigHelper:
         state[section] = data  # type: ignore
         return self.write_state(state)  # type: ignore
 
-    def get_state_section(self, section: str) -> Optional[T]:
+    def get_state_section[T](self, section: str) -> T | None:
         """Get a specific section from the stress test state.
 
         Args:
@@ -255,7 +249,7 @@ class ConfigHelper:
             return state.get(section)  # type: ignore
         return None
 
-    def get_token(self) -> Optional[str]:
+    def get_token(self) -> str | None:
         """Get the access token from auth section.
 
         Returns:
@@ -266,7 +260,7 @@ class ConfigHelper:
             return auth.get("access_token")
         return None
 
-    def get_app_id(self) -> Optional[str]:
+    def get_app_id(self) -> str | None:
         """Get the app ID from app section.
 
         Returns:
@@ -277,7 +271,7 @@ class ConfigHelper:
             return app.get("app_id")
         return None
 
-    def get_api_key(self) -> Optional[str]:
+    def get_api_key(self) -> str | None:
         """Get the API key token from api_key section.
 
         Returns:
