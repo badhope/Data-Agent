@@ -512,14 +512,181 @@ async def process_document(doc_id: str, file_path: Path, file_ext: str):
             df = pd.read_csv(file_path)
             content = df.to_string()
         
+        elif file_ext == '.pdf':
+            try:
+                import fitz
+                doc = fitz.open(file_path)
+                content = "\n".join([page.get_text() for page in doc])
+                doc.close()
+            except:
+                content = "[PDF内容需要安装pymupdf库]"
+        
+        elif file_ext == '.docx':
+            try:
+                from docx import Document as DocxDocument
+                doc = DocxDocument(file_path)
+                content = "\n".join([para.text for para in doc.paragraphs])
+            except:
+                content = "[DOCX内容需要安装python-docx库]"
+        
         if doc_id in documents:
             documents[doc_id].status = "available"
-            documents[doc_id].content = content[:10000] if len(content) > 10000 else content
+            documents[doc_id].content = content[:100000] if len(content) > 100000 else content
+            chunks = split_into_chunks(content, chunk_size=500, overlap=50)
+            documents[doc_id].chunks = chunks
+            documents[doc_id].chunk_count = len(chunks)
             
     except Exception as e:
         if doc_id in documents:
             documents[doc_id].status = "failed"
             documents[doc_id].error = str(e)
+
+def split_into_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> List[dict]:
+    if not text:
+        return []
+    chunks = []
+    start = 0
+    chunk_id = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunk_text = text[start:end]
+        chunks.append({
+            "id": chunk_id,
+            "content": chunk_text,
+            "start": start,
+            "end": min(end, len(text))
+        })
+        chunk_id += 1
+        start = end - overlap
+        if start >= len(text) - overlap:
+            break
+    return chunks
+
+async def generate_embeddings(text: str, api_key: str, base_url: str = "https://api.openai.com/v1", model: str = "text-embedding-3-small") -> List[float]:
+    try:
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        response = await client.embeddings.create(input=text[:8000], model=model)
+        return response.data[0].embedding
+    except Exception as e:
+        print(f"Embedding error: {e}")
+        return []
+
+def cosine_similarity(a: List[float], b: List[float]) -> float:
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    dot_product = sum(x * y for x, y in zip(a, b))
+    norm_a = sum(x * x for x in a) ** 0.5
+    norm_b = sum(x * x for x in b) ** 0.5
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return dot_product / (norm_a * norm_b)
+
+@app.get("/api/knowledge-bases/{kb_id}/documents/{doc_id}/preview")
+async def preview_document(kb_id: str, doc_id: str):
+    if doc_id not in documents:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    doc = documents[doc_id]
+    return JSONResponse({
+        "id": doc.id,
+        "name": doc.name,
+        "content": doc.content or "",
+        "chunks": doc.chunks if hasattr(doc, 'chunks') else [],
+        "status": doc.status
+    })
+
+@app.get("/api/knowledge-bases/{kb_id}/documents/{doc_id}/chunks")
+async def get_document_chunks(kb_id: str, doc_id: str):
+    if doc_id not in documents:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    doc = documents[doc_id]
+    chunks = doc.chunks if hasattr(doc, 'chunks') else []
+    return JSONResponse({"chunks": chunks, "total": len(chunks)})
+
+@app.post("/api/knowledge-bases/{kb_id}/search")
+async def search_knowledge_base(kb_id: str, request: Request):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    data = await request.json()
+    query = data.get("query", "")
+    top_k = data.get("top_k", 5)
+    if not query:
+        raise HTTPException(status_code=400, detail="请提供搜索查询")
+    
+    kb = knowledge_bases[kb_id]
+    results = []
+    
+    api_key = current_settings.llm.api_key or ""
+    base_url = current_settings.llm.base_url or "https://api.openai.com/v1"
+    embedding_model = kb.embedding_model or "text-embedding-3-small"
+    
+    query_embedding = await generate_embeddings(query, api_key, base_url, embedding_model)
+    
+    for doc_id, doc in documents.items():
+        if doc.knowledge_base_id != kb_id:
+            continue
+        if not hasattr(doc, 'chunks') or not doc.chunks:
+            continue
+        
+        for chunk in doc.chunks:
+            if not hasattr(chunk, 'embedding') or not chunk.get('embedding'):
+                chunk['embedding'] = await generate_embeddings(
+                    chunk['content'], api_key, base_url, embedding_model
+                )
+            
+            if query_embedding and chunk.get('embedding'):
+                score = cosine_similarity(query_embedding, chunk['embedding'])
+                results.append({
+                    "doc_id": doc_id,
+                    "doc_name": doc.name,
+                    "chunk_id": chunk['id'],
+                    "content": chunk['content'],
+                    "score": score
+                })
+    
+    results.sort(key=lambda x: x['score'], reverse=True)
+    return JSONResponse({"results": results[:top_k], "total": len(results)})
+
+@app.post("/api/knowledge-bases/{kb_id}/embed")
+async def generate_kb_embeddings(kb_id: str):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    
+    kb = knowledge_bases[kb_id]
+    api_key = current_settings.llm.api_key or ""
+    base_url = current_settings.llm.base_url or "https://api.openai.com/v1"
+    embedding_model = kb.embedding_model or "text-embedding-3-small"
+    
+    if not api_key:
+        raise HTTPException(status_code=400, detail="请先配置API Key")
+    
+    embedded_count = 0
+    for doc_id, doc in documents.items():
+        if doc.knowledge_base_id != kb_id:
+            continue
+        if hasattr(doc, 'chunks') and doc.chunks:
+            for chunk in doc.chunks:
+                if not chunk.get('embedding'):
+                    chunk['embedding'] = await generate_embeddings(
+                        chunk['content'], api_key, base_url, embedding_model
+                    )
+                    embedded_count += 1
+    
+    return JSONResponse({"success": True, "embedded_chunks": embedded_count})
+
+@app.post("/api/knowledge-bases/{kb_id}/documents/batch")
+async def batch_upload_documents(kb_id: str, files: List[UploadFile] = File(...)):
+    if kb_id not in knowledge_bases:
+        raise HTTPException(status_code=404, detail="知识库不存在")
+    
+    results = []
+    for file in files:
+        try:
+            result = await upload_document(kb_id, file)
+            results.append({"filename": file.filename, "success": True, "doc": result})
+        except Exception as e:
+            results.append({"filename": file.filename, "success": False, "error": str(e)})
+    
+    return JSONResponse({"results": results})
 
 @app.get("/api/knowledge-bases/{kb_id}/documents")
 async def list_documents(kb_id: str):
@@ -691,6 +858,124 @@ async def delete_skill(skill_id: str):
     save_skills()
     return JSONResponse({"success": True, "message": "技能已删除"})
 
+@app.post("/api/skills/import")
+async def import_skill(request: Request):
+    data = await request.json()
+    skill_id = data.get("id", str(uuid.uuid4()))
+    if skill_id in skills:
+        skill_id = str(uuid.uuid4())
+    now = datetime.datetime.now().isoformat()
+    skill = Skill(
+        id=skill_id,
+        name=data.get("name", "导入技能"),
+        description=data.get("description", ""),
+        icon=data.get("icon", "🔧"),
+        category=data.get("category", "other"),
+        version=data.get("version", "1.0.0"),
+        parameters=data.get("parameters", []),
+        prompts=data.get("prompts", {}),
+        tools=data.get("tools", []),
+        created_at=data.get("created_at", now),
+        updated_at=now
+    )
+    skills[skill_id] = skill
+    save_skills()
+    return JSONResponse(skill.model_dump())
+
+@app.get("/api/skills/{skill_id}/export")
+async def export_skill(skill_id: str):
+    if skill_id not in skills:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    skill = skills[skill_id]
+    return JSONResponse(skill.model_dump())
+
+@app.get("/api/skills/templates")
+async def get_skill_templates():
+    templates = [
+        {
+            "id": "code-review",
+            "name": "代码审查专家",
+            "icon": "🔍",
+            "description": "专业的代码审查和质量分析",
+            "category": "code",
+            "prompts": {
+                "system_prompt": "你是一位资深代码审查专家，擅长发现代码中的问题并提供改进建议。",
+                "user_prompt_template": "请审查以下代码：\n\n{{input}}"
+            }
+        },
+        {
+            "id": "data-analyst",
+            "name": "数据分析助手",
+            "icon": "📊",
+            "description": "数据分析和可视化专家",
+            "category": "data",
+            "prompts": {
+                "system_prompt": "你是一位数据分析专家，擅长数据清洗、统计分析和可视化。",
+                "user_prompt_template": "请分析以下数据：\n\n{{input}}"
+            }
+        },
+        {
+            "id": "translator",
+            "name": "多语言翻译",
+            "icon": "🌐",
+            "description": "专业的多语言翻译服务",
+            "category": "translation",
+            "prompts": {
+                "system_prompt": "你是一位专业翻译，精通多种语言，确保翻译准确、自然。",
+                "user_prompt_template": "请将以下内容翻译成{{target_language}}：\n\n{{input}}"
+            },
+            "parameters": [
+                {"name": "target_language", "type": "string", "default": "英文", "description": "目标语言"}
+            ]
+        },
+        {
+            "id": "writer",
+            "name": "写作助手",
+            "icon": "✍️",
+            "description": "专业的文案写作和润色",
+            "category": "writing",
+            "prompts": {
+                "system_prompt": "你是一位专业写作助手，擅长各类文案创作和文字润色。",
+                "user_prompt_template": "请帮我{{action}}以下内容：\n\n{{input}}"
+            },
+            "parameters": [
+                {"name": "action", "type": "select", "options": ["润色", "扩写", "缩写", "改写"], "default": "润色"}
+            ]
+        },
+        {
+            "id": "summarizer",
+            "name": "内容摘要",
+            "icon": "📝",
+            "description": "智能内容摘要和要点提取",
+            "category": "document",
+            "prompts": {
+                "system_prompt": "你是一位摘要专家，擅长提取关键信息，生成简洁准确的摘要。",
+                "user_prompt_template": "请总结以下内容的要点：\n\n{{input}}"
+            }
+        }
+    ]
+    return JSONResponse(templates)
+
+@app.post("/api/skills/{skill_id}/test")
+async def test_skill(skill_id: str, request: Request):
+    if skill_id not in skills:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    skill = skills[skill_id]
+    data = await request.json()
+    test_input = data.get("input", "测试输入")
+    
+    prompt = ""
+    if skill.prompts.get("system_prompt"):
+        prompt += skill.prompts["system_prompt"] + "\n\n"
+    template = skill.prompts.get("user_prompt_template", "{{input}}")
+    prompt += template.replace("{{input}}", test_input)
+    
+    try:
+        response = await call_llm(prompt, current_settings)
+        return JSONResponse({"success": True, "response": response})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
 @app.get("/api/mcp/servers")
 async def list_mcp_servers():
     return JSONResponse([server.model_dump() for server in mcp_servers.values()])
@@ -753,6 +1038,143 @@ async def execute_mcp_tool(server_id: str, request: Request):
         return JSONResponse({"success": True, "result": result})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"MCP执行失败: {str(e)}")
+
+@app.post("/api/mcp/servers/{server_id}/test")
+async def test_mcp_connection(server_id: str):
+    if server_id not in mcp_servers:
+        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    server = mcp_servers[server_id]
+    try:
+        if server.type == "stdio":
+            cmd = [server.command] + server.args
+            env = os.environ.copy()
+            env.update(server.env)
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env
+            )
+            input_data = json.dumps({"action": "ping"})
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=input_data.encode()),
+                timeout=10.0
+            )
+            if proc.returncode == 0:
+                server.status = "connected"
+                save_mcp_servers()
+                return JSONResponse({"success": True, "status": "connected", "message": "连接成功"})
+            else:
+                server.status = "error"
+                save_mcp_servers()
+                return JSONResponse({"success": False, "status": "error", "message": stderr.decode()[:200]})
+        elif server.type == "sse":
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{server.url}/health", timeout=10.0)
+                if response.status_code == 200:
+                    server.status = "connected"
+                    save_mcp_servers()
+                    return JSONResponse({"success": True, "status": "connected"})
+                else:
+                    server.status = "error"
+                    save_mcp_servers()
+                    return JSONResponse({"success": False, "status": "error", "message": f"HTTP {response.status_code}"})
+        return JSONResponse({"success": False, "message": "不支持的服务器类型"})
+    except asyncio.TimeoutError:
+        server.status = "timeout"
+        save_mcp_servers()
+        return JSONResponse({"success": False, "status": "timeout", "message": "连接超时"})
+    except Exception as e:
+        server.status = "error"
+        save_mcp_servers()
+        return JSONResponse({"success": False, "status": "error", "message": str(e)})
+
+@app.get("/api/mcp/servers/{server_id}/tools")
+async def get_mcp_tools(server_id: str):
+    if server_id not in mcp_servers:
+        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    server = mcp_servers[server_id]
+    try:
+        if server.type == "stdio":
+            cmd = [server.command] + server.args
+            env = os.environ.copy()
+            env.update(server.env)
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env
+            )
+            input_data = json.dumps({"action": "list_tools"})
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=input_data.encode()),
+                timeout=10.0
+            )
+            if proc.returncode == 0:
+                result = json.loads(stdout.decode())
+                return JSONResponse({"tools": result.get("tools", [])})
+            return JSONResponse({"tools": [], "error": stderr.decode()[:200]})
+        elif server.type == "sse":
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{server.url}/tools", timeout=10.0)
+                response.raise_for_status()
+                return JSONResponse(response.json())
+        return JSONResponse({"tools": []})
+    except Exception as e:
+        return JSONResponse({"tools": [], "error": str(e)})
+
+@app.get("/api/mcp/servers/{server_id}/resources")
+async def get_mcp_resources(server_id: str):
+    if server_id not in mcp_servers:
+        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    server = mcp_servers[server_id]
+    try:
+        if server.type == "stdio":
+            cmd = [server.command] + server.args
+            env = os.environ.copy()
+            env.update(server.env)
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env
+            )
+            input_data = json.dumps({"action": "list_resources"})
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=input_data.encode()),
+                timeout=10.0
+            )
+            if proc.returncode == 0:
+                result = json.loads(stdout.decode())
+                return JSONResponse({"resources": result.get("resources", [])})
+            return JSONResponse({"resources": [], "error": stderr.decode()[:200]})
+        elif server.type == "sse":
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{server.url}/resources", timeout=10.0)
+                response.raise_for_status()
+                return JSONResponse(response.json())
+        return JSONResponse({"resources": []})
+    except Exception as e:
+        return JSONResponse({"resources": [], "error": str(e)})
+
+@app.get("/api/mcp/servers/{server_id}/status")
+async def get_mcp_status(server_id: str):
+    if server_id not in mcp_servers:
+        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    server = mcp_servers[server_id]
+    return JSONResponse({
+        "id": server.id,
+        "name": server.name,
+        "status": server.status or "unknown",
+        "enabled": server.enabled,
+        "type": server.type
+    })
 
 async def execute_mcp_command(server: MCPServer, tool: str, params: dict) -> str:
     if server.type == "stdio":
@@ -835,6 +1257,136 @@ async def delete_conversation(conv_id: str):
     del conversations[conv_id]
     save_conversations()
     return JSONResponse({"success": True, "message": "对话已删除"})
+
+@app.get("/api/conversations/search")
+async def search_conversations(q: str = ""):
+    if not q:
+        return JSONResponse([])
+    results = []
+    for conv_id, conv in conversations.items():
+        title_match = q.lower() in conv.get("title", "").lower()
+        content_match = False
+        for msg in conv.get("messages", []):
+            if q.lower() in msg.get("content", "").lower():
+                content_match = True
+                break
+        if title_match or content_match:
+            results.append({
+                "id": conv_id,
+                "title": conv.get("title", ""),
+                "updated_at": conv.get("updated_at", ""),
+                "match_type": "title" if title_match else "content"
+            })
+    results.sort(key=lambda x: x["updated_at"], reverse=True)
+    return JSONResponse(results)
+
+@app.get("/api/conversations/{conv_id}/export")
+async def export_conversation(conv_id: str, format: str = "json"):
+    if conv_id not in conversations:
+        raise HTTPException(status_code=404, detail="对话不存在")
+    conv = conversations[conv_id]
+    if format == "markdown" or format == "md":
+        lines = [f"# {conv.get('title', '对话记录')}\n"]
+        lines.append(f"导出时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        lines.append("---\n\n")
+        for msg in conv.get("messages", []):
+            role = "用户" if msg.get("type") == "user" else "助手" if msg.get("type") == "assistant" else "系统"
+            lines.append(f"**{role}**:\n\n{msg.get('content', '')}\n\n")
+        content = "\n".join(lines)
+        return JSONResponse({"format": "markdown", "content": content})
+    else:
+        return JSONResponse({"format": "json", "content": conv})
+
+@app.post("/api/conversations/{conv_id}/share")
+async def share_conversation(conv_id: str):
+    if conv_id not in conversations:
+        raise HTTPException(status_code=404, detail="对话不存在")
+    conv = conversations[conv_id]
+    share_id = str(uuid.uuid4())[:8]
+    share_file = DATA_DIR / "shares" / f"{share_id}.json"
+    share_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(share_file, 'w', encoding='utf-8') as f:
+        json.dump({
+            "id": share_id,
+            "conversation": conv,
+            "created_at": datetime.datetime.now().isoformat()
+        }, f, ensure_ascii=False, indent=2)
+    return JSONResponse({"share_id": share_id, "share_url": f"/api/conversations/shared/{share_id}"})
+
+@app.get("/api/conversations/shared/{share_id}")
+async def get_shared_conversation(share_id: str):
+    share_file = DATA_DIR / "shares" / f"{share_id}.json"
+    if not share_file.exists():
+        raise HTTPException(status_code=404, detail="分享链接不存在或已过期")
+    with open(share_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return JSONResponse(data)
+
+@app.post("/api/settings/validate")
+async def validate_settings(request: Request):
+    data = await request.json()
+    errors = []
+    llm = data.get("llm", {})
+    if not llm.get("api_key"):
+        errors.append({"field": "llm.api_key", "message": "API Key 不能为空"})
+    if llm.get("max_tokens") and (llm["max_tokens"] < 1 or llm["max_tokens"] > 128000):
+        errors.append({"field": "llm.max_tokens", "message": "max_tokens 应在 1-128000 之间"})
+    if llm.get("temperature") and (llm["temperature"] < 0 or llm["temperature"] > 2):
+        errors.append({"field": "llm.temperature", "message": "temperature 应在 0-2 之间"})
+    return JSONResponse({"valid": len(errors) == 0, "errors": errors})
+
+@app.post("/api/settings/test-connection")
+async def test_api_connection(request: Request):
+    data = await request.json()
+    llm = data.get("llm", {})
+    api_key = llm.get("api_key", "")
+    base_url = llm.get("base_url", "https://api.openai.com/v1")
+    model = llm.get("model", "gpt-4o")
+    if not api_key:
+        return JSONResponse({"success": False, "message": "API Key 不能为空"})
+    try:
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": "Hello"}],
+            max_tokens=10
+        )
+        return JSONResponse({"success": True, "message": "连接成功"})
+    except Exception as e:
+        return JSONResponse({"success": False, "message": str(e)})
+
+@app.get("/api/settings/export")
+async def export_settings():
+    return JSONResponse(current_settings.model_dump())
+
+@app.post("/api/settings/import")
+async def import_settings(request: Request):
+    global current_settings
+    data = await request.json()
+    try:
+        current_settings = Settings(**data)
+        save_settings()
+        return JSONResponse({"success": True, "message": "配置导入成功"})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"配置格式错误: {str(e)}")
+
+@app.get("/api/settings/models")
+async def get_available_models():
+    models = [
+        {"id": "gpt-4o", "name": "GPT-4o", "provider": "openai"},
+        {"id": "gpt-4o-mini", "name": "GPT-4o Mini", "provider": "openai"},
+        {"id": "gpt-4-turbo", "name": "GPT-4 Turbo", "provider": "openai"},
+        {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "provider": "openai"},
+        {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet", "provider": "anthropic"},
+        {"id": "claude-3-opus-20240229", "name": "Claude 3 Opus", "provider": "anthropic"},
+        {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro", "provider": "google"},
+        {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash", "provider": "google"},
+        {"id": "qwen-plus-latest", "name": "通义千问 Plus", "provider": "aliyun"},
+        {"id": "qwen-turbo-latest", "name": "通义千问 Turbo", "provider": "aliyun"},
+        {"id": "deepseek-chat", "name": "DeepSeek Chat", "provider": "deepseek"},
+        {"id": "deepseek-coder", "name": "DeepSeek Coder", "provider": "deepseek"},
+    ]
+    return JSONResponse(models)
 
 async def run_universal_agent(websocket: WebSocket, message: str):
     try:
