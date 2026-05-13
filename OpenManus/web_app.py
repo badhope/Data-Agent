@@ -91,6 +91,12 @@ class Settings(BaseModel):
         "auto_mode": True,
         "reasoning_mode": "auto"
     })
+    langsmith: Dict[str, Any] = Field(default_factory=lambda: {
+        "enabled": False,
+        "api_key": "",
+        "project": "dataagent",
+        "endpoint": "https://api.smith.langchain.com"
+    })
 
 class KnowledgeBase(BaseModel):
     id: str
@@ -1400,6 +1406,25 @@ async def get():
                         <input type="number" class="setting-input" id="setting-max-steps" value="5">
                     </div>
                 </div>
+                <div class="settings-section" id="settings-langsmith">
+                    <h3>🦜 LangSmith 调试</h3>
+                    <div class="setting-row">
+                        <span class="setting-label">启用LangSmith</span>
+                        <div class="setting-switch" id="setting-langsmith-enabled" onclick="toggleSwitch(this)"></div>
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">LangSmith API Key</span>
+                        <input type="password" class="setting-input" id="setting-langsmith-api-key" placeholder="lsv2_...">
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">项目名称</span>
+                        <input type="text" class="setting-input" id="setting-langsmith-project" value="dataagent">
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">端点</span>
+                        <input type="text" class="setting-input" id="setting-langsmith-endpoint" value="https://api.smith.langchain.com">
+                    </div>
+                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="resetSettings()">重置默认</button>
@@ -1512,8 +1537,23 @@ async def get():
             </div>
             <div class="modal-body">
                 <div class="mcp-list" id="mcp-list-content"></div>
+                
                 <div style="margin-top: 20px;">
-                    <h4 style="color: white; margin-bottom: 12px;">添加MCP服务器</h4>
+                    <h4 style="color: white; margin-bottom: 12px;">📦 快速添加MCP服务器</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                        <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('filesystem')">📁 文件系统</button>
+                        <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('github')">🐙 GitHub</button>
+                        <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('notion')">📓 Notion</button>
+                        <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('brave')">🔍 Brave搜索</button>
+                        <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('sqlite')">🗄️ SQLite</button>
+                        <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('postgres')">🐘 PostgreSQL</button>
+                        <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('slack')">💬 Slack</button>
+                        <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('gmail')">📧 Gmail</button>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h4 style="color: white; margin-bottom: 12px;">⚙️ 自定义MCP服务器</h4>
                     <div class="setting-row">
                         <span class="setting-label">名称</span>
                         <input type="text" class="setting-input" id="mcp-name" placeholder="例如：本地文件系统">
@@ -1714,6 +1754,15 @@ async def get():
             document.getElementById('setting-max-tokens').value = settings.llm.max_tokens;
             document.getElementById('setting-temperature').value = settings.llm.temperature;
             document.getElementById('setting-sandbox-timeout').value = settings.sandbox.timeout;
+            
+            if (settings.langsmith) {
+                if (settings.langsmith.enabled) {
+                    document.getElementById('setting-langsmith-enabled').classList.add('on');
+                }
+                document.getElementById('setting-langsmith-api-key').value = settings.langsmith.api_key || '';
+                document.getElementById('setting-langsmith-project').value = settings.langsmith.project || 'dataagent';
+                document.getElementById('setting-langsmith-endpoint').value = settings.langsmith.endpoint || 'https://api.smith.langchain.com';
+            }
         }
 
         async function saveSettings() {
@@ -1742,7 +1791,13 @@ async def get():
                 },
                 conversation: { history_enabled: true, max_history: 50, auto_title: true },
                 display: { theme: 'dark', thinking_chain: true, code_highlight: true, markdown_render: true },
-                agent: { max_steps: 5, auto_mode: true, reasoning_mode: 'auto' }
+                agent: { max_steps: 5, auto_mode: true, reasoning_mode: 'auto' },
+                langsmith: {
+                    enabled: document.getElementById('setting-langsmith-enabled').classList.contains('on'),
+                    api_key: document.getElementById('setting-langsmith-api-key').value,
+                    project: document.getElementById('setting-langsmith-project').value,
+                    endpoint: document.getElementById('setting-langsmith-endpoint').value
+                }
             };
             
             // 验证必填字段
@@ -2162,6 +2217,59 @@ async def get():
                 sendMessage();
             }
         });
+
+        function quickAddMcp(type) {
+            const mcpPresets = {
+                'filesystem': {
+                    name: '📁 文件系统',
+                    command: 'npx',
+                    args: ['-y', '@modelcontextprotocol/server-filesystem', '/']
+                },
+                'github': {
+                    name: '🐙 GitHub',
+                    command: 'npx',
+                    args: ['-y', '@modelcontextprotocol/server-github']
+                },
+                'notion': {
+                    name: '📓 Notion',
+                    command: 'npx',
+                    args: ['-y', '@modelcontextprotocol/server-notion']
+                },
+                'brave': {
+                    name: '🔍 Brave搜索',
+                    command: 'npx',
+                    args: ['-y', '@modelcontextprotocol/server-brave-search']
+                },
+                'sqlite': {
+                    name: '🗄️ SQLite',
+                    command: 'npx',
+                    args: ['-y', '@modelcontextprotocol/server-sqlite']
+                },
+                'postgres': {
+                    name: '🐘 PostgreSQL',
+                    command: 'npx',
+                    args: ['-y', '@modelcontextprotocol/server-postgres']
+                },
+                'slack': {
+                    name: '💬 Slack',
+                    command: 'npx',
+                    args: ['-y', '@modelcontextprotocol/server-slack']
+                },
+                'gmail': {
+                    name: '📧 Gmail',
+                    command: 'npx',
+                    args: ['-y', '@modelcontextprotocol/server-gmail']
+                }
+            };
+            
+            const preset = mcpPresets[type];
+            if (preset) {
+                document.getElementById('mcp-name').value = preset.name;
+                document.getElementById('mcp-type').value = 'stdio';
+                document.getElementById('mcp-command').value = preset.command + ' ' + preset.args.join(' ');
+                showSuccess(`已填充 ${preset.name} 配置！请添加后配置相关环境变量`);
+            }
+        }
 
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('modal-overlay')) {
