@@ -6,11 +6,10 @@ DataAgent - 数据持久化层
 import json
 import datetime
 from pathlib import Path
-from typing import Dict, List, Any
-from pydantic import BaseModel, Field
+from typing import Dict
 
 from config import *
-from models import *
+from models import Settings, KnowledgeBase, Document, Skill, MCPServer, Database
 
 # ============================================================
 # 全局状态字典
@@ -23,34 +22,6 @@ skills: Dict[str, Skill] = {}
 mcp_servers: Dict[str, MCPServer] = {}
 conversations: Dict[str, dict] = {}
 databases: Dict[str, Database] = {}
-
-# ============================================================
-# Conversation 模型（会话数据结构）
-# ============================================================
-
-class Conversation(BaseModel):
-    id: str
-    title: str
-    messages: List[dict] = Field(default_factory=list)
-    created_at: str
-    updated_at: str
-
-CONVERSATIONS_FILE = DATA_DIR / "conversations.json"
-
-# ============================================================
-# Database 模型（数据库连接数据结构）
-# ============================================================
-
-DATABASES_DIR = DATA_DIR / "databases"
-DATABASES_DIR.mkdir(parents=True, exist_ok=True)
-
-class Database(BaseModel):
-    id: str
-    name: str
-    path: str
-    tables: List[str] = Field(default_factory=list)
-    created_at: str
-    updated_at: str
 
 # ============================================================
 # 会话 (Conversations) 加载/保存

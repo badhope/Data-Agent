@@ -1,12 +1,13 @@
 """
 DataAgent - NL2SQL 路由
 包含意图分析、SQL 生成、SQL 执行等端点
+LLM 调用委托给 services 层处理
 """
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from database import current_settings, databases
-from config import OPENAI_AVAILABLE
+from services.llm_service import call_llm_json
 import json, re, sqlite3
 
 router = APIRouter()
@@ -75,6 +76,7 @@ async def generate_sql(request: Request):
     if not current_settings.llm.api_key:
         raise HTTPException(status_code=400, detail="请先配置API Key")
 
+    # 获取数据库 schema 信息
     schema_info = ""
     if db_id and db_id in databases:
         db = databases[db_id]
@@ -106,26 +108,20 @@ async def generate_sql(request: Request):
 
 SQL:"""
 
-    try:
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(
-            api_key=current_settings.llm.api_key,
-            base_url=current_settings.llm.base_url or "https://api.openai.com/v1"
-        )
-        response = await client.chat.completions.create(
-            model=current_settings.llm.model or "gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=500,
-            temperature=0.1
-        )
+    # 委托给 services 层调用 LLM
+    result_text = await call_llm_json(prompt, current_settings, pattern=r'.*', temperature=0.1)
 
-        sql = response.choices[0].message.content.strip()
-        sql = re.sub(r'^```sql\s*', '', sql)
-        sql = re.sub(r'\s*```$', '', sql)
+    if "error" in result_text:
+        return JSONResponse({"success": False, "error": result_text["error"]})
 
-        return JSONResponse({"sql": sql, "query": query, "intent": intent})
-    except Exception as e:
-        return JSONResponse({"success": False, "error": str(e)})
+    # SQL 生成场景下，LLM 返回的是纯文本而非 JSON
+    # 使用 call_llm_json 的 raw 字段或直接处理
+    sql = result_text.get("raw", "") if "raw" in result_text else str(result_text)
+    sql = re.sub(r'^```sql\s*', '', sql)
+    sql = re.sub(r'\s*```$', '', sql)
+    sql = sql.strip()
+
+    return JSONResponse({"sql": sql, "query": query, "intent": intent})
 
 
 # ==================== SQL 执行 ====================

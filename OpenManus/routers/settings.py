@@ -1,6 +1,7 @@
 """
 DataAgent - 设置路由
 包含系统设置、验证、测试、导入导出、模型列表、Schema 等端点
+连接测试委托给 services 层处理
 """
 
 from fastapi import APIRouter, HTTPException, Request
@@ -8,6 +9,7 @@ from fastapi.responses import JSONResponse
 from database import current_settings, save_settings
 from config import CONFIG_DIR
 from models import Settings
+from services.llm_service import test_connection
 import json
 
 router = APIRouter()
@@ -58,27 +60,14 @@ async def validate_settings(request: Request):
 
 @router.post("/api/settings/test-connection")
 async def test_api_connection(request: Request):
+    """测试 API 连接，委托给 services 层"""
     data = await request.json()
     llm = data.get("llm", {})
     api_key = llm.get("api_key", "")
     base_url = llm.get("base_url", "https://api.openai.com/v1")
     model = llm.get("model", "gpt-4o")
-    if not api_key:
-        return JSONResponse({"success": False, "message": "API Key 不能为空"})
-    try:
-        from config import OPENAI_AVAILABLE
-        if not OPENAI_AVAILABLE:
-            return JSONResponse({"success": False, "message": "未安装 openai 库"})
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        response = await client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": "Hello"}],
-            max_tokens=10
-        )
-        return JSONResponse({"success": True, "message": "连接成功"})
-    except Exception as e:
-        return JSONResponse({"success": False, "message": str(e)})
+    result = await test_connection(api_key, base_url, model)
+    return JSONResponse(result)
 
 
 @router.get("/api/settings/export")

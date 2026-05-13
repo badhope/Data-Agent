@@ -1,14 +1,15 @@
 """
 DataAgent - Agent 路由
 包含多意图拆解（DAG 规划）、DAG 执行、归因分析等端点
+LLM JSON 调用委托给 services 层处理
 """
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from database import current_settings
-from config import DATA_DIR, OPENAI_AVAILABLE
-import json, re, uuid
-from pathlib import Path
+from config import DATA_DIR
+from services.llm_service import call_llm_json
+import json
 
 router = APIRouter()
 
@@ -39,28 +40,15 @@ async def decompose_query(request: Request):
 
 只返回JSON数组，不要其他内容。"""
 
-    try:
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(
-            api_key=current_settings.llm.api_key,
-            base_url=current_settings.llm.base_url or "https://api.openai.com/v1"
-        )
-        response = await client.chat.completions.create(
-            model=current_settings.llm.model or "gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1000,
-            temperature=0.3
-        )
+    # 委托给 services 层调用 LLM 并解析 JSON
+    result = await call_llm_json(prompt, current_settings, pattern=r'\[.*\]', temperature=0.3)
 
-        result_text = response.choices[0].message.content.strip()
-        json_match = re.search(r'\[.*\]', result_text, re.DOTALL)
-        if json_match:
-            tasks = json.loads(json_match.group())
-            return JSONResponse({"query": query, "tasks": tasks, "task_count": len(tasks)})
-        else:
-            return JSONResponse({"query": query, "tasks": [], "error": "解析失败"})
-    except Exception as e:
-        return JSONResponse({"success": False, "error": str(e)})
+    if "error" in result:
+        return JSONResponse({"query": query, "tasks": [], "error": result["error"]})
+
+    # call_llm_json 返回的是解析后的对象
+    tasks = result if isinstance(result, list) else []
+    return JSONResponse({"query": query, "tasks": tasks, "task_count": len(tasks)})
 
 
 # ==================== DAG 执行 ====================

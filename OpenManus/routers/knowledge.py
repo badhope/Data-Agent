@@ -1,6 +1,7 @@
 """
 DataAgent - 知识库路由
 包含知识库 CRUD、文档上传/预览/分块/搜索/嵌入等端点
+业务逻辑委托给 services 层处理
 """
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File
@@ -9,11 +10,13 @@ from database import (
     knowledge_bases, documents, save_knowledge_bases,
     current_settings
 )
-from config import KNOWLEDGE_DIR, DATA_DIR
+from config import KNOWLEDGE_DIR
 from models import KnowledgeBase as KBModel, Document as DocModel
-import sys, os, json, uuid, datetime, re, tempfile, shutil, asyncio
+from services.knowledge_service import process_document, search_knowledge_base
+from services.embedding_service import generate_embeddings
+import uuid, datetime, asyncio, shutil
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import List
 
 router = APIRouter()
 
@@ -71,7 +74,6 @@ async def delete_knowledge_base(kb_id: str):
         raise HTTPException(status_code=404, detail="知识库不存在")
     del knowledge_bases[kb_id]
     save_knowledge_bases()
-    import shutil
     kb_dir = KNOWLEDGE_DIR / kb_id
     if kb_dir.exists():
         shutil.rmtree(kb_dir)
@@ -130,6 +132,7 @@ async def upload_document(kb_id: str, file: UploadFile = File(...)):
         )
         documents[doc_id] = doc
 
+        # 委托给 services 层处理文档
         asyncio.create_task(process_document(doc_id, file_path, file_ext))
 
         return JSONResponse({
@@ -182,73 +185,7 @@ async def delete_document(kb_id: str, doc_id: str):
     return JSONResponse({"success": True, "message": "文档已删除"})
 
 
-# ==================== 文档处理/预览/分块 ====================
-
-async def process_document(doc_id: str, file_path: Path, file_ext: str):
-    try:
-        content = ""
-
-        if file_ext == '.txt' or file_ext == '.md':
-            import aiofiles
-            async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
-                content = await f.read()
-
-        elif file_ext == '.csv':
-            import pandas as pd
-            df = pd.read_csv(file_path)
-            content = df.to_string()
-
-        elif file_ext == '.pdf':
-            try:
-                import fitz
-                doc = fitz.open(file_path)
-                content = "\n".join([page.get_text() for page in doc])
-                doc.close()
-            except:
-                content = "[PDF内容需要安装pymupdf库]"
-
-        elif file_ext == '.docx':
-            try:
-                from docx import Document as DocxDocument
-                doc = DocxDocument(file_path)
-                content = "\n".join([para.text for para in doc.paragraphs])
-            except:
-                content = "[DOCX内容需要安装python-docx库]"
-
-        if doc_id in documents:
-            documents[doc_id].status = "available"
-            documents[doc_id].content = content[:100000] if len(content) > 100000 else content
-            chunks = split_into_chunks(content, chunk_size=500, overlap=50)
-            documents[doc_id].chunks = chunks
-            documents[doc_id].chunk_count = len(chunks)
-
-    except Exception as e:
-        if doc_id in documents:
-            documents[doc_id].status = "failed"
-            documents[doc_id].error = str(e)
-
-
-def split_into_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> List[dict]:
-    if not text:
-        return []
-    chunks = []
-    start = 0
-    chunk_id = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunk_text = text[start:end]
-        chunks.append({
-            "id": chunk_id,
-            "content": chunk_text,
-            "start": start,
-            "end": min(end, len(text))
-        })
-        chunk_id += 1
-        start = end - overlap
-        if start >= len(text) - overlap:
-            break
-    return chunks
-
+# ==================== 文档预览/分块 ====================
 
 @router.get("/api/knowledge-bases/{kb_id}/documents/{doc_id}/preview")
 async def preview_document(kb_id: str, doc_id: str):
@@ -275,30 +212,9 @@ async def get_document_chunks(kb_id: str, doc_id: str):
 
 # ==================== 搜索/嵌入 ====================
 
-async def generate_embeddings(text: str, api_key: str, base_url: str = "https://api.openai.com/v1", model: str = "text-embedding-3-small") -> List[float]:
-    try:
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        response = await client.embeddings.create(input=text[:8000], model=model)
-        return response.data[0].embedding
-    except Exception as e:
-        print(f"Embedding error: {e}")
-        return []
-
-
-def cosine_similarity(a: List[float], b: List[float]) -> float:
-    if not a or not b or len(a) != len(b):
-        return 0.0
-    dot_product = sum(x * y for x, y in zip(a, b))
-    norm_a = sum(x * x for x in a) ** 0.5
-    norm_b = sum(x * x for x in b) ** 0.5
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    return dot_product / (norm_a * norm_b)
-
-
 @router.post("/api/knowledge-bases/{kb_id}/search")
-async def search_knowledge_base(kb_id: str, request: Request):
+async def search_kb(kb_id: str, request: Request):
+    """搜索知识库，委托给 services 层"""
     if kb_id not in knowledge_bases:
         raise HTTPException(status_code=404, detail="知识库不存在")
     data = await request.json()
@@ -307,43 +223,13 @@ async def search_knowledge_base(kb_id: str, request: Request):
     if not query:
         raise HTTPException(status_code=400, detail="请提供搜索查询")
 
-    kb = knowledge_bases[kb_id]
-    results = []
-
-    api_key = current_settings.llm.api_key or ""
-    base_url = current_settings.llm.base_url or "https://api.openai.com/v1"
-    embedding_model = kb.embedding_model or "text-embedding-3-small"
-
-    query_embedding = await generate_embeddings(query, api_key, base_url, embedding_model)
-
-    for doc_id, doc in documents.items():
-        if doc.knowledge_base_id != kb_id:
-            continue
-        if not hasattr(doc, 'chunks') or not doc.chunks:
-            continue
-
-        for chunk in doc.chunks:
-            if not hasattr(chunk, 'embedding') or not chunk.get('embedding'):
-                chunk['embedding'] = await generate_embeddings(
-                    chunk['content'], api_key, base_url, embedding_model
-                )
-
-            if query_embedding and chunk.get('embedding'):
-                score = cosine_similarity(query_embedding, chunk['embedding'])
-                results.append({
-                    "doc_id": doc_id,
-                    "doc_name": doc.name,
-                    "chunk_id": chunk['id'],
-                    "content": chunk['content'],
-                    "score": score
-                })
-
-    results.sort(key=lambda x: x['score'], reverse=True)
-    return JSONResponse({"results": results[:top_k], "total": len(results)})
+    results = await search_knowledge_base(kb_id, query, top_k)
+    return JSONResponse({"results": results, "total": len(results)})
 
 
 @router.post("/api/knowledge-bases/{kb_id}/embed")
 async def generate_kb_embeddings(kb_id: str):
+    """为知识库中所有未嵌入的分块生成向量"""
     if kb_id not in knowledge_bases:
         raise HTTPException(status_code=404, detail="知识库不存在")
 

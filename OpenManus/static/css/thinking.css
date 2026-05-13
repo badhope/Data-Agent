@@ -1,0 +1,86 @@
+.thinking-container { background: rgba(71, 85, 105, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); }
+.thinking-phase { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.thinking-dot { width: 8px; height: 8px; background: #60a5fa; border-radius: 50%; animation: pulse 1s infinite; }
+.thinking-title { color: #60a5fa; font-weight: 500; font-size: 14px; }
+.thinking-content { color: #94a3b8; font-size: 13px; padding-left: 20px; }
+.thinking-tools { margin-top: 8px; padding-left: 20px; }
+.tool-tag { display: inline-block; background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin-right: 8px; }
+
+/* ==================== 思考动画样式 ==================== */
+.thinking-container {
+    max-width: 85%;
+    margin: 16px auto;
+    background: rgba(30, 41, 59, 0.8);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+    animation: fadeIn 0.3s ease;
+}
+
+.thinking-item {
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.thinking-item:last-child {
+    border-bottom: none;
+}
+
+.thinking-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.thinking-header:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.thinking-badge {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0;
+}
+
+.thinking-title {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.thinking-toggle {
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform var(--transition-fast);
+}
+
+.thinking-content {
+    padding: 0 16px 12px;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+    overflow: hidden;
+    max-height: 200px;
+    transition: max-height var(--transition-normal), padding var(--transition-normal);
+}
+
+.thinking-content.collapsed {
+    max-height: 0;
+    padding-bottom: 0;
+}
+
+/* 思考中脉冲动画 */
+.thinking-item.active .thinking-badge {
+    animation: thinkingPulse 1.5s infinite;
+}

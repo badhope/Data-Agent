@@ -1,50 +1,100 @@
 """
 DataAgent - 技能路由
 包含技能 CRUD、生成、使用、测试、导入导出、模板等端点
+LLM 调用委托给 services 层处理
 """
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from database import skills, save_skills, current_settings
-from config import OPENAI_AVAILABLE
 from models import Skill
-import json, uuid, datetime, re
+from services.llm_service import call_llm, call_llm_json
+import json, uuid, datetime
 
 router = APIRouter()
 
 
-async def call_llm(prompt: str, settings) -> str:
-    if not OPENAI_AVAILABLE:
-        return "错误: 未安装 openai 库，请运行 pip install openai"
-    if not settings.llm.get("api_key"):
-        return "请先在设置中配置 API Key"
-    try:
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(
-            api_key=settings.llm["api_key"],
-            base_url=settings.llm["base_url"]
-        )
-        response = await client.chat.completions.create(
-            model=settings.llm["model"],
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=settings.llm["max_tokens"],
-            temperature=settings.llm["temperature"],
-            top_p=settings.llm["top_p"]
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"LLM调用失败: {str(e)}"
-
-
-# ==================== 技能 CRUD ====================
+# ==================== 技能列表与模板（静态路由必须在动态路由之前） ====================
 
 @router.get("/api/skills")
 async def list_skills():
     return JSONResponse([skill.model_dump() for skill in skills.values()])
 
 
+@router.get("/api/skills/templates")
+async def get_skill_templates():
+    """获取预定义的技能模板列表"""
+    templates = [
+        {
+            "id": "code-review",
+            "name": "代码审查专家",
+            "icon": "🔍",
+            "description": "专业的代码审查和质量分析",
+            "category": "code",
+            "prompts": {
+                "system_prompt": "你是一位资深代码审查专家，擅长发现代码中的问题并提供改进建议。",
+                "user_prompt_template": "请审查以下代码：\n\n{{input}}"
+            }
+        },
+        {
+            "id": "data-analyst",
+            "name": "数据分析助手",
+            "icon": "📊",
+            "description": "数据分析和可视化专家",
+            "category": "data",
+            "prompts": {
+                "system_prompt": "你是一位数据分析专家，擅长数据清洗、统计分析和可视化。",
+                "user_prompt_template": "请分析以下数据：\n\n{{input}}"
+            }
+        },
+        {
+            "id": "translator",
+            "name": "多语言翻译",
+            "icon": "🌐",
+            "description": "专业的多语言翻译服务",
+            "category": "translation",
+            "prompts": {
+                "system_prompt": "你是一位专业翻译，精通多种语言，确保翻译准确、自然。",
+                "user_prompt_template": "请将以下内容翻译成{{target_language}}：\n\n{{input}}"
+            },
+            "parameters": [
+                {"name": "target_language", "type": "string", "default": "英文", "description": "目标语言"}
+            ]
+        },
+        {
+            "id": "writer",
+            "name": "写作助手",
+            "icon": "✍️",
+            "description": "专业的文案写作和润色",
+            "category": "writing",
+            "prompts": {
+                "system_prompt": "你是一位专业写作助手，擅长各类文案创作和文字润色。",
+                "user_prompt_template": "请帮我{{action}}以下内容：\n\n{{input}}"
+            },
+            "parameters": [
+                {"name": "action", "type": "select", "options": ["润色", "扩写", "缩写", "改写"], "default": "润色"}
+            ]
+        },
+        {
+            "id": "summarizer",
+            "name": "内容摘要",
+            "icon": "📝",
+            "description": "智能内容摘要和要点提取",
+            "category": "document",
+            "prompts": {
+                "system_prompt": "你是一位摘要专家，擅长提取关键信息，生成简洁准确的摘要。",
+                "user_prompt_template": "请总结以下内容的要点：\n\n{{input}}"
+            }
+        }
+    ]
+    return JSONResponse(templates)
+
+
+# ==================== 技能 CRUD（动态路由） ====================
+
 @router.post("/api/skills/generate")
 async def generate_skill(request: Request):
+    """使用 AI 生成技能建议"""
     data = await request.json()
     purpose = data.get("purpose", "")
 
@@ -54,14 +104,7 @@ async def generate_skill(request: Request):
     if not current_settings.llm.get("api_key"):
         raise HTTPException(status_code=400, detail="请先在设置中配置API Key")
 
-    try:
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(
-            api_key=current_settings.llm["api_key"],
-            base_url=current_settings.llm.get("base_url", "https://api.openai.com/v1")
-        )
-
-        prompt = f"""基于以下需求，生成一个AI技能的建议：
+    prompt = f"""基于以下需求，生成一个AI技能的建议：
 
 需求：{purpose}
 
@@ -73,24 +116,12 @@ async def generate_skill(request: Request):
 
 只返回JSON，不要其他内容。"""
 
-        response = await client.chat.completions.create(
-            model=current_settings.llm.get("model", "gpt-4o"),
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=500,
-            temperature=0.7
-        )
+    result = await call_llm_json(prompt, current_settings, pattern=r'\{.*\}', temperature=0.7)
 
-        result_text = response.choices[0].message.content.strip()
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
 
-        json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
-        if json_match:
-            result = json.loads(json_match.group())
-            return JSONResponse(result)
-        else:
-            raise HTTPException(status_code=500, detail="AI返回格式错误")
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI生成失败: {str(e)}")
+    return JSONResponse(result)
 
 
 @router.post("/api/skills")
@@ -200,76 +231,6 @@ async def export_skill(skill_id: str):
         raise HTTPException(status_code=404, detail="技能不存在")
     skill = skills[skill_id]
     return JSONResponse(skill.model_dump())
-
-
-# ==================== 技能模板 ====================
-
-@router.get("/api/skills/templates")
-async def get_skill_templates():
-    templates = [
-        {
-            "id": "code-review",
-            "name": "代码审查专家",
-            "icon": "🔍",
-            "description": "专业的代码审查和质量分析",
-            "category": "code",
-            "prompts": {
-                "system_prompt": "你是一位资深代码审查专家，擅长发现代码中的问题并提供改进建议。",
-                "user_prompt_template": "请审查以下代码：\n\n{{input}}"
-            }
-        },
-        {
-            "id": "data-analyst",
-            "name": "数据分析助手",
-            "icon": "📊",
-            "description": "数据分析和可视化专家",
-            "category": "data",
-            "prompts": {
-                "system_prompt": "你是一位数据分析专家，擅长数据清洗、统计分析和可视化。",
-                "user_prompt_template": "请分析以下数据：\n\n{{input}}"
-            }
-        },
-        {
-            "id": "translator",
-            "name": "多语言翻译",
-            "icon": "🌐",
-            "description": "专业的多语言翻译服务",
-            "category": "translation",
-            "prompts": {
-                "system_prompt": "你是一位专业翻译，精通多种语言，确保翻译准确、自然。",
-                "user_prompt_template": "请将以下内容翻译成{{target_language}}：\n\n{{input}}"
-            },
-            "parameters": [
-                {"name": "target_language", "type": "string", "default": "英文", "description": "目标语言"}
-            ]
-        },
-        {
-            "id": "writer",
-            "name": "写作助手",
-            "icon": "✍️",
-            "description": "专业的文案写作和润色",
-            "category": "writing",
-            "prompts": {
-                "system_prompt": "你是一位专业写作助手，擅长各类文案创作和文字润色。",
-                "user_prompt_template": "请帮我{{action}}以下内容：\n\n{{input}}"
-            },
-            "parameters": [
-                {"name": "action", "type": "select", "options": ["润色", "扩写", "缩写", "改写"], "default": "润色"}
-            ]
-        },
-        {
-            "id": "summarizer",
-            "name": "内容摘要",
-            "icon": "📝",
-            "description": "智能内容摘要和要点提取",
-            "category": "document",
-            "prompts": {
-                "system_prompt": "你是一位摘要专家，擅长提取关键信息，生成简洁准确的摘要。",
-                "user_prompt_template": "请总结以下内容的要点：\n\n{{input}}"
-            }
-        }
-    ]
-    return JSONResponse(templates)
 
 
 # ==================== 技能测试 ====================

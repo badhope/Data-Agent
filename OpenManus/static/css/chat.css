@@ -1,0 +1,118 @@
+.chat-area { flex: 1; overflow-y: auto; padding: 24px; }
+.message { max-width: 85%; margin-bottom: 24px; animation: fadeIn 0.3s ease; }
+.message.user { margin-left: auto; }
+.message.assistant { margin-right: auto; }
+.message.system { text-align: center; margin: 16px auto; max-width: 60%; }
+.message-content { padding: 14px 18px; border-radius: 16px; line-height: 1.6; }
+.user .message-content { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border-bottom-right-radius: 4px; }
+.assistant .message-content { background: rgba(71, 85, 105, 0.6); color: #e2e8f0; border-bottom-left-radius: 4px; }
+.system .message-content { background: rgba(148, 163, 184, 0.15); color: #94a3b8; font-size: 13px; padding: 10px 16px; border-radius: 12px; }
+
+/* 企业级消息动画 */
+.message {
+    max-width: 85%;
+    margin-bottom: 24px;
+    animation: messageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.message.user { margin-left: auto; }
+.message.assistant { margin-right: auto; }
+.message.system { text-align: center; margin: 16px auto; max-width: 60%; }
+
+.message-content {
+    padding: 14px 18px;
+    border-radius: 16px;
+    line-height: 1.7;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.user .message-content {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-bottom-right-radius: 4px;
+    box-shadow: var(--shadow-glow);
+}
+
+.assistant .message-content {
+    background: rgba(71, 85, 105, 0.6);
+    color: #e2e8f0;
+    border-bottom-left-radius: 4px;
+}
+
+.system .message-content {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 10px 16px;
+    border-radius: 12px;
+}
+
+/* 消息操作菜单 */
+.message-actions {
+    display: none;
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    padding: 4px;
+    gap: 4px;
+    box-shadow: var(--shadow-lg);
+}
+
+.message:hover .message-actions {
+    display: flex;
+}
+
+.message-action-btn {
+    padding: 6px 10px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: var(--transition-fast);
+}
+
+.message-action-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+/* 打字机效果 */
+.typing-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--accent-primary);
+    margin-left: 2px;
+    animation: blink 1s infinite;
+}
+
+/* ==================== 流式输出样式 ==================== */
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 4px;
+}
+
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    animation: typingDot 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* 流式消息样式 */
+.message.streaming .message-content {
+    background: rgba(71, 85, 105, 0.4);
+}

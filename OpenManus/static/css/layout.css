@@ -1,0 +1,38 @@
+/* ==================== 核心布局 ==================== */
+.app-container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+.sidebar { width: 280px; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; transition: transform 0.3s ease; }
+.sidebar.closed { transform: translateX(-100%); }
+.sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
+.sidebar-overlay.show { display: block; }
+.sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.sidebar-header h2 { color: white; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+.sidebar-nav { flex: 1; padding: 12px; overflow-y: auto; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; color: #94a3b8; border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 4px; }
+.nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+.nav-item.active { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.nav-icon { font-size: 18px; }
+.nav-text h4 { font-size: 14px; font-weight: 500; }
+.nav-text p { font-size: 11px; opacity: 0.6; margin-top: 2px; }
+.nav-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 12px 0; }
+.main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.header { padding: 16px 24px; background: rgba(30, 41, 59, 0.5); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+.header h1 { color: white; font-size: 18px; }
+.header-actions { display: flex; gap: 10px; }
+.btn { padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; border: none; transition: all 0.2s; }
+.btn-primary { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+.btn-secondary { background: rgba(71, 85, 105, 0.5); color: #94a3b8; }
+
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+}
