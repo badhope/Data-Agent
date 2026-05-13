@@ -132,3 +132,33 @@ async def test_connection(api_key: str, base_url: str = "https://api.openai.com/
         return {"success": True, "message": "连接成功"}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+async def call_llm_with_retry(prompt: str, settings, max_retries: int = 3, base_delay: float = 1.0) -> str:
+    """带重试的 LLM 调用"""
+    last_error = None
+
+    for attempt in range(max_retries):
+        try:
+            result = await call_llm(prompt, settings)
+
+            # 检查是否返回了错误信息
+            if result.startswith("错误:") or result.startswith("LLM调用失败:"):
+                last_error = result
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    print(f"[RETRY] LLM call failed (attempt {attempt+1}/{max_retries}), retrying in {delay}s: {result[:100]}")
+                    await asyncio.sleep(delay)
+                    continue
+
+            return result
+
+        except Exception as e:
+            last_error = str(e)
+            if attempt < max_retries - 1:
+                delay = base_delay * (2 ** attempt)
+                print(f"[RETRY] LLM call error (attempt {attempt+1}/{max_retries}), retrying in {delay}s: {last_error[:100]}")
+                await asyncio.sleep(delay)
+                continue
+
+    return f"LLM调用失败（已重试{max_retries}次）: {last_error}"

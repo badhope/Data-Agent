@@ -30,6 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 鲁棒性中间件
+from middleware.error_handler import ErrorHandlerMiddleware
+from middleware.rate_limiter import RateLimitMiddleware
+
+app.add_middleware(ErrorHandlerMiddleware)
+app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
+
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 
@@ -44,6 +51,7 @@ from routers.financial import router as financial_router
 from routers.nl2sql import router as nl2sql_router
 from routers.visualization import router as visualization_router
 from routers.agent import router as agent_router
+from routers.feedback import router as feedback_router
 
 app.include_router(settings_router)
 app.include_router(knowledge_router)
@@ -55,9 +63,11 @@ app.include_router(financial_router)
 app.include_router(nl2sql_router)
 app.include_router(visualization_router)
 app.include_router(agent_router)
+app.include_router(feedback_router)
 
 # WebSocket 端点
 from services.agent_service import run_universal_agent
+from services.input_sanitizer import validate_message
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -66,6 +76,23 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_json()
             message = data.get("content", "")
+
+            # 输入验证
+            validation = validate_message(message)
+            if not validation["valid"]:
+                await websocket.send_json({"type": "error", "content": validation["error"]})
+                continue
+
+            # 使用净化后的输入
+            if validation.get("sanitized") != message:
+                message = validation["sanitized"]
+                if validation.get("warning"):
+                    await websocket.send_json({
+                        "type": "thinking",
+                        "title": "⚠️ 安全提示",
+                        "content": validation["warning"]
+                    })
+
             await run_universal_agent(websocket, message)
     except WebSocketDisconnect:
         pass

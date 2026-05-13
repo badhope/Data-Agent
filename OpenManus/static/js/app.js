@@ -209,6 +209,11 @@ function addMessage(content, type) {
             <div class="message-actions">
                 <button class="message-action-btn" onclick="copyMessage(this)" title="复制">\ud83d\udccb</button>
             </div>
+            ${type === 'assistant' ? `
+            <div class="message-feedback" style="display: flex; gap: 4px; margin-top: 4px;">
+                <button class="feedback-btn" onclick="submitFeedback(this, 'up')" title="有帮助" style="background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 2px 8px; color: #64748b; cursor: pointer; font-size: 12px; transition: all 0.2s;">\ud83d\udc4d</button>
+                <button class="feedback-btn" onclick="submitFeedback(this, 'down')" title="需改进" style="background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 2px 8px; color: #64748b; cursor: pointer; font-size: 12px; transition: all 0.2s;">\ud83d\udc4e</button>
+            </div>` : ''}
         </div>
         <div style="font-size: 11px; color: #6b7280; margin-top: 4px; ${type === 'user' ? 'text-align: right; padding-right: 8px;' : 'padding-left: 8px;'}">${time}</div>
     `;
@@ -228,6 +233,44 @@ function copyMessage(btn) {
     }).catch(() => {
         showToast('复制失败', 'error');
     });
+}
+
+async function submitFeedback(btn, rating) {
+    const messageEl = btn.closest('.message');
+    const content = messageEl.querySelector('.message-text')?.textContent || '';
+
+    // Determine category from content
+    let category = 'general';
+    if (/代码|python|function|class|import/.test(content)) category = 'code';
+    else if (/数据|分析|统计|图表|plot|chart/.test(content)) category = 'analysis';
+    else if (/写|文章|文案|翻译/.test(content)) category = 'writing';
+    else if (/知识库|文档|搜索/.test(content)) category = 'knowledge';
+
+    try {
+        await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                rating: rating,
+                category: category,
+                message_preview: content.substring(0, 200)
+            })
+        });
+
+        // Visual feedback
+        const feedbackDiv = btn.closest('.message-feedback');
+        feedbackDiv.querySelectorAll('.feedback-btn').forEach(b => {
+            b.style.opacity = '0.3';
+            b.style.pointerEvents = 'none';
+        });
+        btn.style.opacity = '1';
+        btn.style.borderColor = rating === 'up' ? '#10b981' : '#ef4444';
+        btn.style.color = rating === 'up' ? '#10b981' : '#ef4444';
+
+        showToast(rating === 'up' ? '感谢反馈！我会继续改进' : '感谢反馈，我会努力做得更好', 'info');
+    } catch (e) {
+        console.error('Feedback error:', e);
+    }
 }
 
 // ==================== 发送消息 ====================
