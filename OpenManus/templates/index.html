@@ -107,16 +107,17 @@
 
             <!-- ====== 顶部导航栏 ====== -->
             <div class="header">
-                <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="header-left">
                     <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()">☰</button>
-                    <!-- 连接状态指示器 -->
-                    <span class="status-dot" id="header-ws-status"></span>
-                    <h1>万能智能助手</h1>
-                    <!-- 模型名称显示 -->
-                    <span class="header-model-name" id="header-model-name">qwen-plus-latest</span>
+                    <h1>DataAgent</h1>
+                    <span class="header-status">
+                        <span class="status-dot" id="header-ws-status"></span>
+                    </span>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-icon" onclick="openModal('settings-modal')" title="设置">⚙️</button>
+                    <button class="btn-icon" onclick="clearChat()" title="清空对话">🗑️</button>
+                    <button class="btn-icon" onclick="openModal('help-modal')" title="帮助">📖</button>
+                    <button class="btn-icon" onclick="openModal('settings-modal')" title="设置">⚙️</button>
                 </div>
             </div>
 
@@ -125,49 +126,13 @@
 
                 <!-- 欢迎页面 -->
                 <div class="welcome-page" id="welcome-page">
-                    <div class="welcome-hero">
-                        <div class="welcome-logo">🤖</div>
-                        <h1>DataAgent</h1>
-                        <p class="welcome-tagline">万能智能助手 · 数据分析 · 代码执行 · 知识检索</p>
-                        <div class="welcome-status">
-                            <span class="status-dot" id="ws-status"></span>
-                            <span id="ws-status-text">连接中...</span>
+                    <div class="welcome-message">
+                        <div class="welcome-avatar">🤖</div>
+                        <div class="welcome-bubble">
+                            <p>你好！我是 DataAgent 智能助手。</p>
+                            <p>我可以帮你进行<strong>代码编写</strong>、<strong>数据分析</strong>、<strong>图表生成</strong>、<strong>文档处理</strong>等工作。</p>
+                            <p>试试在下方输入你的需求，或点击快捷指令快速开始 👇</p>
                         </div>
-                    </div>
-                    <div class="feature-grid">
-                        <div class="feature-card" onclick="insertCommand('你好，请介绍一下你能做什么')">
-                            <div class="feature-icon">💬</div>
-                            <h3>智能对话</h3>
-                            <p>自然语言交互，自动识别意图</p>
-                        </div>
-                        <div class="feature-card" onclick="insertCommand('生成Python代码：实现快速排序算法')">
-                            <div class="feature-icon">🐍</div>
-                            <h3>代码执行</h3>
-                            <p>Python代码生成与运行</p>
-                        </div>
-                        <div class="feature-card" onclick="insertCommand('分析以下数据并生成可视化图表')">
-                            <div class="feature-icon">📊</div>
-                            <h3>数据分析</h3>
-                            <p>数据处理与统计分析</p>
-                        </div>
-                        <div class="feature-card" onclick="openModal('knowledge-modal')">
-                            <div class="feature-icon">📚</div>
-                            <h3>知识库</h3>
-                            <p>文档上传与智能检索</p>
-                        </div>
-                        <div class="feature-card" onclick="openModal('prompt-modal')">
-                            <div class="feature-icon">⚡</div>
-                            <h3>技能系统</h3>
-                            <p>自定义AI技能</p>
-                        </div>
-                        <div class="feature-card" onclick="openModal('mcp-modal')">
-                            <div class="feature-icon">🔌</div>
-                            <h3>MCP工具</h3>
-                            <p>外部工具集成</p>
-                        </div>
-                    </div>
-                    <div class="welcome-tips">
-                        <p>💡 提示：按 <kbd>Enter</kbd> 发送消息，<kbd>Shift+Enter</kbd> 换行，<kbd>Ctrl+Enter</kbd> 强制发送</p>
                     </div>
                 </div>
 
@@ -175,40 +140,32 @@
 
             <!-- ====== 输入区域 ====== -->
             <div class="input-area">
-                <!-- 工具栏 -->
-                <div class="input-tools">
-                    <button class="tool-btn" onclick="document.getElementById('file-input').click()" title="上传文件">📎</button>
-                    <button class="tool-btn" onclick="openModal('knowledge-modal'); closeSidebar();" title="知识库">📚</button>
-                    <button class="tool-btn" onclick="toggleWebSearch()" title="联网搜索" id="web-search-btn">🔍</button>
-                    <button class="tool-btn" onclick="openModal('prompt-modal'); closeSidebar();" title="技能中心">💡</button>
-                    <button class="tool-btn" onclick="openModal('mcp-modal'); closeSidebar();" title="工具市场">🔌</button>
-                    <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx" style="display: none;" onchange="handleFileUpload(event)">
-                </div>
-
-                <!-- 输入框区域（含快捷指令芯片） -->
                 <div class="input-container">
-                    <!-- 快捷指令芯片（移入输入容器内部） -->
-                    <div class="input-chips">
-                        <button class="chip-btn" onclick="insertCommand('生成Python代码')">🐍 Python</button>
-                        <button class="chip-btn" onclick="insertCommand('分析数据')">📊 数据分析</button>
-                        <button class="chip-btn" onclick="insertCommand('画一个图表')">📈 图表</button>
-                        <button class="chip-btn" onclick="insertCommand('写一段文案')">✍️ 写作</button>
-                    </div>
-                    <!-- 文本输入与发送按钮 -->
-                    <div class="input-row">
-                        <textarea class="input-box" id="input-box" placeholder="输入您的需求...（Enter发送，Shift+Enter换行）" rows="2" oninput="updateCharCount()"></textarea>
-                        <div class="input-actions">
-                            <!-- 模型选择下拉 -->
-                            <select class="model-selector" id="input-model-selector" title="选择模型">
-                                <option value="qwen-plus-latest">qwen-plus-latest</option>
-                                <option value="qwen-max">qwen-max</option>
-                                <option value="gpt-4o">gpt-4o</option>
-                            </select>
-                            <button class="send-btn" id="send-btn" onclick="sendMessage()">发送</button>
+                    <div class="input-top-row">
+                        <div class="input-tools-compact">
+                            <button class="tool-btn-compact" onclick="document.getElementById('file-input').click()" title="上传文件">📎</button>
+                            <button class="tool-btn-compact" id="web-search-btn" onclick="toggleWebSearch()" title="联网搜索">🔍</button>
+                            <button class="tool-btn-compact" onclick="openModal('knowledge-modal')" title="知识库">📚</button>
+                            <button class="tool-btn-compact" onclick="openModal('prompt-modal')" title="技能">💡</button>
+                            <button class="tool-btn-compact" onclick="openModal('mcp-modal')" title="工具">🔌</button>
                         </div>
+                        <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx" style="display: none;" onchange="handleFileUpload(event)">
                     </div>
-                    <!-- 字符计数 -->
-                    <div class="char-count" id="char-count">0 / 4096</div>
+                    <div class="input-main-row">
+                        <textarea class="input-box" id="input-box" placeholder="输入消息..." rows="1" oninput="autoResize(this); updateCharCount()"></textarea>
+                        <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
+                    <div class="input-bottom-row">
+                        <div class="quick-commands">
+                            <button class="quick-btn" onclick="insertCommand('生成Python代码')">🐍 Python</button>
+                            <button class="quick-btn" onclick="insertCommand('分析数据')">📊 数据分析</button>
+                            <button class="quick-btn" onclick="insertCommand('生成图表')">📈 图表</button>
+                            <button class="quick-btn" onclick="insertCommand('写一段文案')">✍️ 写作</button>
+                        </div>
+                        <span class="char-count" id="char-count"></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -828,6 +785,14 @@
         }
 
         /**
+         * 自动调整文本框高度
+         */
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
+
+        /**
          * 更新字符计数
          */
         function updateCharCount() {
@@ -837,13 +802,17 @@
             var max = maxTokens ? parseInt(maxTokens.value) || 4096 : 4096;
             var current = inputBox ? inputBox.value.length : 0;
             if (charCount) {
-                charCount.textContent = current + ' / ' + max;
+                if (current > 0) {
+                    charCount.textContent = current + ' / ' + max;
+                } else {
+                    charCount.textContent = '';
+                }
                 if (current > max) {
                     charCount.style.color = '#f87171';
                 } else if (current > max * 0.8) {
                     charCount.style.color = '#fbbf24';
                 } else {
-                    charCount.style.color = '#94a3b8';
+                    charCount.style.color = '#334155';
                 }
             }
         }
@@ -876,34 +845,17 @@
         }
 
         /**
-         * 更新头部模型名称显示
+         * 更新头部模型名称显示（已移除头部模型显示，保留函数兼容性）
          */
         function updateHeaderModelName() {
-            var modelSelect = document.getElementById('setting-model');
-            var headerModel = document.getElementById('header-model-name');
-            var inputModelSelect = document.getElementById('input-model-selector');
-            if (modelSelect && headerModel) {
-                headerModel.textContent = modelSelect.value;
-            }
-            // 同步输入框模型选择器
-            if (modelSelect && inputModelSelect) {
-                inputModelSelect.value = modelSelect.value;
-            }
+            // 模型名称不再在头部显示，仅在设置中配置
         }
 
         /**
-         * 同步设置模型到输入框选择器
+         * 同步设置模型（保留函数兼容性）
          */
         function syncModelSelectors() {
-            var settingModel = document.getElementById('setting-model');
-            var inputModel = document.getElementById('input-model-selector');
-            var headerModel = document.getElementById('header-model-name');
-            if (settingModel && inputModel) {
-                inputModel.value = settingModel.value;
-            }
-            if (settingModel && headerModel) {
-                headerModel.textContent = settingModel.value;
-            }
+            // 模型选择器已从输入区移除，仅在设置中配置
         }
 
         // 监听设置模型变更
