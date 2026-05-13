@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Dify is an open-source platform for developing LLM applications with an intuitive interface combining agentic AI workflows, RAG pipelines, agent capabilities, and model management.
+Data-Agent is an enterprise-grade intelligent office assistant platform built on Dify.
 
 The codebase is split into:
 

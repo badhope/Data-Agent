@@ -36,7 +36,7 @@ We provide two installation methods. Method 2 (using uv) is recommended for fast
 1. Create a new conda environment:
 
 ```bash
-conda create -n open_manus python=3.12
+conda create -n open_manus python=3.10
 conda activate open_manus
 ```
 
@@ -71,7 +71,7 @@ cd DataAgent
 3. Create a new virtual environment and activate it:
 
 ```bash
-uv venv --python 3.12
+uv venv --python 3.10
 source .venv/bin/activate  # On Unix/macOS
 # Or on Windows:
 # .venv\Scripts\activate
