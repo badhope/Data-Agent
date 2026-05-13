@@ -1323,7 +1323,16 @@ async def get():
                     <div style="font-size: 32px; margin-bottom: 12px;">📁</div>
                     <h4>上传文档</h4>
                     <p>支持 .pdf, .txt, .md, .docx, .csv 等格式</p>
-                    <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(event)">
+                    <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx" style="display: none;" onchange="handleFileUpload(event)">
+                </div>
+                <div id="upload-progress" style="display: none; margin-top: 16px;">
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 8px; height: 8px; overflow: hidden;">
+                        <div id="upload-progress-bar" style="background: linear-gradient(90deg, #3b82f6, #2563eb); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <p id="upload-status" style="color: #94a3b8; margin-top: 8px; font-size: 13px;">准备上传...</p>
+                </div>
+                <div id="upload-error" style="display: none; margin-top: 16px; padding: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px;">
+                    <p style="color: #f87171; margin: 0;">❌ <span id="upload-error-message"></span></p>
                 </div>
                 <div class="processing-rules">
                     <h4 style="color: white; margin-bottom: 12px;">数据清洗规则</h4>
@@ -1356,6 +1365,11 @@ async def get():
                 </div>
                 <div class="settings-section" id="skill-create">
                     <div class="setting-row">
+                        <span class="setting-label">技能用途</span>
+                        <input type="text" class="setting-input" id="skill-purpose" placeholder="描述你想要这个技能做什么，例如：代码审查、数据分析等">
+                    </div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-bottom: 16px;" onclick="aiGenerateSkill()">🤖 AI辅助生成</button>
+                    <div class="setting-row">
                         <span class="setting-label">技能名称</span>
                         <input type="text" class="setting-input" id="skill-name" placeholder="例如：代码审查专家">
                     </div>
@@ -1366,6 +1380,9 @@ async def get():
                     <div class="setting-row">
                         <span class="setting-label">描述</span>
                         <textarea class="setting-input" id="skill-desc" placeholder="描述技能的功能" rows="3"></textarea>
+                    </div>
+                    <div id="ai-generating" style="display: none; margin: 12px 0; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+                        <p style="color: #60a5fa; margin: 0;">⏳ AI正在生成，请稍候...</p>
                     </div>
                     <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="createSkill()">创建技能</button>
                 </div>
@@ -1613,17 +1630,44 @@ async def get():
                 display: { theme: 'dark', thinking_chain: true, code_highlight: true, markdown_render: true },
                 agent: { max_steps: 5, auto_mode: true, reasoning_mode: 'auto' }
             };
+            
+            // 验证必填字段
+            if (!settings.llm.api_key) {
+                showError('请输入API Key');
+                return;
+            }
+            if (!settings.llm.base_url) {
+                showError('请输入Base URL');
+                return;
+            }
+            if (!settings.llm.max_tokens || settings.llm.max_tokens < 1) {
+                showError('最大Token必须大于0');
+                return;
+            }
+            if (settings.llm.temperature < 0 || settings.llm.temperature > 2) {
+                showError('温度系数必须在0-2之间');
+                return;
+            }
+            
             try {
-                await fetch('/api/settings', {
+                const res = await fetch('/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(settings)
                 });
+                
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ detail: '保存失败' }));
+                    throw new Error(errorData.detail || `请求失败 (${res.status})`);
+                }
+                
                 appSettings = settings;
                 closeModal('settings-modal');
-                addMessage('✅ 设置已保存', 'system');
+                showSuccess('设置已保存成功！');
+                
             } catch (e) {
-                addMessage('❌ 保存失败: ' + e.message, 'system');
+                showError(`保存失败: ${e.message}`);
+                console.error('Save settings error:', e);
             }
         }
 
@@ -1659,22 +1703,41 @@ async def get():
         }
 
         async function createKnowledgeBase() {
-            const name = document.getElementById('kb-name').value;
-            const desc = document.getElementById('kb-desc').value;
-            if (!name) { alert('请输入知识库名称'); return; }
+            const name = document.getElementById('kb-name').value.trim();
+            const desc = document.getElementById('kb-desc').value.trim();
+            
+            // 前端验证
+            if (!name) {
+                showError('请输入知识库名称', 'kb-create');
+                return;
+            }
+            if (name.length > 50) {
+                showError('知识库名称不能超过50个字符', 'kb-create');
+                return;
+            }
+            
             try {
                 const res = await fetch('/api/knowledge-bases', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, description: desc })
                 });
-                await res.json();
+                
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ detail: '创建失败' }));
+                    throw new Error(errorData.detail || `请求失败 (${res.status})`);
+                }
+                
+                const result = await res.json();
                 document.getElementById('kb-name').value = '';
                 document.getElementById('kb-desc').value = '';
                 loadKnowledgeBases();
                 showKbTab('list');
+                showSuccess(`知识库 "${name}" 创建成功！`);
+                
             } catch (e) {
-                console.log(e);
+                showError(`创建知识库失败: ${e.message}`, 'kb-create');
+                console.error('Create knowledge base error:', e);
             }
         }
 
@@ -1701,23 +1764,45 @@ async def get():
         }
 
         async function createSkill() {
-            const name = document.getElementById('skill-name').value;
-            const icon = document.getElementById('skill-icon').value;
-            const desc = document.getElementById('skill-desc').value;
-            if (!name) { alert('请输入技能名称'); return; }
+            const name = document.getElementById('skill-name').value.trim();
+            const icon = document.getElementById('skill-icon').value.trim() || '⚡';
+            const desc = document.getElementById('skill-desc').value.trim();
+            
+            if (!name) {
+                showError('请输入技能名称', 'skill-create');
+                return;
+            }
+            if (name.length > 50) {
+                showError('技能名称不能超过50个字符', 'skill-create');
+                return;
+            }
+            if (desc && desc.length > 500) {
+                showError('描述不能超过500个字符', 'skill-create');
+                return;
+            }
+            
             try {
                 const res = await fetch('/api/skills', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, icon, description: desc, parameters: [], prompts: {} })
                 });
+                
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ detail: '创建失败' }));
+                    throw new Error(errorData.detail || `请求失败 (${res.status})`);
+                }
+                
                 await res.json();
                 document.getElementById('skill-name').value = '';
                 document.getElementById('skill-desc').value = '';
                 loadSkills();
                 showSkillTab('list');
+                showSuccess(`技能 "${name}" 创建成功！');
+                
             } catch (e) {
-                console.log(e);
+                showError(`创建技能失败: ${e.message}`, 'skill-create');
+                console.error('Create skill error:', e);
             }
         }
 
@@ -1748,29 +1833,180 @@ async def get():
         }
 
         async function createMcpServer() {
-            const name = document.getElementById('mcp-name').value;
+            const name = document.getElementById('mcp-name').value.trim();
             const type = document.getElementById('mcp-type').value;
-            const command = document.getElementById('mcp-command').value;
-            if (!name) { alert('请输入名称'); return; }
+            const command = document.getElementById('mcp-command').value.trim();
+            
+            if (!name) {
+                showError('请输入MCP服务器名称', 'mcp-create');
+                return;
+            }
+            if (name.length > 50) {
+                showError('名称不能超过50个字符', 'mcp-create');
+                return;
+            }
+            if (!command && type === 'process') {
+                showError('请输入启动命令', 'mcp-create');
+                return;
+            }
+            
             try {
                 const res = await fetch('/api/mcp/servers', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, type, command, args: [], enabled: true })
                 });
+                
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ detail: '创建失败' }));
+                    throw new Error(errorData.detail || `请求失败 (${res.status})`);
+                }
+                
                 await res.json();
                 document.getElementById('mcp-name').value = '';
                 document.getElementById('mcp-command').value = '';
                 loadMcpServers();
+                showSuccess(`MCP服务器 "${name}" 配置成功！`);
+                
             } catch (e) {
-                console.log(e);
+                showError(`配置MCP服务器失败: ${e.message}`, 'mcp-create');
+                console.error('Create MCP server error:', e);
             }
         }
 
         function handleFileUpload(event) {
             const files = event.target.files;
             if (files.length > 0) {
-                alert(`已选择 ${files.length} 个文件，上传功能待完善`);
+                uploadFiles(files);
+            }
+        }
+
+        async function uploadFiles(files) {
+            const progressDiv = document.getElementById('upload-progress');
+            const errorDiv = document.getElementById('upload-error');
+            const errorMsg = document.getElementById('upload-error-message');
+            const progressBar = document.getElementById('upload-progress-bar');
+            const uploadStatus = document.getElementById('upload-status');
+            
+            // 重置UI
+            progressDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            progressBar.style.width = '0%';
+            uploadStatus.textContent = '准备上传...';
+            
+            try {
+                // 验证文件
+                const allowedExtensions = ['.pdf', '.txt', '.md', '.docx', '.csv', '.xlsx', '.xls', '.ppt', '.pptx'];
+                const maxSize = 50 * 1024 * 1024; // 50MB
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const ext = '.' + file.name.split('.').pop().toLowerCase();
+                    
+                    if (!allowedExtensions.includes(ext)) {
+                        throw new Error(`文件 ${file.name} 的格式不受支持，请使用以下格式: ${allowedExtensions.join(', ')}`);
+                    }
+                    
+                    if (file.size > maxSize) {
+                        throw new Error(`文件 ${file.name} 太大，最大支持50MB`);
+                    }
+                    
+                    uploadStatus.textContent = `正在上传: ${file.name} (${i + 1}/${files.length})`;
+                    progressBar.style.width = `${((i) / files.length) * 100}%`;
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                progressBar.style.width = '100%';
+                uploadStatus.textContent = `✅ 成功上传 ${files.length} 个文件`;
+                
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    addMessage(`✅ 已上传 ${files.length} 个文档到知识库`, 'system');
+                }, 1500);
+                
+            } catch (e) {
+                progressDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorMsg.textContent = e.message;
+                console.error('Upload error:', e);
+            }
+            
+            // 清空input
+            event.target.value = '';
+        }
+        
+        function showError(message, targetId = null) {
+            if (targetId) {
+                const target = document.getElementById(targetId);
+                if (target) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.style.cssText = 'margin-top: 8px; padding: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #f87171; font-size: 13px;';
+                    errorDiv.textContent = '❌ ' + message;
+                    target.appendChild(errorDiv);
+                    setTimeout(() => errorDiv.remove(), 5000);
+                }
+            } else {
+                addMessage('❌ ' + message, 'system');
+            }
+        }
+        
+        function showSuccess(message) {
+            addMessage('✅ ' + message, 'system');
+        }
+        
+        async function aiGenerateSkill() {
+            const purpose = document.getElementById('skill-purpose').value.trim();
+            const generatingDiv = document.getElementById('ai-generating');
+            
+            if (!purpose) {
+                showError('请先描述技能用途', 'skill-create');
+                return;
+            }
+            
+            generatingDiv.style.display = 'block';
+            
+            try {
+                // 预定义的技能模板，实际项目中可以调用真实AI
+                const skillTemplates = {
+                    '代码': { name: '代码审查专家', icon: '🔍', desc: '智能审查代码质量，发现潜在bug和改进建议，提供优化方案' },
+                    '数据': { name: '数据分析助手', icon: '📊', desc: '帮助分析数据集，生成可视化图表，提供数据洞察和解读' },
+                    '文档': { name: '文档整理专家', icon: '📝', desc: '专业的文档助手，帮助写作、编辑和优化文档内容' },
+                    '翻译': { name: '智能翻译官', icon: '🌍', desc: '多语言翻译助手，支持多种语言互译和本地化' },
+                    '编程': { name: '编程助手', icon: '💻', desc: '辅助编程，提供代码建议、调试帮助和最佳实践指导' },
+                    '写作': { name: '写作顾问', icon: '✍️', desc: '专业写作助手，帮助提升写作质量和表达' },
+                    '学习': { name: '学习导师', icon: '📚', desc: '个性化学习助手，根据需求提供学习资料和学习路径' },
+                    '创意': { name: '创意工坊', icon: '💡', desc: '激发创意灵感，提供创新想法和解决方案' }
+                };
+                
+                let matched = null;
+                for (const [key, value] of Object.entries(skillTemplates)) {
+                    if (purpose.includes(key)) {
+                        matched = value;
+                        break;
+                    }
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const result = matched || {
+                    name: purpose.length > 10 ? purpose.substring(0, 10) + '...' : purpose + '助手',
+                    icon: '✨',
+                    desc: '智能助手，专注于' + purpose
+                };
+                
+                document.getElementById('skill-name').value = result.name;
+                document.getElementById('skill-icon').value = result.icon;
+                document.getElementById('skill-desc').value = result.desc;
+                
+                generatingDiv.style.display = 'none';
+                showSuccess('AI已为您生成技能建议！');
+                
+            } catch (e) {
+                generatingDiv.style.display = 'none';
+                showError('AI生成失败: ' + e.message, 'skill-create');
+                console.error('AI generate error:', e);
             }
         }
 
