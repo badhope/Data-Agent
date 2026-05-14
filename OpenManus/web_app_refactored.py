@@ -448,6 +448,78 @@ async def get_sample_queries():
     return JSONResponse(samples)
 
 
+# ==================== 技能管理API ====================
+
+@app.get("/api/skills")
+async def list_skills():
+    """获取所有技能"""
+    try:
+        from web.skill_manager import get_all_skills
+        skills = get_all_skills()
+        return JSONResponse({
+            "success": True,
+            "skills": skills,
+            "total": len(skills)
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+
+@app.get("/api/skills/{skill_id}")
+async def get_skill(skill_id: str):
+    """获取单个技能详情"""
+    try:
+        from web.skill_manager import get_skill_by_id
+        skill = get_skill_by_id(skill_id)
+        if not skill:
+            raise HTTPException(status_code=404, detail="技能不存在")
+        return JSONResponse({
+            "success": True,
+            "skill": skill
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/skills/{skill_id}/execute")
+async def execute_skill_endpoint(skill_id: str, request: Request):
+    """执行技能"""
+    try:
+        from web.skill_manager import execute_skill
+        data = await request.json()
+        params = data.get("params", {})
+        result = await execute_skill(skill_id, params)
+        return JSONResponse(result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/skills/generate-ai")
+async def generate_ai_skill_endpoint(request: Request):
+    """AI一键生成技能"""
+    try:
+        from web.skill_manager import generate_ai_skill
+        data = await request.json()
+        skill_type = data.get("skill_type", "data_analysis")
+        description = data.get("description", "")
+        parameters = data.get("parameters", None)
+        
+        if not description:
+            raise HTTPException(status_code=400, detail="请提供技能描述")
+        
+        result = await generate_ai_skill(skill_type, description, parameters)
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("web_app_refactored:app", host="0.0.0.0", port=8000, reload=True)
