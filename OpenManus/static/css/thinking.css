@@ -81,3 +81,65 @@
 .thinking-item.active .thinking-badge {
     animation: thinkingPulse 1.5s infinite;
 }
+
+/* ==================== 代码块折叠样式 ==================== */
+.code-block-wrapper {
+    margin: 12px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.code-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(30, 41, 59, 0.8);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+}
+
+.code-block-header:hover {
+    background: rgba(45, 55, 72, 0.8);
+}
+
+.code-block-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.code-block-lang {
+    font-weight: 600;
+    color: #60a5fa;
+}
+
+.code-block-toggle {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.code-block-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    max-height: 1000px;
+}
+
+.code-block-content.collapsed {
+    max-height: 0;
+    padding: 0 !important;
+}
+
+.code-block-content pre {
+    margin: 0;
+    padding: 12px;
+    overflow-x: auto;
+}
+
+.code-block-content code {
+    font-size: 13px;
+}

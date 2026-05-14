@@ -1,5 +1,60 @@
 // 主应用逻辑
 
+// ==================== 代码块折叠功能 ====================
+
+function renderMarkdownWithCodeFolding(text) {
+    if (!window.marked) {
+        return text.replace(/\n/g, '<br>');
+    }
+    
+    let html = marked.parse(text);
+    
+    // 处理代码块，添加折叠功能
+    html = html.replace(/<pre><code([^>]*)>([\s\S]*?)<\/code><\/pre>/g, 
+        function(match, attrs, code) {
+            // 提取语言类型
+            let lang = 'text';
+            const langMatch = attrs.match(/class="[^"]*language-(\w+)/);
+            if (langMatch) lang = langMatch[1];
+            
+            const codeId = 'code-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            
+            return `
+                <div class="code-block-wrapper">
+                    <div class="code-block-header" onclick="toggleCodeBlock('${codeId}')">
+                        <div class="code-block-title">
+                            <span>📝</span>
+                            <span class="code-block-lang">${lang}</span>
+                        </div>
+                        <div class="code-block-toggle" id="${codeId}-toggle">▼</div>
+                    </div>
+                    <div class="code-block-content" id="${codeId}">
+                        <pre><code${attrs}>${code}</code></pre>
+                    </div>
+                </div>
+            `;
+        });
+    
+    return html;
+}
+
+function toggleCodeBlock(id) {
+    const content = document.getElementById(id);
+    const toggle = document.getElementById(id + '-toggle');
+    
+    if (content) {
+        content.classList.toggle('collapsed');
+        toggle.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
+    }
+}
+
+function autoScrollChat() {
+    const chatArea = document.getElementById('chat-area');
+    if (chatArea) {
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+}
+
 // ==================== 欢迎页面控制 ====================
 
 function hideWelcomePage() {
@@ -123,12 +178,10 @@ function handleWSMessage(data) {
 
             const rawText = (textEl.getAttribute('data-raw') || '') + data.content;
             textEl.setAttribute('data-raw', rawText);
-            // Only update DOM every frame using requestAnimationFrame
             if (!textEl._rafPending) {
                 textEl._rafPending = true;
                 requestAnimationFrame(() => {
-                    textEl.innerHTML = textEl.getAttribute('data-raw').replace(/\n/g, '<br>');
-                    // Highlight code blocks
+                    textEl.innerHTML = renderMarkdownWithCodeFolding(rawText);
                     textEl.querySelectorAll('pre code').forEach(block => {
                         if (window.hljs) hljs.highlightElement(block);
                     });
@@ -136,7 +189,7 @@ function handleWSMessage(data) {
                 });
             }
             indicator.style.display = 'inline-block';
-            chatArea.scrollTop = chatArea.scrollHeight;
+            autoScrollChat();
         }
 
     } else if (data.type === 'stream_end') {
@@ -192,17 +245,11 @@ function addMessage(content, type) {
     const chatArea = document.getElementById('chat-area');
     const messageEl = document.createElement('div');
     messageEl.className = `message ${type}`;
-    // Escape HTML for user messages to prevent XSS; assistant messages may contain formatting
     let formatted;
     if (type === 'user') {
         formatted = escapeHtml(content).replace(/\n/g, '<br>');
     } else {
-        // Use marked.js for markdown rendering
-        if (window.marked) {
-            formatted = marked.parse(content);
-        } else {
-            formatted = content.replace(/\n/g, '<br>');
-        }
+        formatted = renderMarkdownWithCodeFolding(content);
     }
 
     const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -345,7 +392,7 @@ function insertCommand(command) {
 
 function finishProcessing() {
     document.getElementById('send-btn').disabled = false;
-    document.getElementById('chat-area').scrollTop = document.getElementById('chat-area').scrollHeight;
+    autoScrollChat();
 }
 
 function clearChat() {

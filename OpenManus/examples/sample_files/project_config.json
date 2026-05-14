@@ -1,0 +1,45 @@
+{
+    "project": "DataAgent 智能助手",
+    "description": "AI 驱动的数据处理和文档生成平台",
+    "version": "1.0.0",
+    "features": [
+        {
+            "name": "文档摘要",
+            "description": "自动生成文档摘要和关键信息提取",
+            "status": "active"
+        },
+        {
+            "name": "PPT 生成",
+            "description": "智能生成演示文稿和幻灯片",
+            "status": "active"
+        },
+        {
+            "name": "图表可视化",
+            "description": "数据可视化和自动图表生成",
+            "status": "active"
+        },
+        {
+            "name": "知识管理",
+            "description": "知识库管理和智能问答",
+            "status": "active"
+        }
+    ],
+    "team": [
+        {
+            "name": "张三",
+            "role": "项目负责人",
+            "email": "zhangsan@example.com"
+        },
+        {
+            "name": "李四",
+            "role": "AI 开发工程师",
+            "email": "lisi@example.com"
+        }
+    ],
+    "stats": {
+        "total_users": 2560,
+        "daily_active": 892,
+        "generated_content": 15890
+    },
+    "last_updated": "2024-05-14"
+}
