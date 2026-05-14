@@ -715,6 +715,19 @@
             left: 24px;
         }
         
+        /* 侧边栏遮罩 */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 99;
+            display: none;
+        }
+        
+        .sidebar-overlay.show {
+            display: block;
+        }
+        
         /* ==================== 手机适配 ==================== */
         @media (max-width: 768px) {
             .sidebar {
@@ -723,6 +736,7 @@
                 top: 0;
                 height: 100%;
                 transform: translateX(-100%);
+                z-index: 100;
             }
             
             .sidebar.show {
@@ -752,6 +766,9 @@
     </style>
 </head>
 <body>
+    <!-- 侧边栏遮罩 -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    
     <div class="app-container">
         <!-- 侧边栏 -->
         <div class="sidebar" id="sidebar">
@@ -1036,6 +1053,7 @@
         
         // DOM
         const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const settingsModal = document.getElementById('settings-modal');
         const settingsOpen = document.getElementById('settings-open');
@@ -1061,15 +1079,42 @@
             pathology: { icon: '🔬', name: '病理分析' }
         };
         
-        // 手机菜单
-        mobileMenuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('show');
+        // 打开侧边栏
+        function openSidebar() {
+            sidebar.classList.add('show');
+            sidebarOverlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 关闭侧边栏
+        function closeSidebar() {
+            sidebar.classList.remove('show');
+            sidebarOverlay.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        
+        // 手机菜单按钮
+        mobileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (sidebar.classList.contains('show')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+        
+        // 点击遮罩关闭侧边栏
+        sidebarOverlay.addEventListener('click', closeSidebar);
+        
+        // 点击侧边栏内部不关闭
+        sidebar.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
         
         // 点击主内容区关闭侧边栏
-        document.querySelector('.main-content').addEventListener('click', (e) => {
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('show');
+        document.querySelector('.main-content').addEventListener('click', () => {
+            if (sidebar.classList.contains('show')) {
+                closeSidebar();
             }
         });
         
