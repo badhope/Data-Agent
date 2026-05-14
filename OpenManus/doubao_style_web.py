@@ -11,7 +11,7 @@ import asyncio
 
 app = FastAPI(
     title="DATA-AI - 万能智能助手",
-    version="4.0.0"
+    version="5.0.0"
 )
 
 BASE_DIR = Path(__file__).parent
@@ -51,9 +51,15 @@ async def get_mcp():
     with open(html_file, 'r', encoding='utf-8') as f:
         return f.read()
 
+@app.get("/settings", response_class=HTMLResponse)
+async def get_settings():
+    html_file = BASE_DIR / "web" / "templates" / "settings.html"
+    with open(html_file, 'r', encoding='utf-8') as f:
+        return f.read()
+
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "version": "4.0.0", "style": "豆包风格 + Trae IDE 管理界面"}
+    return {"status": "healthy", "version": "5.0.0", "features": ["multi-model", "agents", "prompts", "skills", "mcp"]}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
