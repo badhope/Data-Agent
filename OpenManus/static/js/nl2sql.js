@@ -73,24 +73,10 @@ async function executeNL2SQL() {
         const data = await res.json();
 
         if (data.success && data.columns) {
-            let html = '<div style="overflow-x: auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
-            data.columns.forEach(col => {
-                html += `<th style="padding:8px 12px;text-align:left;background:rgba(59,130,246,0.15);color:#60a5fa;border-bottom:1px solid rgba(255,255,255,0.1);">${col}</th>`;
-            });
-            html += '</tr></thead><tbody>';
-            data.data.forEach((row, idx) => {
-                const bg = idx % 2 === 0 ? 'transparent' : 'rgba(71,85,105,0.1)';
-                html += `<tr style="background:${bg}">`;
-                row.forEach(val => {
-                    html += `<td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);color:#cbd5e1;">${val !== null ? val : '<span style="color:#475569">NULL</span>'}</td>`;
-                });
-                html += '</tr>';
-            });
-            html += '</tbody></table></div>';
-            html += `<p style="color:#64748b;font-size:12px;margin-top:8px;">共 ${data.row_count} 行</p>`;
-            resultsDiv.innerHTML = html;
+            renderQueryResults({ columns: data.columns, rows: data.data }, 'nl2sql-results-content');
+            document.getElementById('nl2sql-results-content').innerHTML += `<p style="color:#64748b;font-size:12px;margin-top:8px;">共 ${data.row_count} 行</p>`;
         } else if (data.error) {
-            resultsDiv.innerHTML = `<p style="color:#ef4444;">❌ ${data.error}</p>`;
+            resultsDiv.innerHTML = `<p style="color:#ef4444;">❌ ${escapeHtml(data.error)}</p>`;
         }
     } catch (e) {
         resultsDiv.innerHTML = `<p style="color:#ef4444;">❌ 执行失败: ${e.message}</p>`;

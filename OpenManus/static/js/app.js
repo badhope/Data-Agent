@@ -87,10 +87,10 @@ function handleWSMessage(data) {
         phaseEl.innerHTML = `
             <div class="thinking-header" onclick="toggleThinking(this)">
                 <div class="thinking-badge">${phaseNum}</div>
-                <div class="thinking-title">${data.title}</div>
+                <div class="thinking-title">${escapeHtml(data.title)}</div>
                 <div class="thinking-toggle">\u25bc</div>
             </div>
-            <div class="thinking-content">${data.content}</div>
+            <div class="thinking-content">${escapeHtml(data.content)}</div>
         `;
 
         thinkingEl.appendChild(phaseEl);
@@ -227,6 +227,7 @@ function addMessage(content, type) {
     messageEl.querySelectorAll('pre code').forEach(block => {
         if (window.hljs) hljs.highlightElement(block);
     });
+    addCodeCopyButtons();
     chatArea.scrollTop = chatArea.scrollHeight;
 }
 

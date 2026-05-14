@@ -7,17 +7,12 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from database import databases, save_databases, Database
 from config import DATABASES_DIR
-import json, uuid, datetime, sqlite3, re
+from utils.validation import validate_table_name as _validate_table_name
+from utils.db_helper import get_db_connection
+import json, uuid, datetime, sqlite3
 from pathlib import Path
 
 router = APIRouter()
-
-
-def _validate_table_name(name: str) -> str:
-    """验证表名，防止SQL注入"""
-    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
-        raise HTTPException(status_code=400, detail=f"无效的表名: {name}")
-    return name
 
 
 # ==================== 数据库 CRUD ====================
@@ -60,30 +55,22 @@ async def delete_database(db_id: str):
 
 @router.get("/api/databases/{db_id}/tables")
 async def list_tables(db_id: str):
-    if db_id not in databases:
-        raise HTTPException(status_code=404, detail="数据库不存在")
-    db = databases[db_id]
-    conn = sqlite3.connect(db.path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = [row[0] for row in cursor.fetchall()]
-    conn.close()
+    with get_db_connection(db_id) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [row[0] for row in cursor.fetchall()]
     return JSONResponse({"tables": tables})
 
 
 @router.get("/api/databases/{db_id}/tables/{table_name}")
 async def get_table_schema(db_id: str, table_name: str):
-    if db_id not in databases:
-        raise HTTPException(status_code=404, detail="数据库不存在")
     table_name = _validate_table_name(table_name)
-    db = databases[db_id]
-    conn = sqlite3.connect(db.path)
-    cursor = conn.cursor()
-    cursor.execute(f"PRAGMA table_info({table_name})")
-    columns = [{"name": row[1], "type": row[2]} for row in cursor.fetchall()]
-    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-    count = cursor.fetchone()[0]
-    conn.close()
+    with get_db_connection(db_id) as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = [{"name": row[1], "type": row[2]} for row in cursor.fetchall()]
+        cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+        count = cursor.fetchone()[0]
     return JSONResponse({"table": table_name, "columns": columns, "row_count": count})
 
 
@@ -109,9 +96,8 @@ async def execute_query(db_id: str, request: Request):
     db = databases[db_id]
     try:
         import pandas as pd
-        conn = sqlite3.connect(db.path)
-        df = pd.read_sql_query(sql, conn)
-        conn.close()
+        with get_db_connection(db_id) as conn:
+            df = pd.read_sql_query(sql, conn)
         return JSONResponse({
             "success": True,
             "columns": list(df.columns),

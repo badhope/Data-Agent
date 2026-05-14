@@ -4,6 +4,10 @@ DataAgent - 万能智能助手
 """
 import sys
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # 确保项目根目录在 Python 路径中
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -25,7 +29,7 @@ app = FastAPI(title="DataAgent", description="万能智能助手")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -65,6 +69,10 @@ app.include_router(visualization_router)
 app.include_router(agent_router)
 app.include_router(feedback_router)
 
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok", "service": "DataAgent"}
+
 # WebSocket 端点
 from services.agent_service import run_universal_agent
 from services.input_sanitizer import validate_message
@@ -97,7 +105,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.error(f"WebSocket error: {e}")
 
 # 首页路由
 @app.get("/")
@@ -108,5 +116,5 @@ async def get():
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting DataAgent Web Interface...")
+    logger.info("Starting DataAgent Web Interface...")
     uvicorn.run(app, host="0.0.0.0", port=8000)

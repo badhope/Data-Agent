@@ -9,10 +9,10 @@ async function loadConversations() {
             list.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 20px;">还没有对话记录</div>';
         } else {
             list.innerHTML = convs.map(conv => `
-                <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" onclick="loadConversation('${conv.id}')">
-                    <div class="conversation-title">${conv.title}</div>
+                <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" onclick="loadConversation('${escapeHtml(conv.id)}')">
+                    <div class="conversation-title">${escapeHtml(conv.title)}</div>
                     <div class="conversation-time">${new Date(conv.updated_at).toLocaleDateString()}</div>
-                    <button class="delete-btn" onclick="event.stopPropagation(); deleteConversation('${conv.id}')">\u00d7</button>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteConversation('${escapeHtml(conv.id)}')">\u00d7</button>
                 </div>
             `).join('');
         }
@@ -67,18 +67,19 @@ async function loadConversation(convId) {
 }
 
 async function deleteConversation(convId) {
-    if (!confirm('确定要删除这个对话吗？')) return;
-    try {
-        await fetch(`/api/conversations/${convId}`, { method: 'DELETE' });
-        if (currentConversationId === convId) {
-            currentConversationId = null;
-            clearChat();
+    showConfirm('确定要删除这个对话吗？', async () => {
+        try {
+            await fetch(`/api/conversations/${convId}`, { method: 'DELETE' });
+            if (currentConversationId === convId) {
+                currentConversationId = null;
+                clearChat();
+            }
+            loadConversations();
+            showSuccess('对话已删除');
+        } catch (e) {
+            showError('删除对话失败: ' + e.message);
         }
-        loadConversations();
-        showSuccess('对话已删除');
-    } catch (e) {
-        showError('删除对话失败: ' + e.message);
-    }
+    });
 }
 
 async function saveCurrentConversation() {

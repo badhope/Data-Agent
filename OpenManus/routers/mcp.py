@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from database import mcp_servers, save_mcp_servers, MCPServer
 from services.mcp_service import execute_mcp_command, test_mcp_connection, list_mcp_tools, list_mcp_resources
+from utils.db_helper import get_mcp_or_404
 import uuid
 
 router = APIRouter()
@@ -42,10 +43,8 @@ async def create_mcp_server(request: Request):
 
 @router.put("/api/mcp/servers/{server_id}")
 async def update_mcp_server(server_id: str, request: Request):
-    if server_id not in mcp_servers:
-        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    server = get_mcp_or_404(server_id)
     data = await request.json()
-    server = mcp_servers[server_id]
     server.name = data.get("name", server.name)
     server.type = data.get("type", server.type)
     server.command = data.get("command", server.command)
@@ -59,8 +58,7 @@ async def update_mcp_server(server_id: str, request: Request):
 
 @router.delete("/api/mcp/servers/{server_id}")
 async def delete_mcp_server(server_id: str):
-    if server_id not in mcp_servers:
-        raise HTTPException(status_code=404, detail="MCP服务器不存在")
+    get_mcp_or_404(server_id)
     del mcp_servers[server_id]
     save_mcp_servers()
     return JSONResponse({"success": True, "message": "MCP服务器已删除"})
@@ -70,9 +68,7 @@ async def delete_mcp_server(server_id: str):
 
 @router.post("/api/mcp/servers/{server_id}/execute")
 async def execute_mcp_tool(server_id: str, request: Request):
-    if server_id not in mcp_servers:
-        raise HTTPException(status_code=404, detail="MCP服务器不存在")
-    server = mcp_servers[server_id]
+    server = get_mcp_or_404(server_id)
     if not server.enabled:
         raise HTTPException(status_code=400, detail="MCP服务器已禁用")
     data = await request.json()
@@ -89,9 +85,7 @@ async def execute_mcp_tool(server_id: str, request: Request):
 
 @router.post("/api/mcp/servers/{server_id}/test")
 async def test_mcp(server_id: str):
-    if server_id not in mcp_servers:
-        raise HTTPException(status_code=404, detail="MCP服务器不存在")
-    server = mcp_servers[server_id]
+    server = get_mcp_or_404(server_id)
     # 委托给 services 层测试连接
     result = await test_mcp_connection(server)
     # 更新服务器状态
@@ -104,9 +98,7 @@ async def test_mcp(server_id: str):
 
 @router.get("/api/mcp/servers/{server_id}/tools")
 async def get_mcp_tools(server_id: str):
-    if server_id not in mcp_servers:
-        raise HTTPException(status_code=404, detail="MCP服务器不存在")
-    server = mcp_servers[server_id]
+    server = get_mcp_or_404(server_id)
     # 委托给 services 层获取工具列表
     result = await list_mcp_tools(server)
     return JSONResponse(result)
@@ -114,9 +106,7 @@ async def get_mcp_tools(server_id: str):
 
 @router.get("/api/mcp/servers/{server_id}/resources")
 async def get_mcp_resources(server_id: str):
-    if server_id not in mcp_servers:
-        raise HTTPException(status_code=404, detail="MCP服务器不存在")
-    server = mcp_servers[server_id]
+    server = get_mcp_or_404(server_id)
     # 委托给 services 层获取资源列表
     result = await list_mcp_resources(server)
     return JSONResponse(result)
@@ -124,9 +114,7 @@ async def get_mcp_resources(server_id: str):
 
 @router.get("/api/mcp/servers/{server_id}/status")
 async def get_mcp_status(server_id: str):
-    if server_id not in mcp_servers:
-        raise HTTPException(status_code=404, detail="MCP服务器不存在")
-    server = mcp_servers[server_id]
+    server = get_mcp_or_404(server_id)
     return JSONResponse({
         "id": server.id,
         "name": server.name,

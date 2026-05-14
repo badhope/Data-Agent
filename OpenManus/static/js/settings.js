@@ -158,18 +158,7 @@ function resetSettings() {
 }
 
 function showSettingsTab(tab, el) {
-    document.querySelectorAll('#settings-modal .settings-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#settings-modal .settings-section').forEach(s => s.classList.remove('active'));
-    if (el) {
-        el.classList.add('active');
-    } else {
-        document.querySelectorAll('#settings-modal .settings-tab').forEach(t => {
-            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
-                t.classList.add('active');
-            }
-        });
-    }
-    document.getElementById(`settings-${tab}`).classList.add('active');
+    showTab('settings-modal', 'settings', tab, el);
 }
 
 function toggleSwitch(el) {

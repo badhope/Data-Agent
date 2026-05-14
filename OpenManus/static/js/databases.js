@@ -3,18 +3,7 @@
 let currentDatabaseId = null;
 
 function showDbTab(tab, el) {
-    document.querySelectorAll('#database-modal .settings-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#database-modal .settings-section').forEach(s => s.classList.remove('active'));
-    if (el) {
-        el.classList.add('active');
-    } else {
-        document.querySelectorAll('#database-modal .settings-tab').forEach(t => {
-            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
-                t.classList.add('active');
-            }
-        });
-    }
-    document.getElementById(`db-${tab}`).classList.add('active');
+    showTab('database-modal', 'db', tab, el);
     if (tab === 'list') loadDatabases();
 }
 
@@ -92,14 +81,15 @@ async function createDatabase() {
 }
 
 async function deleteDatabase(dbId) {
-    if (!confirm('确定要删除这个数据库吗？')) return;
-    try {
-        await fetch(`/api/databases/${dbId}`, { method: 'DELETE' });
-        loadDatabases();
-        showToast('数据库已删除', 'success');
-    } catch (e) {
-        showToast('删除数据库失败: ' + e.message, 'error');
-    }
+    showConfirm('确定要删除这个数据库吗？', async () => {
+        try {
+            await fetch(`/api/databases/${dbId}`, { method: 'DELETE' });
+            loadDatabases();
+            showToast('数据库已删除', 'success');
+        } catch (e) {
+            showToast('删除数据库失败: ' + e.message, 'error');
+        }
+    });
 }
 
 async function executeDbQuery() {
@@ -120,24 +110,10 @@ async function executeDbQuery() {
         const data = await res.json();
 
         if (data.success && data.columns) {
-            let tableHtml = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 13px;"><thead><tr>';
-            data.columns.forEach(col => {
-                tableHtml += `<th style="padding: 8px 12px; text-align: left; background: rgba(59,130,246,0.15); color: #60a5fa; border-bottom: 1px solid rgba(255,255,255,0.1); white-space: nowrap;">${col}</th>`;
-            });
-            tableHtml += '</tr></thead><tbody>';
-            data.data.forEach((row, idx) => {
-                const bg = idx % 2 === 0 ? 'transparent' : 'rgba(71,85,105,0.1)';
-                tableHtml += '<tr style="background: ' + bg + ';">';
-                row.forEach(val => {
-                    tableHtml += `<td style="padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; white-space: nowrap;">${val !== null ? val : '<span style="color:#475569">NULL</span>'}</td>`;
-                });
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</tbody></table></div>';
-            tableHtml += `<p style="color: #64748b; font-size: 12px; margin-top: 8px;">共 ${data.row_count} 行</p>`;
-            resultsDiv.innerHTML = tableHtml;
+            renderQueryResults({ columns: data.columns, rows: data.data }, 'db-query-results');
+            document.getElementById('db-query-results').innerHTML += `<p style="color: #64748b; font-size: 12px; margin-top: 8px;">共 ${data.row_count} 行</p>`;
         } else if (data.error) {
-            resultsDiv.innerHTML = `<p style="color: #ef4444;">❌ ${data.error}</p>`;
+            resultsDiv.innerHTML = `<p style="color: #ef4444;">❌ ${escapeHtml(data.error)}</p>`;
         } else {
             resultsDiv.innerHTML = '<p style="color: #94a3b8;">查询完成，无返回数据</p>';
         }

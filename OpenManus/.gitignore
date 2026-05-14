@@ -8,6 +8,9 @@ data/
 # Workspace
 workspace/
 
+# API Key config
+config/web_config.json
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/

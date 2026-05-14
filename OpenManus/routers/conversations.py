@@ -7,7 +7,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from database import conversations, save_conversations
 from config import DATA_DIR
-import json, uuid, datetime
+from utils.validation import validate_share_id
+import json, uuid, datetime, re
 from pathlib import Path
 
 router = APIRouter()
@@ -118,6 +119,8 @@ async def share_conversation(conv_id: str):
         raise HTTPException(status_code=404, detail="对话不存在")
     conv = conversations[conv_id]
     share_id = str(uuid.uuid4())[:8]
+    if not re.match(r'^[a-zA-Z0-9]+$', share_id):
+        raise HTTPException(status_code=400, detail="无效的分享ID")
     share_file = DATA_DIR / "shares" / f"{share_id}.json"
     share_file.parent.mkdir(parents=True, exist_ok=True)
     with open(share_file, 'w', encoding='utf-8') as f:
@@ -131,6 +134,7 @@ async def share_conversation(conv_id: str):
 
 @router.get("/api/conversations/shared/{share_id}")
 async def get_shared_conversation(share_id: str):
+    validate_share_id(share_id)
     share_file = DATA_DIR / "shares" / f"{share_id}.json"
     if not share_file.exists():
         raise HTTPException(status_code=404, detail="分享链接不存在或已过期")

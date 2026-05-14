@@ -11,6 +11,7 @@ from database import save_settings
 from config import CONFIG_DIR
 from models import Settings
 from services.llm_service import test_connection
+from utils.validation import validate_schema_type
 import json
 
 router = APIRouter()
@@ -53,6 +54,7 @@ async def update_settings(request: Request):
 
 @router.get("/api/schema/{schema_type}")
 async def get_schema(schema_type: str):
+    validate_schema_type(schema_type)
     schema_file = CONFIG_DIR / "schema" / f"{schema_type}_schema.json"
     if not schema_file.exists():
         raise HTTPException(status_code=404, detail="Schema不存在")

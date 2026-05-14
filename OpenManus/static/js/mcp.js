@@ -1,18 +1,7 @@
 // MCP功能
 
 function showMcpTab(tab, el) {
-    document.querySelectorAll('#mcp-modal .settings-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#mcp-modal .settings-section').forEach(s => s.classList.remove('active'));
-    if (el) {
-        el.classList.add('active');
-    } else {
-        document.querySelectorAll('#mcp-modal .settings-tab').forEach(t => {
-            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
-                t.classList.add('active');
-            }
-        });
-    }
-    document.getElementById(`mcp-${tab}`).classList.add('active');
+    showTab('mcp-modal', 'mcp', tab, el);
 }
 
 async function loadMcpServers() {
@@ -26,15 +15,15 @@ async function loadMcpServers() {
             list.innerHTML = servers.map(s => `
                 <div class="mcp-item">
                     <div class="skill-info">
-                        <div class="skill-icon">${s.icon}</div>
+                        <div class="skill-icon">${escapeHtml(s.icon)}</div>
                         <div class="skill-details">
-                            <h4>${s.name}</h4>
-                            <p>类型: ${s.type}</p>
+                            <h4>${escapeHtml(s.name)}</h4>
+                            <p>类型: ${escapeHtml(s.type)}</p>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div class="setting-switch ${s.enabled ? 'on' : ''}" onclick="toggleSwitch(this)"></div>
-                        <button class="delete-btn" onclick="deleteMcpServer('${s.id}')" title="删除MCP服务器" style="background: none; border: 1px solid rgba(239,68,68,0.3); color: #f87171; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">\u00d7</button>
+                        <button class="delete-btn" onclick="deleteMcpServer('${escapeHtml(s.id)}')" title="删除MCP服务器" style="background: none; border: 1px solid rgba(239,68,68,0.3); color: #f87171; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">\u00d7</button>
                     </div>
                 </div>
             `).join('');
@@ -140,14 +129,15 @@ function quickAddMcp(type) {
 }
 
 async function deleteMcpServer(serverId) {
-    if (!confirm('确定要删除这个MCP服务器吗？')) return;
-    try {
-        await fetch(`/api/mcp/servers/${serverId}`, { method: 'DELETE' });
-        loadMcpServers();
-        showSuccess('MCP服务器已删除');
-    } catch (e) {
-        showError('删除MCP服务器失败: ' + e.message);
-    }
+    showConfirm('确定要删除这个MCP服务器吗？', async () => {
+        try {
+            await fetch(`/api/mcp/servers/${serverId}`, { method: 'DELETE' });
+            loadMcpServers();
+            showSuccess('MCP服务器已删除');
+        } catch (e) {
+            showError('删除MCP服务器失败: ' + e.message);
+        }
+    });
 }
 
 async function executeMcpTool(serverId, toolName, params) {

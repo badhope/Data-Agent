@@ -14,6 +14,7 @@ from config import KNOWLEDGE_DIR
 from models import KnowledgeBase as KBModel, Document as DocModel
 from services.knowledge_service import process_document, search_knowledge_base
 from services.embedding_service import generate_embeddings
+from utils.db_helper import get_kb_or_404
 import uuid, datetime, asyncio, shutil
 from pathlib import Path
 from typing import List
@@ -50,17 +51,14 @@ async def create_knowledge_base(request: Request):
 
 @router.get("/api/knowledge-bases/{kb_id}")
 async def get_knowledge_base(kb_id: str):
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
-    return JSONResponse(knowledge_bases[kb_id].model_dump())
+    kb = get_kb_or_404(kb_id)
+    return JSONResponse(kb.model_dump())
 
 
 @router.put("/api/knowledge-bases/{kb_id}")
 async def update_knowledge_base(kb_id: str, request: Request):
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+    kb = get_kb_or_404(kb_id)
     data = await request.json()
-    kb = knowledge_bases[kb_id]
     kb.name = data.get("name", kb.name)
     kb.description = data.get("description", kb.description)
     kb.updated_at = datetime.datetime.now().isoformat()
@@ -70,8 +68,7 @@ async def update_knowledge_base(kb_id: str, request: Request):
 
 @router.delete("/api/knowledge-bases/{kb_id}")
 async def delete_knowledge_base(kb_id: str):
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+    get_kb_or_404(kb_id)
     del knowledge_bases[kb_id]
     save_knowledge_bases()
     kb_dir = KNOWLEDGE_DIR / kb_id
@@ -87,8 +84,7 @@ async def delete_knowledge_base(kb_id: str):
 
 @router.post("/api/knowledge-bases/{kb_id}/documents")
 async def upload_document(kb_id: str, file: UploadFile = File(...)):
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+    get_kb_or_404(kb_id)
 
     allowed_extensions = {'.pdf', '.txt', '.md', '.docx', '.csv', '.xlsx', '.xls', '.ppt', '.pptx'}
     max_size = 50 * 1024 * 1024  # 50MB
@@ -148,8 +144,7 @@ async def upload_document(kb_id: str, file: UploadFile = File(...)):
 
 @router.post("/api/knowledge-bases/{kb_id}/documents/batch")
 async def batch_upload_documents(kb_id: str, files: List[UploadFile] = File(...)):
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+    get_kb_or_404(kb_id)
 
     results = []
     for file in files:
@@ -164,16 +159,14 @@ async def batch_upload_documents(kb_id: str, files: List[UploadFile] = File(...)
 
 @router.get("/api/knowledge-bases/{kb_id}/documents")
 async def list_documents(kb_id: str):
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+    get_kb_or_404(kb_id)
     kb_docs = [doc.model_dump() for doc in documents.values() if doc.knowledge_base_id == kb_id]
     return JSONResponse(kb_docs)
 
 
 @router.delete("/api/knowledge-bases/{kb_id}/documents/{doc_id}")
 async def delete_document(kb_id: str, doc_id: str):
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+    get_kb_or_404(kb_id)
     if doc_id not in documents:
         raise HTTPException(status_code=404, detail="文档不存在")
     doc = documents[doc_id]
@@ -215,8 +208,7 @@ async def get_document_chunks(kb_id: str, doc_id: str):
 @router.post("/api/knowledge-bases/{kb_id}/search")
 async def search_kb(kb_id: str, request: Request):
     """搜索知识库，委托给 services 层"""
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+    get_kb_or_404(kb_id)
     data = await request.json()
     query = data.get("query", "")
     top_k = data.get("top_k", 5)
@@ -230,10 +222,7 @@ async def search_kb(kb_id: str, request: Request):
 @router.post("/api/knowledge-bases/{kb_id}/embed")
 async def generate_kb_embeddings(kb_id: str):
     """为知识库中所有未嵌入的分块生成向量"""
-    if kb_id not in knowledge_bases:
-        raise HTTPException(status_code=404, detail="知识库不存在")
-
-    kb = knowledge_bases[kb_id]
+    kb = get_kb_or_404(kb_id)
     api_key = current_settings.llm.get("api_key", "") or ""
     base_url = current_settings.llm.get("base_url", "https://api.openai.com/v1")
     embedding_model = kb.embedding_model or "text-embedding-3-small"

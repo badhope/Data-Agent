@@ -1,19 +1,7 @@
 // 知识库功能
 
 function showKbTab(tab, el) {
-    document.querySelectorAll('#knowledge-modal .settings-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#knowledge-modal .settings-section').forEach(s => s.classList.remove('active'));
-    if (el) {
-        el.classList.add('active');
-    } else {
-        // Programmatically find and activate the correct tab
-        document.querySelectorAll('#knowledge-modal .settings-tab').forEach(t => {
-            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
-                t.classList.add('active');
-            }
-        });
-    }
-    document.getElementById(`kb-${tab}`).classList.add('active');
+    showTab('knowledge-modal', 'kb', tab, el);
 }
 
 async function loadKnowledgeBases() {
@@ -231,12 +219,13 @@ async function searchKnowledgeBase() {
 }
 
 async function deleteKnowledgeBase(kbId) {
-    if (!confirm('确定要删除这个知识库吗？所有文档也将被删除。')) return;
-    try {
-        await fetch(`/api/knowledge-bases/${kbId}`, { method: 'DELETE' });
-        loadKnowledgeBases();
-        showSuccess('知识库已删除');
-    } catch (e) {
-        showError('删除知识库失败: ' + e.message);
-    }
+    showConfirm('确定要删除这个知识库吗？所有文档也将被删除。', async () => {
+        try {
+            await fetch(`/api/knowledge-bases/${kbId}`, { method: 'DELETE' });
+            loadKnowledgeBases();
+            showSuccess('知识库已删除');
+        } catch (e) {
+            showError('删除知识库失败: ' + e.message);
+        }
+    });
 }

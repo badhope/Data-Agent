@@ -1,18 +1,7 @@
 // 技能功能
 
 function showSkillTab(tab, el) {
-    document.querySelectorAll('#prompt-modal .settings-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#prompt-modal .settings-section').forEach(s => s.classList.remove('active'));
-    if (el) {
-        el.classList.add('active');
-    } else {
-        document.querySelectorAll('#prompt-modal .settings-tab').forEach(t => {
-            if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) {
-                t.classList.add('active');
-            }
-        });
-    }
-    document.getElementById(`skill-${tab}`).classList.add('active');
+    showTab('prompt-modal', 'skill', tab, el);
 }
 
 async function loadSkills() {
@@ -26,15 +15,15 @@ async function loadSkills() {
             list.innerHTML = skills.map(skill => `
                 <div class="skill-item">
                     <div class="skill-info">
-                        <div class="skill-icon">${skill.icon}</div>
+                        <div class="skill-icon">${escapeHtml(skill.icon)}</div>
                         <div class="skill-details">
-                            <h4>${skill.name}</h4>
-                            <p>${skill.description}</p>
+                            <h4>${escapeHtml(skill.name)}</h4>
+                            <p>${escapeHtml(skill.description)}</p>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="skill-badge">${skill.type}</span>
-                        <button class="delete-btn" onclick="deleteSkill('${skill.id}')" title="删除技能" style="background: none; border: 1px solid rgba(239,68,68,0.3); color: #f87171; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">\u00d7</button>
+                        <span class="skill-badge">${escapeHtml(skill.type)}</span>
+                        <button class="delete-btn" onclick="deleteSkill('${escapeHtml(skill.id)}')" title="删除技能" style="background: none; border: 1px solid rgba(239,68,68,0.3); color: #f87171; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">\u00d7</button>
                     </div>
                 </div>
             `).join('');
@@ -165,12 +154,13 @@ async function aiGenerateSkill() {
 }
 
 async function deleteSkill(skillId) {
-    if (!confirm('确定要删除这个技能吗？')) return;
-    try {
-        await fetch(`/api/skills/${skillId}`, { method: 'DELETE' });
-        loadSkills();
-        showSuccess('技能已删除');
-    } catch (e) {
-        showError('删除技能失败: ' + e.message);
-    }
+    showConfirm('确定要删除这个技能吗？', async () => {
+        try {
+            await fetch(`/api/skills/${skillId}`, { method: 'DELETE' });
+            loadSkills();
+            showSuccess('技能已删除');
+        } catch (e) {
+            showError('删除技能失败: ' + e.message);
+        }
+    });
 }
