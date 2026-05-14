@@ -913,32 +913,66 @@ async function generateLiteratureSummary(event) {
         return;
     }
 
-    showToast(`正在分析文献: ${file.name}`, 'info');
+    showToast(`正在解析文献: ${file.name}`, 'info');
 
     try {
+        // 第一步：上传PDF获取文本
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('/documents/summarize', {
+        const parseResponse = await fetch('/documents/pdf/parse', {
             method: 'POST',
             body: formData
         });
 
-        if (!response.ok) {
-            throw new Error('文献摘要生成失败');
+        if (!parseResponse.ok) {
+            throw new Error('PDF解析失败');
         }
 
-        const data = await response.json();
+        const parseData = await parseResponse.json();
+        const text = parseData.text || parseData.content || '';
 
-        if (data.error) {
-            showToast(data.error, 'error');
+        if (!text || text.length < 50) {
+            showToast('PDF内容过少，无法生成摘要', 'warning');
             return;
         }
+
+        showToast('正在生成文献摘要...', 'info');
+
+        // 第二步：生成结构化摘要
+        const summaryResponse = await fetch('/documents/summarize/structured', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                summary_type: 'academic',
+                max_length: 500
+            })
+        });
+
+        if (!summaryResponse.ok) {
+            throw new Error('摘要生成失败');
+        }
+
+        const data = await summaryResponse.json();
 
         const resultContent = document.getElementById('literature-result-content');
         const resultDiv = document.getElementById('literature-result');
 
-        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.summary || data.content || '暂无摘要结果');
+        // 渲染结构化摘要
+        let html = '';
+        if (data.title) html += `## ${data.title}\n\n`;
+        if (data.summary) html += `${data.summary}\n\n`;
+        if (data.key_points && data.key_points.length > 0) {
+            html += `### 核心观点\n`;
+            data.key_points.forEach(p => { html += `- ${p}\n`; });
+            html += '\n';
+        }
+        if (data.keywords && data.keywords.length > 0) {
+            html += `**关键词**: ${data.keywords.join(', ')}`;
+        }
+
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(html || data.content || '暂无摘要结果');
         resultDiv.style.display = 'block';
 
         showToast('文献摘要生成完成', 'success');
@@ -965,7 +999,7 @@ async function generateMeetingMinutes() {
         const response = await fetch('/documents/meeting-minutes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: input })
+            body: JSON.stringify({ text: input })
         });
 
         if (!response.ok) {
@@ -1003,37 +1037,59 @@ async function generatePPT() {
         return;
     }
 
-    showToast('正在生成PPT大纲...', 'info');
+    showToast('正在生成PPT，请稍候...', 'info');
 
     try {
+        // 构建PPT内容结构
+        const pptContent = {};
+        if (content) {
+            // 用户提供了内容，按段落分割
+            const sections = content.split('\n').filter(s => s.trim());
+            sections.forEach((section, i) => {
+                pptContent[`section_${i}`] = [section.trim()];
+            });
+        } else {
+            // 没有提供内容，使用默认结构
+            pptContent['引言'] = [`${topic}概述`, '背景与意义'];
+            pptContent['核心内容'] = ['主要观点与分析', '案例研究'];
+            pptContent['总结'] = ['关键结论', '未来展望'];
+        }
+
         const response = await fetch('/documents/ppt/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                topic: topic,
-                pages: parseInt(pages),
-                content: content
+                title: topic,
+                content: pptContent,
+                template: 'academic'
             })
         });
 
         if (!response.ok) {
-            throw new Error('PPT生成失败');
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || 'PPT生成失败');
         }
 
-        const data = await response.json();
-
-        if (data.error) {
-            showToast(data.error, 'error');
-            return;
-        }
+        // 后端返回二进制文件，触发下载
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${topic}.pptx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
 
         const resultContent = document.getElementById('ppt-result-content');
         const resultDiv = document.getElementById('ppt-result');
 
-        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.outline || data.content || '暂无PPT大纲结果');
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(
+            `### ✅ PPT生成完成\n\n**文件名**: ${topic}.pptx\n\nPPT已自动下载到您的设备。如未自动下载，请[点击此处](${url})手动下载。`
+        );
         resultDiv.style.display = 'block';
 
-        showToast('PPT大纲生成完成', 'success');
+        showToast('PPT生成完成，已开始下载', 'success');
     } catch (error) {
         console.error('PPT生成错误:', error);
         showToast('PPT生成失败: ' + error.message, 'error');
@@ -1107,7 +1163,8 @@ async function quickPolish() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: text,
-                type: 'academic'
+                style: 'academic',
+                language: 'auto'
             })
         });
 
@@ -1152,7 +1209,8 @@ async function polishText() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: input,
-                type: type
+                style: type,
+                language: 'auto'
             })
         });
 

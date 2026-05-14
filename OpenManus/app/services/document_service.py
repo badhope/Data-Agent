@@ -58,9 +58,78 @@ class DocumentService:
         text: str,
         document_type: str = "general"
     ) -> Dict:
-        """生成结构化摘要"""
-        result = self.summary_generator.generate(text, document_type)
-        return result
+        """使用LLM生成结构化摘要"""
+        from app.llm import LLM
+
+        type_prompts = {
+            "academic": """请对以下学术论文/文献内容生成结构化摘要，严格按JSON格式输出：
+{
+  "title": "论文标题",
+  "summary": "核心摘要（200字以内）",
+  "key_points": ["核心观点1", "核心观点2", "核心观点3"],
+  "methodology": "研究方法概述",
+  "conclusion": "主要结论",
+  "keywords": ["关键词1", "关键词2", "关键词3"]
+}""",
+            "meeting": """请对以下会议内容生成结构化摘要，严格按JSON格式输出：
+{
+  "title": "会议主题",
+  "summary": "会议摘要（200字以内）",
+  "key_points": ["要点1", "要点2"],
+  "decisions": ["决议1", "决议2"],
+  "action_items": ["行动项1", "行动项2"]
+}""",
+            "report": """请对以下报告内容生成结构化摘要，严格按JSON格式输出：
+{
+  "title": "报告标题",
+  "summary": "报告摘要（200字以内）",
+  "key_points": ["要点1", "要点2", "要点3"],
+  "findings": ["发现1", "发现2"],
+  "recommendations": ["建议1", "建议2"]
+}""",
+            "general": """请对以下内容生成结构化摘要，严格按JSON格式输出：
+{
+  "title": "文档标题",
+  "summary": "内容摘要（200字以内）",
+  "key_points": ["要点1", "要点2", "要点3"],
+  "keywords": ["关键词1", "关键词2"]
+}"""
+        }
+
+        prompt = type_prompts.get(document_type, type_prompts["general"])
+
+        # 截断过长的文本
+        max_input_length = 6000
+        if len(text) > max_input_length:
+            text = text[:max_input_length] + "\n\n[文档内容过长，已截断]"
+
+        llm = LLM()
+        messages = [
+            {"role": "system", "content": prompt + "\n\n只输出JSON，不要输出其他内容。"},
+            {"role": "user", "content": text}
+        ]
+
+        response = await llm.ask(messages)
+
+        # 解析JSON结果
+        import json
+        import re
+        # 尝试提取JSON
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            try:
+                result = json.loads(json_match.group())
+                return result
+            except json.JSONDecodeError:
+                pass
+
+        # JSON解析失败时返回纯文本摘要
+        return {
+            "title": "",
+            "summary": response,
+            "key_points": [],
+            "keywords": []
+        }
 
     async def generate_meeting_minutes(
         self,
@@ -68,8 +137,50 @@ class DocumentService:
         meeting_date: Optional[str] = None,
         output_format: str = "dict"
     ) -> any:
-        """生成会议纪要"""
-        return generate_meeting_minutes(text, meeting_date, output_format)
+        """使用LLM生成会议纪要"""
+        from app.llm import LLM
+
+        prompt = """请根据以下会议记录生成结构化的会议纪要。要求：
+1. 提取会议主题
+2. 总结各讨论要点（标注发言人）
+3. 列出所有决议事项
+4. 列出所有行动项（含负责人和截止时间）
+5. 使用Markdown格式输出
+
+输出格式：
+# 会议纪要
+
+## 会议信息
+- 日期：[日期]
+- 参会人员：[人员列表]
+
+## 讨论要点
+1. [要点1] - [发言人]
+2. [要点2] - [发言人]
+
+## 决议事项
+1. [决议1]
+2. [决议2]
+
+## 行动项
+| 任务 | 负责人 | 截止时间 |
+|------|--------|---------|
+| [任务1] | [负责人] | [截止时间] |"""
+
+        date_str = f"\n会议日期：{meeting_date}" if meeting_date else ""
+
+        llm = LLM()
+        messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": f"会议记录：{date_str}\n\n{text}"}
+        ]
+
+        response = await llm.ask(messages)
+
+        if output_format == "markdown":
+            return {"content": response, "format": "markdown"}
+        else:
+            return {"content": response, "format": "markdown"}
 
     async def generate_report(
         self,
