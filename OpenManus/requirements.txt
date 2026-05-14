@@ -59,8 +59,13 @@ aiofiles>=24.1.0
 # 模板引擎
 jinja2>=3.1.0
 
+# 文档处理
+pymupdf>=1.23.0        # PDF解析
+python-docx>=0.8.11    # Word文档处理
+
 # 可选依赖（按需安装）
 # browser-use>=0.1.40  # 浏览器自动化
 # boto3>=1.37.0        # AWS Bedrock
 # litellm>=1.0.0       # 统一 LLM 接口
 # playwright          # 浏览器自动化（需额外: playwright install chromium）
+# docker>=6.0.0       # Docker沙箱（如需使用沙箱功能）

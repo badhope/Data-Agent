@@ -10,7 +10,7 @@ from datetime import datetime
 import pdfplumber
 from pptx import Presentation
 from pptx.util import Inches, Pt
-from pptx.dml.color import RgbColor
+from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from services.llm_service import LLMService
 
@@ -200,7 +200,7 @@ JSON输出："""
             p.text = section_title
             p.font.size = Pt(32)
             p.font.bold = True
-            p.font.color.rgb = RgbColor(30, 64, 175)
+            p.font.color.rgb = RGBColor(30, 64, 175)
 
             content = slide.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12), Inches(5.5))
             content_frame = content.text_frame

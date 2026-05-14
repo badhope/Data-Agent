@@ -138,8 +138,9 @@ Outputs:
                     }
                 )
         if len(error_list) > 0:
+            error_msg = '\n'.join(error_list)
             return {
-                "observation": f"# Error chart generated{'\n'.join(error_list)}\n{self.success_output_template(success_list)}",
+                "observation": f"# Error chart generated{error_msg}\n{self.success_output_template(success_list)}",
                 "success": False,
             }
         else:
