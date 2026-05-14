@@ -117,6 +117,7 @@
                     <h1>DataAgent</h1>
                     <span class="header-status">
                         <span class="status-dot" id="header-ws-status"></span>
+                        <span id="header-ws-status-text" style="font-size: 11px; color: #64748b; margin-left: 4px;"></span>
                     </span>
                 </div>
                 <div class="header-actions">
@@ -133,6 +134,10 @@
                 <div class="welcome-page" id="welcome-page">
                     <div class="welcome-message">
                         <div class="welcome-avatar">🤖</div>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                            <span class="status-dot" id="ws-status"></span>
+                            <span id="ws-status-text" style="font-size: 12px; color: #64748b;"></span>
+                        </div>
                         <div class="welcome-bubble">
                             <p>你好！我是 DataAgent 智能助手。</p>
                             <p>我可以帮你进行<strong>代码编写</strong>、<strong>数据分析</strong>、<strong>图表生成</strong>、<strong>文档处理</strong>等工作。</p>
@@ -768,30 +773,9 @@
     <script src="/static/js/conversations.js"></script>
     <script src="/static/js/app.js"></script>
 
-    <!-- 内联辅助脚本：欢迎页面控制、手风琴、字符计数等 -->
+    <!-- 内联辅助脚本 -->
     <script>
-        /**
-         * 更新头部模型名称显示（已移除头部模型显示，保留函数兼容性）
-         */
-        function updateHeaderModelName() {
-            // 模型名称不再在头部显示，仅在设置中配置
-        }
-
-        /**
-         * 同步设置模型（保留函数兼容性）
-         */
-        function syncModelSelectors() {
-            // 模型选择器已从输入区移除，仅在设置中配置
-        }
-
-        // 监听设置模型变更
         document.addEventListener('DOMContentLoaded', function() {
-            var settingModel = document.getElementById('setting-model');
-            if (settingModel) {
-                settingModel.addEventListener('change', syncModelSelectors);
-            }
-            // 初始化同步
-            syncModelSelectors();
             updateCharCount();
         });
     </script>

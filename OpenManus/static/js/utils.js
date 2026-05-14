@@ -82,7 +82,7 @@ function showError(message, targetId = null) {
 
 // 显示成功
 function showSuccess(message) {
-    addMessage('\u2705 ' + message, 'system');
+    showToast(message, 'success');
 }
 
 // 格式化文件大小

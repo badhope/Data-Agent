@@ -32,7 +32,10 @@ async function loadSkills() {
                             <p>${skill.description}</p>
                         </div>
                     </div>
-                    <span class="skill-badge">${skill.type}</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="skill-badge">${skill.type}</span>
+                        <button class="delete-btn" onclick="deleteSkill('${skill.id}')" title="删除技能" style="background: none; border: 1px solid rgba(239,68,68,0.3); color: #f87171; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">\u00d7</button>
+                    </div>
                 </div>
             `).join('');
         }

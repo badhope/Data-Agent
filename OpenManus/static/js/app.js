@@ -150,12 +150,16 @@ function handleWSMessage(data) {
             streamingEl.innerHTML += `<div style="font-size: 11px; color: #6b7280; margin-top: 4px; padding-left: 8px;">${time}</div>`;
         }
         finishProcessing();
+        // 自动保存对话
+        saveCurrentConversation();
 
     } else if (data.type === 'response') {
         hideWelcomePage();
         document.querySelector('.thinking-container')?.remove();
         addMessage(data.content, 'assistant');
         finishProcessing();
+        // 自动保存对话
+        saveCurrentConversation();
     } else if (data.type === 'error') {
         document.querySelector('.thinking-container')?.remove();
         document.querySelector('.message.streaming')?.remove();
@@ -414,6 +418,8 @@ function openModal(id) {
     if (id === 'knowledge-modal') loadKnowledgeBases();
     if (id === 'prompt-modal') loadSkills();
     if (id === 'mcp-modal') loadMcpServers();
+    if (id === 'database-modal') loadDatabases();
+    if (id === 'nl2sql-modal') loadDatabases();
 }
 
 function closeModal(id) {

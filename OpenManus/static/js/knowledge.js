@@ -69,6 +69,7 @@ async function createKnowledgeBase() {
         const result = await res.json();
         document.getElementById('kb-name').value = '';
         document.getElementById('kb-desc').value = '';
+        currentKnowledgeBaseId = result.id;
         loadKnowledgeBases();
         showKbTab('list');
         showSuccess(`知识库 "${name}" 创建成功！`);
@@ -123,6 +124,7 @@ async function uploadFiles(files) {
                 });
                 const kb = await res.json();
                 kbId = kb.id;
+                currentKnowledgeBaseId = kb.id;
             } catch (e) {
                 throw new Error('无法创建知识库，请刷新页面重试');
             }

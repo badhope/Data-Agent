@@ -65,15 +65,20 @@ function selectDatabase(dbId) {
 
 async function createDatabase() {
     const name = document.getElementById('db-create-name').value.trim();
+    const type = document.getElementById('db-create-type').value;
+    const desc = document.getElementById('db-create-desc').value.trim();
     if (!name) {
         showToast('请输入数据库名称', 'warning');
         return;
     }
     try {
+        const body = { name };
+        if (type) body.type = type;
+        if (desc) body.description = desc;
         const res = await fetch('/api/databases', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name })
+            body: JSON.stringify(body)
         });
         if (!res.ok) throw new Error('创建失败');
         document.getElementById('db-create-name').value = '';

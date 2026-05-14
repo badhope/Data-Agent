@@ -42,11 +42,24 @@ async function loadConversation(convId) {
         const conv = await res.json();
         currentConversationId = conv.id;
         const chatArea = document.getElementById('chat-area');
-        chatArea.innerHTML = conv.messages.map(msg => `
+        chatArea.innerHTML = conv.messages.map(msg => {
+            let content;
+            if (msg.type === 'assistant' && window.marked) {
+                content = marked.parse(msg.content || '');
+            } else {
+                content = escapeHtml(msg.content || '').replace(/\n/g, '<br>');
+            }
+            return `
             <div class="message ${escapeHtml(msg.type)}">
-                <div class="message-content">${escapeHtml(msg.content)}</div>
-            </div>
-        `).join('');
+                <div class="message-content">
+                    <div class="message-text">${content}</div>
+                </div>
+            </div>`;
+        }).join('');
+        // 高亮代码块
+        chatArea.querySelectorAll('pre code').forEach(block => {
+            if (window.hljs) hljs.highlightElement(block);
+        });
         loadConversations();
     } catch (e) {
         showError('加载对话失败: ' + e.message);

@@ -51,7 +51,7 @@ async function saveSettings() {
             max_tokens: parseInt(document.getElementById('setting-max-tokens').value),
             temperature: parseFloat(document.getElementById('setting-temperature').value),
             top_p: 0.9,
-            stream: false
+            stream: document.getElementById('setting-stream-enabled').classList.contains('on')
         },
         sandbox: {
             enabled: document.getElementById('setting-sandbox-enabled').classList.contains('on'),
@@ -79,7 +79,7 @@ async function saveSettings() {
             markdown_render: true,
             font_size: document.getElementById('setting-font-size').value || 'medium'
         },
-        agent: { max_steps: 5, auto_mode: true, reasoning_mode: 'auto' },
+        agent: { max_steps: parseInt(document.getElementById('setting-max-steps').value) || 10, auto_mode: true, reasoning_mode: 'auto' },
         langsmith: {
             enabled: document.getElementById('setting-langsmith-enabled').classList.contains('on'),
             api_key: document.getElementById('setting-langsmith-api-key').value,

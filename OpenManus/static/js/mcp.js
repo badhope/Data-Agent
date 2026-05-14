@@ -32,7 +32,10 @@ async function loadMcpServers() {
                             <p>类型: ${s.type}</p>
                         </div>
                     </div>
-                    <div class="setting-switch ${s.enabled ? 'on' : ''}" onclick="toggleSwitch(this)"></div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="setting-switch ${s.enabled ? 'on' : ''}" onclick="toggleSwitch(this)"></div>
+                        <button class="delete-btn" onclick="deleteMcpServer('${s.id}')" title="删除MCP服务器" style="background: none; border: 1px solid rgba(239,68,68,0.3); color: #f87171; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">\u00d7</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -54,7 +57,7 @@ async function createMcpServer() {
         showError('名称不能超过50个字符', 'mcp-create');
         return;
     }
-    if (!command && type === 'process') {
+    if (!command && type === 'stdio') {
         showError('请输入启动命令', 'mcp-create');
         return;
     }
