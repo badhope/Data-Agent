@@ -1,0 +1,54 @@
+{
+  "trace_id": "e7c5cb9d59af1c19b4eb5bc97a1b0539_1778474163",
+  "session_id": "e7c5cb9d59af1c19b4eb5bc97a1b0539",
+  "user_input": "我想知道明天有什么会议安排",
+  "intent": "calendar",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T04:36:03.345515",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "我想知道明天有什么会议安排"
+      },
+      "output": "calendar",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.95
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T04:36:03.346277",
+      "action": "tool_selection",
+      "tool_name": "schedule_meeting",
+      "input_params": {
+        "user_input": "我想知道明天有什么会议安排",
+        "params": {
+          "title": "我想知道明天有什么会议安排",
+          "date": "2026-05-11",
+          "time": "14:00",
+          "duration_minutes": 60
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T04:36:03.347089",
+      "action": "tool_execution",
+      "tool_name": "schedule_meeting",
+      "input_params": {},
+      "output": null,
+      "duration_ms": null,
+      "error": "1 validation error for schedule_meeting\nparticipants\n  Field required [type=missing, input_value={'title': '我想知道... 'duration_minutes': 60}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+      "confidence": null
+    }
+  ],
+  "final_response": "❌ 工具执行失败：1 validation error for schedule_meeting\nparticipants\n  Field required [type=missing, input_value={'title': '我想知道... 'duration_minutes': 60}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+  "total_duration_ms": 1122,
+  "created_at": "2026-05-11T04:36:03.345197"
+}

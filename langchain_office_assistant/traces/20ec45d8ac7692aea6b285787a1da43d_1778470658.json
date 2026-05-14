@@ -1,0 +1,53 @@
+{
+  "trace_id": "20ec45d8ac7692aea6b285787a1da43d_1778470658",
+  "session_id": "20ec45d8ac7692aea6b285787a1da43d",
+  "user_input": "查看所有任务",
+  "intent": "task",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:37:38.458574",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "查看所有任务"
+      },
+      "output": "task",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.7
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:37:38.458815",
+      "action": "tool_selection",
+      "tool_name": "create_task",
+      "input_params": {
+        "user_input": "查看所有任务",
+        "params": {
+          "title": "查看所有任务"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:37:38.460246",
+      "action": "tool_execution",
+      "tool_name": "create_task",
+      "input_params": {
+        "title": "查看所有任务"
+      },
+      "output": "✅ Task created successfully!\n\n📌 Title: 查看所有任务\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "✅ Task created successfully!\n\n📌 Title: 查看所有任务\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+  "total_duration_ms": 538,
+  "created_at": "2026-05-11T03:37:38.458259"
+}

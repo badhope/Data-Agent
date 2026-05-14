@@ -1,0 +1,48 @@
+{
+  "trace_id": "03f5bf95bb15804f2c6d046b004061cd_1778470678",
+  "session_id": "03f5bf95bb15804f2c6d046b004061cd",
+  "user_input": "12345",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:37:58.016346",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "12345"
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:37:58.016560",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "12345"
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:37:59.781502",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "您好！看起来您输入了一串数字“12345”，但我不太清楚您具体想要做什么。能否请您提供更多上下文或详细说明一下您的需求？这样我就能更好地帮助到您了。",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "您好！看起来您输入了一串数字“12345”，但我不太清楚您具体想要做什么。能否请您提供更多上下文或详细说明一下您的需求？这样我就能更好地帮助到您了。",
+  "total_duration_ms": 2397,
+  "created_at": "2026-05-11T03:37:58.016087"
+}

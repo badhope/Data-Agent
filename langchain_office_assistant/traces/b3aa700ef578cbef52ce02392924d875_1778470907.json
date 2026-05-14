@@ -1,0 +1,48 @@
+{
+  "trace_id": "b3aa700ef578cbef52ce02392924d875_1778470907",
+  "session_id": "b3aa700ef578cbef52ce02392924d875",
+  "user_input": "今天天气真好",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:41:47.920727",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "今天天气真好"
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:41:47.920924",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "今天天气真好"
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:41:50.323061",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "确实，好天气总能让人心情愉快！您有没有计划今天做些什么特别的事情来享受这美好的一天呢？如果需要我帮您规划日程或是查找一些户外活动的信息，随时告诉我哦。",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "确实，好天气总能让人心情愉快！您有没有计划今天做些什么特别的事情来享受这美好的一天呢？如果需要我帮您规划日程或是查找一些户外活动的信息，随时告诉我哦。",
+  "total_duration_ms": 2895,
+  "created_at": "2026-05-11T03:41:47.920416"
+}

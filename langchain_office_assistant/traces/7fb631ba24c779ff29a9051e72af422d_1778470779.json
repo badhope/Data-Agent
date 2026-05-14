@@ -1,0 +1,53 @@
+{
+  "trace_id": "7fb631ba24c779ff29a9051e72af422d_1778470779",
+  "session_id": "7fb631ba24c779ff29a9051e72af422d",
+  "user_input": "创建一个演示文稿标题是年度汇报",
+  "intent": "ppt",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:39:39.958965",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "创建一个演示文稿标题是年度汇报"
+      },
+      "output": "ppt",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:39:39.959320",
+      "action": "tool_selection",
+      "tool_name": "create_ppt",
+      "input_params": {
+        "user_input": "创建一个演示文稿标题是年度汇报",
+        "params": {
+          "title": "一个文稿标题是年度汇报"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:39:39.966338",
+      "action": "tool_execution",
+      "tool_name": "create_ppt",
+      "input_params": {
+        "title": "一个文稿标题是年度汇报"
+      },
+      "output": "✅ PowerPoint presentation created!\n\n📌 Title: 一个文稿标题是年度汇报\n🆔 Instance ID: ppt_139869984398640",
+      "duration_ms": 6,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "✅ PowerPoint presentation created!\n\n📌 Title: 一个文稿标题是年度汇报\n🆔 Instance ID: ppt_139869984398640",
+  "total_duration_ms": 1303,
+  "created_at": "2026-05-11T03:39:39.958703"
+}

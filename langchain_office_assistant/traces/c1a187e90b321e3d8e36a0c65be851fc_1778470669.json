@@ -1,0 +1,53 @@
+{
+  "trace_id": "c1a187e90b321e3d8e36a0c65be851fc_1778470669",
+  "session_id": "c1a187e90b321e3d8e36a0c65be851fc",
+  "user_input": "搜索关于项目的内容",
+  "intent": "knowledge",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:37:49.737607",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "搜索关于项目的内容"
+      },
+      "output": "knowledge",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.7
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:37:49.737830",
+      "action": "tool_selection",
+      "tool_name": "search_knowledge",
+      "input_params": {
+        "user_input": "搜索关于项目的内容",
+        "params": {
+          "query": "关于项目的内容"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:37:49.796202",
+      "action": "tool_execution",
+      "tool_name": "search_knowledge",
+      "input_params": {
+        "query": "关于项目的内容"
+      },
+      "output": "⚠️ Vector store not initialized",
+      "duration_ms": 57,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "⚠️ Vector store not initialized",
+  "total_duration_ms": 745,
+  "created_at": "2026-05-11T03:37:49.737297"
+}

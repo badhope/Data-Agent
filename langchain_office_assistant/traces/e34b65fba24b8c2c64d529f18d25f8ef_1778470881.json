@@ -1,0 +1,57 @@
+{
+  "trace_id": "e34b65fba24b8c2c64d529f18d25f8ef_1778470881",
+  "session_id": "e34b65fba24b8c2c64d529f18d25f8ef",
+  "user_input": "1千克等于多少磅",
+  "intent": "calc",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:41:21.531452",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "1千克等于多少磅"
+      },
+      "output": "calc",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:41:21.531709",
+      "action": "tool_selection",
+      "tool_name": "currency_convert",
+      "input_params": {
+        "user_input": "1千克等于多少磅",
+        "params": {
+          "amount": 1.0,
+          "from_currency": "CNY",
+          "to_currency": "USD"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:41:21.535334",
+      "action": "tool_execution",
+      "tool_name": "currency_convert",
+      "input_params": {
+        "amount": 1.0,
+        "from_currency": "CNY",
+        "to_currency": "USD"
+      },
+      "output": "💱 Currency Conversion:\n\n1.0 CNY = 0.14 USD",
+      "duration_ms": 3,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "💱 Currency Conversion:\n\n1.0 CNY = 0.14 USD",
+  "total_duration_ms": 914,
+  "created_at": "2026-05-11T03:41:21.531192"
+}

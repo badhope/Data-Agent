@@ -1,0 +1,48 @@
+{
+  "trace_id": "978d509b57bacf7ac4bdf7ba8a44a107_1778471145",
+  "session_id": "978d509b57bacf7ac4bdf7ba8a44a107",
+  "user_input": "搜索关于项目的内容",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:45:45.686234",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "搜索关于项目的内容"
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:45:45.686418",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "搜索关于项目的内容"
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:45:51.643012",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "为了更准确地帮助您搜索关于项目的内容，请提供一些额外的信息：\n1. 您是想通过邮件、文档还是其他方式来查找这些内容？\n2. 有关这个项目的具体名称或关键词是什么？\n3. 搜索的具体范围或者时间限制（例如：仅限于最近一年的文件）？\n\n这样我可以更有效地使用相应的工具来协助您的工作。",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "为了更准确地帮助您搜索关于项目的内容，请提供一些额外的信息：\n1. 您是想通过邮件、文档还是其他方式来查找这些内容？\n2. 有关这个项目的具体名称或关键词是什么？\n3. 搜索的具体范围或者时间限制（例如：仅限于最近一年的文件）？\n\n这样我可以更有效地使用相应的工具来协助您的工作。",
+  "total_duration_ms": 8357,
+  "created_at": "2026-05-11T03:45:45.685969"
+}

@@ -1,0 +1,48 @@
+{
+  "trace_id": "4507669df2f362fe2e11f5008b084ace_1778471468",
+  "session_id": "4507669df2f362fe2e11f5008b084ace",
+  "user_input": "今天天气真好",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:51:08.069625",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "今天天气真好"
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:51:08.069819",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "今天天气真好"
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:51:09.681695",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "确实，好天气总能让人的心情变得愉快！您今天有什么特别的计划吗？如果需要安排一些活动或者会议，我可以帮您查看日程或做一些规划。",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "确实，好天气总能让人的心情变得愉快！您今天有什么特别的计划吗？如果需要安排一些活动或者会议，我可以帮您查看日程或做一些规划。",
+  "total_duration_ms": 2339,
+  "created_at": "2026-05-11T03:51:08.069330"
+}

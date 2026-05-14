@@ -1,0 +1,48 @@
+{
+  "trace_id": "9894bd769456463046d021703c58ae14_1778471350",
+  "session_id": "9894bd769456463046d021703c58ae14",
+  "user_input": "",
+  "intent": "chat",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:49:10.452726",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": ""
+      },
+      "output": "chat",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.5
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:49:10.452916",
+      "action": "direct_chat",
+      "tool_name": null,
+      "input_params": {
+        "user_input": ""
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:49:12.222332",
+      "action": "direct_chat_response",
+      "tool_name": null,
+      "input_params": {},
+      "output": "您好！看起来您的消息可能没有发送完全。请问您需要帮助完成什么任务呢？例如，是关于邮件处理、日程安排、文档编辑还是其他类型的办公支持？请告诉我更多细节，这样我才能更好地为您提供帮助。",
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "您好！看起来您的消息可能没有发送完全。请问您需要帮助完成什么任务呢？例如，是关于邮件处理、日程安排、文档编辑还是其他类型的办公支持？请告诉我更多细节，这样我才能更好地为您提供帮助。",
+  "total_duration_ms": 2904,
+  "created_at": "2026-05-11T03:49:10.452449"
+}

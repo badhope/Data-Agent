@@ -1,0 +1,53 @@
+{
+  "trace_id": "5311faeb731b38d933d3e08d1197b867_1778470969",
+  "session_id": "5311faeb731b38d933d3e08d1197b867",
+  "user_input": "搜索项目相关的邮件",
+  "intent": "email",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:42:49.481652",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "搜索项目相关的邮件"
+      },
+      "output": "email",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:42:49.482096",
+      "action": "tool_selection",
+      "tool_name": "search_emails",
+      "input_params": {
+        "user_input": "搜索项目相关的邮件",
+        "params": {
+          "keyword": "搜索项目相关的邮件"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:42:49.483099",
+      "action": "tool_execution",
+      "tool_name": "search_emails",
+      "input_params": {
+        "keyword": "搜索项目相关的邮件"
+      },
+      "output": "No emails found matching '搜索项目相关的邮件'",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "No emails found matching '搜索项目相关的邮件'",
+  "total_duration_ms": 970,
+  "created_at": "2026-05-11T03:42:49.481329"
+}

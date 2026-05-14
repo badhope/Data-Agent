@@ -1,0 +1,53 @@
+{
+  "trace_id": "0e0171674060a424f3397b2bbdec63b4_1778470762",
+  "session_id": "0e0171674060a424f3397b2bbdec63b4",
+  "user_input": "查看进行中的任务",
+  "intent": "task",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:39:22.187727",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "查看进行中的任务"
+      },
+      "output": "task",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:39:22.187941",
+      "action": "tool_selection",
+      "tool_name": "create_task",
+      "input_params": {
+        "user_input": "查看进行中的任务",
+        "params": {
+          "title": "查看进行中的任务"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:39:22.189093",
+      "action": "tool_execution",
+      "tool_name": "create_task",
+      "input_params": {
+        "title": "查看进行中的任务"
+      },
+      "output": "✅ Task created successfully!\n\n📌 Title: 查看进行中的任务\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "✅ Task created successfully!\n\n📌 Title: 查看进行中的任务\n🔔 Priority: MEDIUM\n📅 Due Date: Not set\n🆔 Task ID: task_003",
+  "total_duration_ms": 599,
+  "created_at": "2026-05-11T03:39:22.187435"
+}

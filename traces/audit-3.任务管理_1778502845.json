@@ -1,0 +1,58 @@
+{
+  "trace_id": "audit-3.任务管理_1778502845",
+  "session_id": "audit-3.任务管理",
+  "user_input": "创建任务 完成报告 优先级高",
+  "intent": "task",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T12:34:05.784292",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "创建任务 完成报告 优先级高"
+      },
+      "output": "task",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.98,
+      "reasoning": null
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T12:34:11.020515",
+      "action": "param_extraction",
+      "tool_name": "create_task",
+      "input_params": {
+        "user_input": "创建任务 完成报告 优先级高",
+        "extracted_params": {
+          "title": "完成报告",
+          "priority": "高"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.9,
+      "reasoning": "用户明确表达了创建任务的意图，并提供了任务标题和优先级。缺少描述和截止日期，但这些不是必需参数。"
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T12:34:11.021529",
+      "action": "tool_execution",
+      "tool_name": "create_task",
+      "input_params": {
+        "title": "完成报告",
+        "priority": "高"
+      },
+      "output": "❌ Invalid priority. Must be one of: low, medium, high, urgent",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null,
+      "reasoning": null
+    }
+  ],
+  "final_response": "❌ Invalid priority. Must be one of: low, medium, high, urgent",
+  "total_duration_ms": 7353,
+  "created_at": "2026-05-11T12:34:05.784013"
+}

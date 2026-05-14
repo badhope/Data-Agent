@@ -1,0 +1,53 @@
+{
+  "trace_id": "717413f1042b37a0a315e039fd2de8fc_1778469998",
+  "session_id": "717413f1042b37a0a315e039fd2de8fc",
+  "user_input": "计算 2 + 3 * 4",
+  "intent": "calc",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "timestamp": "2026-05-11T03:26:38.648470",
+      "action": "intent_recognition",
+      "tool_name": null,
+      "input_params": {
+        "user_input": "计算 2 + 3 * 4"
+      },
+      "output": "calc",
+      "duration_ms": null,
+      "error": null,
+      "confidence": 0.7
+    },
+    {
+      "step_id": "step_2",
+      "timestamp": "2026-05-11T03:26:38.648833",
+      "action": "tool_selection",
+      "tool_name": "calculate",
+      "input_params": {
+        "user_input": "计算 2 + 3 * 4",
+        "params": {
+          "expression": " 2 + 3 * 4"
+        }
+      },
+      "output": null,
+      "duration_ms": null,
+      "error": null,
+      "confidence": null
+    },
+    {
+      "step_id": "step_3",
+      "timestamp": "2026-05-11T03:26:38.649942",
+      "action": "tool_execution",
+      "tool_name": "calculate",
+      "input_params": {
+        "expression": " 2 + 3 * 4"
+      },
+      "output": "🧮 Calculation Result:\n\n 2 + 3 * 4 = 14",
+      "duration_ms": 0,
+      "error": null,
+      "confidence": null
+    }
+  ],
+  "final_response": "🧮 Calculation Result:\n\n 2 + 3 * 4 = 14",
+  "total_duration_ms": 1164,
+  "created_at": "2026-05-11T03:26:38.648177"
+}
