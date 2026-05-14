@@ -36,11 +36,14 @@ setup(
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.12",
+    python_requires=">=3.10",
     entry_points={
         "console_scripts": [
             "data-ai=main:main",
