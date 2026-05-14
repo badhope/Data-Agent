@@ -1016,7 +1016,7 @@ async function generateMeetingMinutes() {
         const resultContent = document.getElementById('meeting-result-content');
         const resultDiv = document.getElementById('meeting-result');
 
-        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.minutes || data.content || '暂无会议纪要结果');
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.result?.content || data.minutes || data.content || '暂无会议纪要结果');
         resultDiv.style.display = 'block';
 
         showToast('会议纪要生成完成', 'success');
@@ -1182,7 +1182,7 @@ async function quickPolish() {
         }
 
         // 将润色结果替换到输入框
-        inputBox.value = data.polished || data.content || text;
+        inputBox.value = data.polished_text || data.polished || data.content || text;
         autoResize(inputBox);
         updateCharCount();
 
@@ -1230,7 +1230,7 @@ async function polishText() {
         const resultContent = document.getElementById('polish-result-content');
         const resultDiv = document.getElementById('polish-result');
 
-        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.polished || data.content || '暂无润色结果');
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.polished_text || data.polished || data.content || '暂无润色结果');
         resultDiv.style.display = 'block';
 
         showToast('文本润色完成', 'success');
@@ -1284,7 +1284,21 @@ async function extractTodos() {
         const resultContent = document.getElementById('todo-result-content');
         const resultDiv = document.getElementById('todo-result');
 
-        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.todos || data.content || '暂无待办事项');
+        // 格式化待办事项列表
+        let todoHtml = '';
+        if (data.todos && Array.isArray(data.todos) && data.todos.length > 0) {
+            todoHtml = `### 待办事项（共${data.total || data.todos.length}项）\n\n`;
+            data.todos.forEach((todo, i) => {
+                const priority = todo.priority === 'high' ? '🔴' : todo.priority === 'medium' ? '🟡' : '🟢';
+                todoHtml += `${i + 1}. ${priority} **${todo.task}**\n`;
+                if (todo.deadline) todoHtml += `   - 截止：${todo.deadline}\n`;
+                if (todo.assignee) todoHtml += `   - 负责人：${todo.assignee}\n`;
+            });
+        } else {
+            todoHtml = data.content || '暂无待办事项';
+        }
+
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(todoHtml);
         resultDiv.style.display = 'block';
 
         showToast('待办提取完成', 'success');
