@@ -64,6 +64,12 @@ class CitationRequest(BaseModel):
     style: str = "gbt"
 
 
+class PolishRequest(BaseModel):
+    text: str
+    style: str = "academic"  # academic, casual, formal, concise
+    language: str = "auto"   # auto, zh, en
+
+
 @router.post("/summarize")
 async def summarize_document(request: SummarizeRequest):
     """生成文档摘要"""
@@ -299,6 +305,20 @@ async def get_outline_templates():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/polish")
+async def polish_text(request: PolishRequest):
+    """文本润色 - 学术与职场风格"""
+    try:
+        result = await doc_service.polish_text(
+            text=request.text,
+            style=request.style,
+            language=request.language
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/")
 async def documents_index():
     """文档处理API首页"""
@@ -313,6 +333,7 @@ async def documents_index():
             "POST /documents/report/ppt": "生成工作报告PPT",
             "POST /documents/todos": "提取待办事项",
             "POST /documents/format": "格式化文本",
+            "POST /documents/polish": "文本润色（学术/职场风格）",
             "GET /documents/ppt/templates": "获取PPT模板",
             "POST /documents/ppt/generate": "生成PPT",
             "POST /documents/citations": "管理引用",

@@ -39,33 +39,72 @@
     text-align: center;
 }
 
-/* 建议卡片 */
+/* 建议卡片 - 3列网格布局 */
 .suggestion-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    max-width: 600px;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    max-width: 720px;
     margin: 24px auto 0;
     width: 100%;
 }
 
 .suggestion-card {
-    padding: 14px 16px;
+    padding: 16px;
     background: rgba(71, 85, 105, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     color: #94a3b8;
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
     text-align: left;
     font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .suggestion-card:hover {
-    background: rgba(71, 85, 105, 0.3);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(71, 85, 105, 0.35);
+    border-color: rgba(59, 130, 246, 0.4);
     color: #e2e8f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.suggestion-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.suggestion-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 4px;
+}
+
+.suggestion-desc {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.suggestion-card:hover .suggestion-desc {
+    color: #94a3b8;
+}
+
+/* 润色按钮样式 */
+.polish-btn {
+    color: #fbbf24;
+    transition: all 0.2s;
+}
+
+.polish-btn:hover {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    transform: scale(1.05);
 }
 
 /* ==================== 输入区域重设计 ==================== */
@@ -330,7 +369,26 @@
     }
 
     .suggestion-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        max-width: 480px;
+    }
+
+    .suggestion-card {
+        padding: 12px;
+    }
+
+    .suggestion-icon {
+        font-size: 20px;
+        margin-bottom: 6px;
+    }
+
+    .suggestion-title {
+        font-size: 13px;
+    }
+
+    .suggestion-desc {
+        font-size: 11px;
     }
 
     .input-area {

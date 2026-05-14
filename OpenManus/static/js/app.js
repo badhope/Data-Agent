@@ -900,3 +900,336 @@ async function handlePdfUpload(event) {
 
     event.target.value = '';
 }
+
+// ==================== 学术与职场功能函数 ====================
+
+// 文献摘要 - 上传PDF自动提取核心观点
+async function generateLiteratureSummary(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showToast('请选择PDF文件', 'error');
+        return;
+    }
+
+    showToast(`正在分析文献: ${file.name}`, 'info');
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/documents/summarize', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('文献摘要生成失败');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        const resultContent = document.getElementById('literature-result-content');
+        const resultDiv = document.getElementById('literature-result');
+
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.summary || data.content || '暂无摘要结果');
+        resultDiv.style.display = 'block';
+
+        showToast('文献摘要生成完成', 'success');
+    } catch (error) {
+        console.error('文献摘要错误:', error);
+        showToast('文献摘要生成失败: ' + error.message, 'error');
+    }
+
+    event.target.value = '';
+}
+
+// 会议纪要 - 从会议记录生成结构化纪要
+async function generateMeetingMinutes() {
+    const input = document.getElementById('meeting-input').value.trim();
+
+    if (!input) {
+        showToast('请输入会议记录内容', 'warning');
+        return;
+    }
+
+    showToast('正在生成会议纪要...', 'info');
+
+    try {
+        const response = await fetch('/documents/meeting-minutes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: input })
+        });
+
+        if (!response.ok) {
+            throw new Error('会议纪要生成失败');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        const resultContent = document.getElementById('meeting-result-content');
+        const resultDiv = document.getElementById('meeting-result');
+
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.minutes || data.content || '暂无会议纪要结果');
+        resultDiv.style.display = 'block';
+
+        showToast('会议纪要生成完成', 'success');
+    } catch (error) {
+        console.error('会议纪要错误:', error);
+        showToast('会议纪要生成失败: ' + error.message, 'error');
+    }
+}
+
+// PPT生成 - 一键生成演示文稿
+async function generatePPT() {
+    const topic = document.getElementById('ppt-topic').value.trim();
+    const pages = document.getElementById('ppt-pages').value;
+    const content = document.getElementById('ppt-content').value.trim();
+
+    if (!topic) {
+        showToast('请输入PPT主题', 'warning');
+        return;
+    }
+
+    showToast('正在生成PPT大纲...', 'info');
+
+    try {
+        const response = await fetch('/documents/ppt/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                topic: topic,
+                pages: parseInt(pages),
+                content: content
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('PPT生成失败');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        const resultContent = document.getElementById('ppt-result-content');
+        const resultDiv = document.getElementById('ppt-result');
+
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.outline || data.content || '暂无PPT大纲结果');
+        resultDiv.style.display = 'block';
+
+        showToast('PPT大纲生成完成', 'success');
+    } catch (error) {
+        console.error('PPT生成错误:', error);
+        showToast('PPT生成失败: ' + error.message, 'error');
+    }
+}
+
+// 周报生成 - 智能扩写实习周报
+async function generateWeeklyReport() {
+    const work = document.getElementById('weekly-work').value.trim();
+    const problems = document.getElementById('weekly-problems').value.trim();
+    const plan = document.getElementById('weekly-plan').value.trim();
+
+    if (!work) {
+        showToast('请输入本周工作内容', 'warning');
+        return;
+    }
+
+    showToast('正在生成周报...', 'info');
+
+    try {
+        const response = await fetch('/documents/report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'weekly',
+                work: work,
+                problems: problems,
+                plan: plan
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('周报生成失败');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        const resultContent = document.getElementById('weekly-result-content');
+        const resultDiv = document.getElementById('weekly-result');
+
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.report || data.content || '暂无周报结果');
+        resultDiv.style.display = 'block';
+
+        showToast('周报生成完成', 'success');
+    } catch (error) {
+        console.error('周报生成错误:', error);
+        showToast('周报生成失败: ' + error.message, 'error');
+    }
+}
+
+// 快速润色 - 输入框右侧按钮调用
+async function quickPolish() {
+    const inputBox = document.getElementById('input-box');
+    const text = inputBox.value.trim();
+
+    if (!text) {
+        showToast('请先输入需要润色的内容', 'warning');
+        return;
+    }
+
+    showToast('正在润色文本...', 'info');
+
+    try {
+        const response = await fetch('/documents/polish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                type: 'academic'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('文本润色失败');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        // 将润色结果替换到输入框
+        inputBox.value = data.polished || data.content || text;
+        autoResize(inputBox);
+        updateCharCount();
+
+        showToast('文本润色完成', 'success');
+    } catch (error) {
+        console.error('文本润色错误:', error);
+        showToast('文本润色失败: ' + error.message, 'error');
+    }
+}
+
+// 语言润色 - 模态框中的润色功能
+async function polishText() {
+    const input = document.getElementById('polish-input').value.trim();
+    const type = document.getElementById('polish-type').value;
+
+    if (!input) {
+        showToast('请输入需要润色的文本', 'warning');
+        return;
+    }
+
+    showToast('正在润色文本...', 'info');
+
+    try {
+        const response = await fetch('/documents/polish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: input,
+                type: type
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('文本润色失败');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        const resultContent = document.getElementById('polish-result-content');
+        const resultDiv = document.getElementById('polish-result');
+
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.polished || data.content || '暂无润色结果');
+        resultDiv.style.display = 'block';
+
+        showToast('文本润色完成', 'success');
+    } catch (error) {
+        console.error('文本润色错误:', error);
+        showToast('文本润色失败: ' + error.message, 'error');
+    }
+}
+
+// 复制润色结果
+function copyPolishResult() {
+    const resultContent = document.getElementById('polish-result-content');
+    const text = resultContent.innerText;
+
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('已复制到剪贴板', 'success');
+    }).catch(() => {
+        showToast('复制失败', 'error');
+    });
+}
+
+// 待办提取 - 从文档提取行动项
+async function extractTodos() {
+    const input = document.getElementById('todo-input').value.trim();
+
+    if (!input) {
+        showToast('请输入需要提取待办的文本内容', 'warning');
+        return;
+    }
+
+    showToast('正在提取待办事项...', 'info');
+
+    try {
+        const response = await fetch('/documents/extract-todos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: input })
+        });
+
+        if (!response.ok) {
+            throw new Error('待办提取失败');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        const resultContent = document.getElementById('todo-result-content');
+        const resultDiv = document.getElementById('todo-result');
+
+        resultContent.innerHTML = renderMarkdownWithCodeFolding(data.todos || data.content || '暂无待办事项');
+        resultDiv.style.display = 'block';
+
+        showToast('待办提取完成', 'success');
+    } catch (error) {
+        console.error('待办提取错误:', error);
+        showToast('待办提取失败: ' + error.message, 'error');
+    }
+}

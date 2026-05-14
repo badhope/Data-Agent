@@ -175,21 +175,35 @@ pre:hover .code-copy-btn { opacity: 1; }
                         <div class="welcome-logo">DA</div>
                         <h2 class="welcome-title">有什么可以帮忙的？</h2>
                         <div class="suggestion-grid">
-                            <button class="suggestion-card" onclick="insertCommand('帮我分析数据'); sendMessage();">
-                                <div style="font-size: 20px; margin-bottom: 6px;">📊</div>
-                                <div>帮我分析数据</div>
+                            <button class="suggestion-card" onclick="openModal('literature-modal')">
+                                <div class="suggestion-icon">📄</div>
+                                <div class="suggestion-title">文献摘要</div>
+                                <div class="suggestion-desc">上传PDF自动提取核心观点</div>
                             </button>
-                            <button class="suggestion-card" onclick="insertCommand('生成一个图表'); sendMessage();">
-                                <div style="font-size: 20px; margin-bottom: 6px;">📈</div>
-                                <div>生成一个图表</div>
+                            <button class="suggestion-card" onclick="openModal('meeting-modal')">
+                                <div class="suggestion-icon">📝</div>
+                                <div class="suggestion-title">会议纪要</div>
+                                <div class="suggestion-desc">从会议记录生成结构化纪要</div>
                             </button>
-                            <button class="suggestion-card" onclick="insertCommand('写一段 Python 代码'); sendMessage();">
-                                <div style="font-size: 20px; margin-bottom: 6px;">💻</div>
-                                <div>写一段 Python 代码</div>
+                            <button class="suggestion-card" onclick="openModal('ppt-modal')">
+                                <div class="suggestion-icon">📊</div>
+                                <div class="suggestion-title">PPT生成</div>
+                                <div class="suggestion-desc">一键生成演示文稿</div>
                             </button>
-                            <button class="suggestion-card" onclick="insertCommand('解析一个文档'); sendMessage();">
-                                <div style="font-size: 20px; margin-bottom: 6px;">📄</div>
-                                <div>解析一个文档</div>
+                            <button class="suggestion-card" onclick="openModal('weekly-modal')">
+                                <div class="suggestion-icon">📋</div>
+                                <div class="suggestion-title">周报生成</div>
+                                <div class="suggestion-desc">智能扩写实习周报</div>
+                            </button>
+                            <button class="suggestion-card" onclick="openModal('polish-modal')">
+                                <div class="suggestion-icon">✨</div>
+                                <div class="suggestion-title">语言润色</div>
+                                <div class="suggestion-desc">中英文学术润色</div>
+                            </button>
+                            <button class="suggestion-card" onclick="openModal('todo-modal')">
+                                <div class="suggestion-icon">✅</div>
+                                <div class="suggestion-title">待办提取</div>
+                                <div class="suggestion-desc">从文档提取行动项</div>
                             </button>
                         </div>
                     </div>
@@ -209,6 +223,7 @@ pre:hover .code-copy-btn { opacity: 1; }
                         </div>
                         <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx,.json,.py,.js" style="display: none;" onchange="handleFileUpload(event)">
                         <textarea class="input-box" id="input-box" placeholder="给 DataAgent 发送消息" rows="1" oninput="autoResize(this); updateCharCount()"></textarea>
+                        <button class="tool-btn-compact polish-btn" onclick="quickPolish()" title="语言润色">✨</button>
                         <button class="send-btn" id="send-btn" onclick="sendMessage()">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         </button>
@@ -794,6 +809,169 @@ pre:hover .code-copy-btn { opacity: 1; }
                             </ul>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 文献摘要模态框 ==================== -->
+    <div class="modal-overlay" id="literature-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📄 文献摘要</div>
+                <button class="modal-close" onclick="closeModal('literature-modal')">← 返回</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #94a3b8; margin-bottom: 16px;">上传PDF文件，自动提取核心观点、研究方法和结论</p>
+                <div class="file-upload-area" onclick="document.getElementById('literature-file-input').click()">
+                    <div style="font-size: 32px; margin-bottom: 12px;">📁</div>
+                    <h4>点击上传PDF文献</h4>
+                    <p>支持学术论文、研究报告等PDF文档</p>
+                    <input type="file" id="literature-file-input" accept=".pdf" style="display: none;" onchange="generateLiteratureSummary(event)">
+                </div>
+                <div id="literature-result" style="margin-top: 16px; display: none;">
+                    <h4 style="color: white; margin-bottom: 12px;">📋 摘要结果</h4>
+                    <div class="result-content" id="literature-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 会议纪要模态框 ==================== -->
+    <div class="modal-overlay" id="meeting-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📝 会议纪要</div>
+                <button class="modal-close" onclick="closeModal('meeting-modal')">← 返回</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #94a3b8; margin-bottom: 16px;">从会议记录生成结构化纪要，自动提取议题、决议和待办</p>
+                <div class="setting-row">
+                    <span class="setting-label">会议记录</span>
+                    <textarea class="setting-input" id="meeting-input" placeholder="粘贴会议记录内容..." rows="6"></textarea>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="generateMeetingMinutes()">生成会议纪要</button>
+                <div id="meeting-result" style="margin-top: 16px; display: none;">
+                    <h4 style="color: white; margin-bottom: 12px;">📋 会议纪要</h4>
+                    <div class="result-content" id="meeting-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PPT生成模态框 ==================== -->
+    <div class="modal-overlay" id="ppt-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📊 PPT生成</div>
+                <button class="modal-close" onclick="closeModal('ppt-modal')">← 返回</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #94a3b8; margin-bottom: 16px;">一键生成演示文稿大纲和内容</p>
+                <div class="setting-row">
+                    <span class="setting-label">PPT主题</span>
+                    <input type="text" class="setting-input" id="ppt-topic" placeholder="例如：人工智能在医疗领域的应用">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">页数</span>
+                    <select class="setting-select" id="ppt-pages">
+                        <option value="5">5页</option>
+                        <option value="10" selected>10页</option>
+                        <option value="15">15页</option>
+                        <option value="20">20页</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">补充内容（可选）</span>
+                    <textarea class="setting-input" id="ppt-content" placeholder="添加详细内容或要点..." rows="4"></textarea>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="generatePPT()">生成PPT大纲</button>
+                <div id="ppt-result" style="margin-top: 16px; display: none;">
+                    <h4 style="color: white; margin-bottom: 12px;">📋 PPT大纲</h4>
+                    <div class="result-content" id="ppt-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 周报生成模态框 ==================== -->
+    <div class="modal-overlay" id="weekly-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📋 周报生成</div>
+                <button class="modal-close" onclick="closeModal('weekly-modal')">← 返回</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #94a3b8; margin-bottom: 16px;">智能扩写实习周报，将简单记录转化为专业报告</p>
+                <div class="setting-row">
+                    <span class="setting-label">本周工作内容</span>
+                    <textarea class="setting-input" id="weekly-work" placeholder="列出本周完成的主要工作..." rows="4"></textarea>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">遇到的问题</span>
+                    <textarea class="setting-input" id="weekly-problems" placeholder="描述本周遇到的问题及解决方案..." rows="3"></textarea>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">下周计划</span>
+                    <textarea class="setting-input" id="weekly-plan" placeholder="列出下周工作计划..." rows="3"></textarea>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="generateWeeklyReport()">生成周报</button>
+                <div id="weekly-result" style="margin-top: 16px; display: none;">
+                    <h4 style="color: white; margin-bottom: 12px;">📋 周报内容</h4>
+                    <div class="result-content" id="weekly-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 语言润色模态框 ==================== -->
+    <div class="modal-overlay" id="polish-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">✨ 语言润色</div>
+                <button class="modal-close" onclick="closeModal('polish-modal')">← 返回</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #94a3b8; margin-bottom: 16px;">中英文学术润色，提升表达专业性</p>
+                <div class="setting-row">
+                    <span class="setting-label">润色类型</span>
+                    <select class="setting-select" id="polish-type">
+                        <option value="academic">学术风格</option>
+                        <option value="business">商务风格</option>
+                        <option value="casual">简洁风格</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">原文</span>
+                    <textarea class="setting-input" id="polish-input" placeholder="粘贴需要润色的文本..." rows="6"></textarea>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="polishText()">润色文本</button>
+                <div id="polish-result" style="margin-top: 16px; display: none;">
+                    <h4 style="color: white; margin-bottom: 12px;">✨ 润色结果</h4>
+                    <div class="result-content" id="polish-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 12px;" onclick="copyPolishResult()">复制结果</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 待办提取模态框 ==================== -->
+    <div class="modal-overlay" id="todo-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">✅ 待办提取</div>
+                <button class="modal-close" onclick="closeModal('todo-modal')">← 返回</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #94a3b8; margin-bottom: 16px;">从文档、会议记录或聊天记录中提取行动项</p>
+                <div class="setting-row">
+                    <span class="setting-label">输入内容</span>
+                    <textarea class="setting-input" id="todo-input" placeholder="粘贴需要提取待办的文本内容..." rows="6"></textarea>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="extractTodos()">提取待办</button>
+                <div id="todo-result" style="margin-top: 16px; display: none;">
+                    <h4 style="color: white; margin-bottom: 12px;">✅ 待办事项</h4>
+                    <div class="result-content" id="todo-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
                 </div>
             </div>
         </div>

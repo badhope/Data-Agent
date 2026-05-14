@@ -202,3 +202,72 @@ class DocumentService:
     def get_outline_templates(self) -> List[Dict]:
         """获取提纲模板列表"""
         return self.outline_generator.get_templates()
+
+    async def polish_text(
+        self,
+        text: str,
+        style: str = "academic",
+        language: str = "auto"
+    ) -> Dict:
+        """文本润色 - 学术与职场风格"""
+        from app.llm import LLM
+
+        # 定义不同风格的提示词
+        style_prompts = {
+            "academic": """请将以下文本润色为学术风格。要求：
+1. 使用规范的学术用语和表达
+2. 保持逻辑严谨，论证充分
+3. 优化句式结构，避免口语化
+4. 保持原意不变，提升专业性
+5. 适当使用学术连接词（然而、因此、综上所述等）""",
+
+            "casual": """请将以下文本改写为轻松自然的风格。要求：
+1. 使用通俗易懂的语言
+2. 适当使用口语化表达
+3. 保持友好亲切的语气
+4. 保持原意不变""",
+
+            "formal": """请将以下文本改写为正式商务风格。要求：
+1. 使用规范的商务用语
+2. 语气专业、礼貌、简洁
+3. 避免缩写和口语化表达
+4. 适合职场正式场合""",
+
+            "concise": """请将以下文本精简压缩。要求：
+1. 删除冗余词汇和重复表达
+2. 保留核心信息和关键观点
+3. 使用简洁有力的句式
+4. 保持原意不变"""
+        }
+
+        prompt = style_prompts.get(style, style_prompts["academic"])
+
+        # 检测语言
+        if language == "auto":
+            # 简单检测：如果文本中中文字符占比高，则认为是中文
+            chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+            language = "zh" if chinese_chars / len(text) > 0.3 else "en"
+
+        # 添加语言提示
+        if language == "zh":
+            prompt += "\n\n请用中文输出润色后的文本。"
+        else:
+            prompt += "\n\nPlease output the polished text in English."
+
+        llm = LLM()
+        messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": f"请润色以下文本：\n\n{text}"}
+        ]
+
+        response = await llm.ask(messages)
+        polished_text = response
+
+        return {
+            "original_text": text,
+            "polished_text": polished_text,
+            "style": style,
+            "language": language,
+            "original_length": len(text),
+            "polished_length": len(polished_text)
+        }
