@@ -57,6 +57,7 @@ from routers.visualization import router as visualization_router
 from routers.agent import router as agent_router
 from routers.feedback import router as feedback_router
 from routers.documents import router as documents_router
+from routers.logs import router as logs_router
 
 app.include_router(settings_router)
 app.include_router(knowledge_router)
@@ -70,6 +71,7 @@ app.include_router(visualization_router)
 app.include_router(agent_router)
 app.include_router(feedback_router)
 app.include_router(documents_router)
+app.include_router(logs_router)
 
 @app.get("/api/health")
 async def health_check():
@@ -120,6 +122,13 @@ async def get():
 @app.get("/features")
 async def features():
     html_path = os.path.join(os.path.dirname(__file__), "templates", "features.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+# 日志查看器页面路由
+@app.get("/logs")
+async def logs():
+    html_path = os.path.join(os.path.dirname(__file__), "templates", "logs.html")
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 

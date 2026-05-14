@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from utils.log_manager import log_manager
 
-router = APIRouter(prefix="/logs", tags=["日志管理"])
+router = APIRouter(prefix="/api/logs", tags=["日志管理"])
 
 
 class LogStats(BaseModel):
@@ -40,7 +40,7 @@ class LogEntry(BaseModel):
     file: Optional[str] = None
 
 
-@router.get("/api/logs/stats")
+@router.get("/stats")
 async def get_log_stats():
     """获取日志统计信息"""
     try:
@@ -50,7 +50,7 @@ async def get_log_stats():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/api/logs/files")
+@router.get("/files")
 async def get_log_files():
     """获取日志文件列表"""
     try:
@@ -60,7 +60,7 @@ async def get_log_files():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/api/logs/content")
+@router.get("/content")
 async def get_log_content(
     filename: str = Query(..., description="日志文件名"),
     lines: int = Query(100, description="读取行数"),
@@ -74,7 +74,7 @@ async def get_log_content(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/api/logs/search")
+@router.get("/search")
 async def search_logs(
     keyword: str = Query(..., description="搜索关键词"),
     log_type: Optional[str] = Query(None, description="日志类型")
@@ -87,7 +87,7 @@ async def search_logs(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/logs")
+@router.get("/")
 async def logs_page():
     """日志查看器页面"""
     html_path = "templates/logs.html"
