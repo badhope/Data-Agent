@@ -56,6 +56,7 @@ from routers.nl2sql import router as nl2sql_router
 from routers.visualization import router as visualization_router
 from routers.agent import router as agent_router
 from routers.feedback import router as feedback_router
+from routers.documents import router as documents_router
 
 app.include_router(settings_router)
 app.include_router(knowledge_router)
@@ -68,6 +69,7 @@ app.include_router(nl2sql_router)
 app.include_router(visualization_router)
 app.include_router(agent_router)
 app.include_router(feedback_router)
+app.include_router(documents_router)
 
 @app.get("/api/health")
 async def health_check():

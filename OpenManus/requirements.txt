@@ -40,3 +40,7 @@ crawl4ai~=0.6.3
 
 huggingface-hub~=0.29.2
 setuptools~=75.8.0
+
+python-pptx>=0.6.21
+pdfplumber>=0.10.0
+python-docx>=0.8.11
