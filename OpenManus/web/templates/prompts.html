@@ -4,435 +4,335 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DATA-AI - 提示词管理</title>
-    <link rel="stylesheet" href="/static/css/admin.css">
-    <style>
-        :root {
-            --primary: #8B5CF6;
-            --primary-light: #A78BFA;
-            --primary-dark: #7C3AED;
-            --text-primary: #1F2937;
-            --text-secondary: #6B7280;
-            --text-muted: #9CA3AF;
-            --bg-primary: #FFFFFF;
-            --bg-secondary: #F9FAFB;
-            --bg-tertiary: #F3F4F6;
-            --border: #E5E7EB;
-            --shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
-        
-        * {
-            box-sizing: border-box;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/admin-unified.css">
 </head>
 <body>
-    <div class="admin-panel">
-        <!-- 顶部工具栏 -->
-        <div class="admin-header">
-            <div class="admin-title">
-                <span style="font-size: 24px;">📝</span>
-                提示词管理
+    <div class="admin-container">
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">📝</div>
+                    <span class="sidebar-logo-text">DATA-AI</span>
+                </div>
+                <button class="back-btn" onclick="window.location.href='/'">
+                    <span>←</span>
+                    <span>返回主页</span>
+                </button>
             </div>
-            <div class="admin-actions">
-                <button class="admin-btn" onclick="goBack()">
-                    <span>←</span> 返回
-                </button>
-                <button class="admin-btn" onclick="showImport()">
-                    <span>📥</span> 导入
-                </button>
-                <button class="admin-btn" onclick="exportPrompts()">
-                    <span>📦</span> 导出
-                </button>
-                <button class="admin-btn primary" onclick="createPrompt()">
-                    <span>＋</span> 新建提示词
-                </button>
+            
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">管理中心</div>
+                    <div class="nav-item" onclick="window.location.href='/agents'">
+                        <span class="nav-item-icon">🤖</span>
+                        <span class="nav-item-text">智能体</span>
+                    </div>
+                    <div class="nav-item active" onclick="showView('prompts')">
+                        <span class="nav-item-icon">📝</span>
+                        <span class="nav-item-text">提示词</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/skills'">
+                        <span class="nav-item-icon">⚡</span>
+                        <span class="nav-item-text">技能</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/mcp'">
+                        <span class="nav-item-icon">🔌</span>
+                        <span class="nav-item-text">MCP</span>
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">我的提示词</div>
+                    <div id="prompt-nav-list"></div>
+                </div>
             </div>
         </div>
         
-        <!-- 主内容区 -->
-        <div class="admin-content">
-            <!-- 左侧列表 -->
-            <div class="admin-list">
-                <div class="admin-list-header">
-                    <input type="text" class="admin-search" placeholder="搜索提示词..." id="search-input">
+        <div class="admin-main">
+            <div class="admin-topbar">
+                <div class="admin-topbar-left">
+                    <h1 class="admin-title" id="view-title">提示词管理</h1>
                 </div>
-                <div class="admin-list-items" id="prompts-list">
-                    <!-- 提示词卡片会在这里动态生成 -->
+                <div class="admin-topbar-right">
+                    <button class="btn" onclick="importData()">
+                        <span>📥</span> 导入
+                    </button>
+                    <button class="btn" onclick="exportData()">
+                        <span>📤</span> 导出
+                    </button>
+                    <button class="btn btn-primary" onclick="createNew()">
+                        <span>＋</span> 新建提示词
+                    </button>
                 </div>
             </div>
             
-            <!-- 右侧详情编辑 -->
-            <div class="admin-detail" id="prompt-detail">
-                <div class="empty-state">
-                    <div class="empty-icon">📝</div>
-                    <div class="empty-title">选择一个提示词</div>
-                    <div class="empty-desc">从左侧列表选择一个提示词进行编辑，或创建新的提示词</div>
-                    <button class="admin-btn primary" onclick="createPrompt()">
-                        <span>＋</span> 创建提示词
-                    </button>
+            <div class="admin-content" id="content-area">
+                <div id="list-view">
+                    <div class="list-header">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" placeholder="搜索提示词..." id="search-input" oninput="filterPrompts()">
+                        </div>
+                    </div>
+                    <div class="list-grid" id="prompts-grid"></div>
                 </div>
+                
+                <div id="detail-view" style="display: none;"></div>
             </div>
         </div>
     </div>
     
     <script>
-        // 示例提示词数据
-        const samplePrompts = [
+        let prompts = [
             {
                 id: '1',
                 name: '代码优化大师',
-                description: '优化和重构现有代码，提高效率和可读性',
                 icon: '⚡',
+                description: '优化和重构现有代码',
                 category: '代码',
                 variables: ['code', 'language', 'goal'],
-                content: `请优化以下代码，目标是：{{goal}}
-
-语言：{{language}}
-
-代码：
-{{code}}
-
-请提供：
-1. 优化后的代码
-2. 改进说明
-3. 性能对比`,
-                usageCount: 42,
-                createdAt: '2024-01-10'
+                content: '请优化以下代码，目标：{{goal}}\n语言：{{language}}\n代码：\n{{code}}\n\n请提供优化后的代码和改进说明。'
             },
             {
                 id: '2',
                 name: '邮件写作助手',
-                description: '帮助您写专业、礼貌的邮件',
                 icon: '✉️',
+                description: '帮助您写专业邮件',
                 category: '写作',
                 variables: ['recipient', 'purpose', 'tone'],
-                content: `请帮我写一封邮件，收件人：{{recipient}}
-邮件目的：{{purpose}}
-期望语气：{{tone}}
-
-请提供：
-1. 邮件主题
-2. 邮件正文
-3. 签名建议`,
-                usageCount: 128,
-                createdAt: '2024-02-05'
+                content: '请帮我写一封邮件。\n收件人：{{recipient}}\n目的：{{purpose}}\n语气：{{tone}}'
             },
             {
                 id: '3',
-                name: '代码审查专家',
-                description: '进行全面的代码审查，发现问题和改进点',
-                icon: '🔍',
-                category: '代码',
-                variables: ['code', 'language'],
-                content: `请对以下代码进行全面审查：
-
-语言：{{language}}
-
-代码：
-{{code}}
-
-请从以下方面进行审查：
-1. 代码质量
-2. 潜在 bug
-3. 安全问题
-4. 性能问题
-5. 最佳实践`,
-                usageCount: 36,
-                createdAt: '2024-03-15'
+                name: '翻译专家',
+                icon: '🌐',
+                description: '准确翻译并保持原意',
+                category: '语言',
+                variables: ['text', 'source', 'target', 'style'],
+                content: '请将以下文本从 {{source}} 翻译为 {{target}}。\n文本：\n{{text}}\n风格：{{style}}'
             },
             {
                 id: '4',
-                name: '翻译专家',
-                description: '准确翻译并保持原意和风格',
-                icon: '🌐',
-                category: '语言',
-                variables: ['text', 'source', 'target', 'style'],
-                content: `请将以下文本从 {{source}} 翻译为 {{target}}
-
-文本：
-{{text}}
-
-要求：
-- 风格：{{style}}
-- 保持原意
-- 自然流畅`,
-                usageCount: 156,
-                createdAt: '2024-04-20'
+                name: '代码审查专家',
+                icon: '🔍',
+                description: '全面的代码审查',
+                category: '代码',
+                variables: ['code', 'language'],
+                content: '请对以下代码进行全面审查。\n语言：{{language}}\n代码：\n{{code}}'
             }
         ];
         
         let currentPrompt = null;
         
-        // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            renderPromptsList(samplePrompts);
-            
-            // 搜索功能
-            document.getElementById('search-input').addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
-                const filtered = samplePrompts.filter(p => 
-                    p.name.toLowerCase().includes(query) || 
-                    p.description.toLowerCase().includes(query) ||
-                    p.category.toLowerCase().includes(query)
-                );
-                renderPromptsList(filtered);
-            });
+            renderPromptsList(prompts);
+            renderPromptNav();
         });
         
-        // 渲染提示词列表
-        function renderPromptsList(prompts) {
-            const container = document.getElementById('prompts-list');
-            container.innerHTML = prompts.map(prompt => `
-                <div class="admin-item-card" onclick="selectPrompt('${prompt.id}')" id="prompt-card-${prompt.id}">
-                    <div class="admin-item-header">
-                        <div class="admin-item-icon">${prompt.icon}</div>
-                        <div class="admin-item-info">
-                            <div class="admin-item-name">${prompt.name}</div>
-                            <div class="admin-item-desc">${prompt.description}</div>
-                        </div>
+        function renderPromptsList(list) {
+            const grid = document.getElementById('prompts-grid');
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">📝</div>
+                        <div class="empty-title">暂无提示词</div>
+                        <div class="empty-desc">点击"新建提示词"创建一个</div>
                     </div>
-                    <div class="admin-item-tags">
-                        <span class="admin-tag purple">${prompt.category}</span>
-                        <span class="admin-tag">${prompt.usageCount} 次使用</span>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = list.map(p => `
+                <div class="card" onclick="showDetail('${p.id}')">
+                    <div class="card-icon">${p.icon}</div>
+                    <div class="card-title">${p.name}</div>
+                    <div class="card-desc">${p.description}</div>
+                    <div class="card-tags">
+                        <span class="tag">${p.category}</span>
+                        <span class="tag">${p.variables.length} 个变量</span>
                     </div>
                 </div>
             `).join('');
         }
         
-        // 选择提示词
-        function selectPrompt(id) {
-            // 更新列表选中状态
-            document.querySelectorAll('.admin-item-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            document.getElementById(`prompt-card-${id}`).classList.add('active');
-            
-            // 显示详情
-            currentPrompt = samplePrompts.find(p => p.id === id);
-            renderPromptDetail(currentPrompt);
+        function renderPromptNav() {
+            const nav = document.getElementById('prompt-nav-list');
+            nav.innerHTML = prompts.map(p => `
+                <div class="nav-item" onclick="showDetail('${p.id}')" style="padding: 8px 16px; font-size: 13px;">
+                    <span>${p.icon}</span>
+                    <span>${p.name}</span>
+                </div>
+            `).join('');
         }
         
-        // 渲染提示词详情
-        function renderPromptDetail(prompt) {
-            const container = document.getElementById('prompt-detail');
-            container.innerHTML = `
-                <div class="admin-detail-header">
-                    <div class="admin-detail-title">${prompt.icon} ${prompt.name}</div>
-                    <div class="admin-detail-subtitle">${prompt.description}</div>
+        function filterPrompts() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = prompts.filter(p => 
+                p.name.toLowerCase().includes(query) || 
+                p.description.toLowerCase().includes(query)
+            );
+            renderPromptsList(filtered);
+        }
+        
+        function showDetail(id) {
+            currentPrompt = prompts.find(p => p.id === id);
+            if (!currentPrompt) return;
+            
+            document.getElementById('view-title').textContent = currentPrompt.name;
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('detail-view').style.display = 'block';
+            
+            document.getElementById('detail-view').innerHTML = `
+                <div class="detail-header">
+                    <div class="detail-icon">${currentPrompt.icon}</div>
+                    <div>
+                        <div class="detail-title">${currentPrompt.name}</div>
+                        <div class="detail-desc">${currentPrompt.description}</div>
+                    </div>
+                    <button class="btn" onclick="showList()" style="margin-left: auto;">
+                        ← 返回列表
+                    </button>
                 </div>
                 
-                <form class="admin-form" id="prompt-form">
-                    <!-- 基本信息 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>📋</span> 基本信息
+                <div class="form-section">
+                    <div class="form-section-title">📋 基本信息</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">名称</label>
+                            <input type="text" class="form-input" id="prompt-name" value="${currentPrompt.name}">
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">名称 <span class="required">*</span></label>
-                                <input type="text" class="form-input" value="${prompt.name}" id="prompt-name">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">图标</label>
-                                <input type="text" class="form-input" value="${prompt.icon}" id="prompt-icon">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">分类</label>
-                                <select class="form-select" id="prompt-category">
-                                    <option value="代码" ${prompt.category === '代码' ? 'selected' : ''}>代码</option>
-                                    <option value="写作" ${prompt.category === '写作' ? 'selected' : ''}>写作</option>
-                                    <option value="语言" ${prompt.category === '语言' ? 'selected' : ''}>语言</option>
-                                    <option value="数据" ${prompt.category === '数据' ? 'selected' : ''}>数据</option>
-                                    <option value="其他" ${prompt.category === '其他' ? 'selected' : ''}>其他</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">描述</label>
-                                <input type="text" class="form-input" value="${prompt.description}" id="prompt-desc">
-                            </div>
+                        <div class="form-group">
+                            <label class="form-label">图标</label>
+                            <input type="text" class="form-input" id="prompt-icon" value="${currentPrompt.icon}">
                         </div>
                     </div>
-                    
-                    <!-- 变量配置 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>🏷️</span> 变量配置
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">分类</label>
+                            <select class="form-select" id="prompt-category">
+                                <option value="代码" ${currentPrompt.category === '代码' ? 'selected' : ''}>代码</option>
+                                <option value="写作" ${currentPrompt.category === '写作' ? 'selected' : ''}>写作</option>
+                                <option value="语言" ${currentPrompt.category === '语言' ? 'selected' : ''}>语言</option>
+                                <option value="数据" ${currentPrompt.category === '数据' ? 'selected' : ''}>数据</option>
+                                <option value="其他" ${currentPrompt.category === '其他' ? 'selected' : ''}>其他</option>
+                            </select>
                         </div>
-                        <div class="params-editor" id="variables-editor">
-                            ${prompt.variables.map((v, i) => `
-                                <div class="param-row" data-var="${v}">
-                                    <input type="text" class="param-input" value="${v}" placeholder="变量名">
-                                    <input type="text" class="param-input" value="" placeholder="默认值">
-                                    <select class="param-input">
-                                        <option>文本</option>
-                                        <option>选项</option>
-                                        <option>数字</option>
-                                    </select>
-                                    <button class="param-remove" onclick="removeVar(this)">×</button>
-                                </div>
-                            `).join('')}
-                            <button class="add-param-btn" type="button" onclick="addVar()">
-                                <span>＋</span> 添加变量
-                            </button>
+                        <div class="form-group">
+                            <label class="form-label">描述</label>
+                            <input type="text" class="form-input" id="prompt-desc" value="${currentPrompt.description}">
                         </div>
                     </div>
-                    
-                    <!-- 提示词内容 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>✏️</span> 提示词内容
-                        </div>
-                        <div class="code-editor">
-                            <div class="code-editor-header">
-                                <div class="code-dot red"></div>
-                                <div class="code-dot yellow"></div>
-                                <div class="code-dot green"></div>
-                                <span style="margin-left: 12px; color: #888; font-size: 12px;">prompt-template.md</span>
-                            </div>
-                            <div class="code-editor-body">
-                                <textarea class="form-textarea" id="prompt-content" style="width: 100%; min-height: 300px; background: transparent; color: #d4d4d4; border: none; padding: 0;">${prompt.content}</textarea>
-                            </div>
-                        </div>
-                        <div style="margin-top: 12px; font-size: 13px; color: var(--text-secondary);">
-                            💡 使用 {{变量名}} 语法定义可替换的变量
-                        </div>
-                    </div>
-                    
-                    <!-- 保存按钮 -->
-                    <div style="display: flex; gap: 12px; margin-top: 24px;">
-                        <button type="button" class="admin-btn primary" onclick="savePrompt()">
-                            <span>💾</span> 保存更改
-                        </button>
-                        <button type="button" class="admin-btn" onclick="testPrompt()">
-                            <span>🧪</span> 测试
-                        </button>
-                        <button type="button" class="admin-btn" onclick="copyPrompt()">
-                            <span>📋</span> 复制
-                        </button>
-                        <button type="button" class="admin-btn" onclick="deletePrompt()" style="margin-left: auto; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: transparent;">
-                            <span>🗑️</span> 删除
-                        </button>
-                    </div>
-                </form>
+                </div>
                 
-                <!-- 测试区 -->
-                <div class="test-section">
-                    <div class="test-header">
-                        <div class="test-title">
-                            <span>🧪</span> 测试提示词
+                <div class="form-section">
+                    <div class="form-section-title">🏷️ 变量配置</div>
+                    <div class="form-group">
+                        <label class="form-label">变量（用逗号分隔）</label>
+                        <input type="text" class="form-input" id="prompt-vars" value="${currentPrompt.variables.join(', ')}" placeholder="code, language, goal">
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">✏️ 提示词内容</div>
+                    <div class="code-editor">
+                        <div class="code-editor-header">
+                            <div class="code-dot code-dot-red"></div>
+                            <div class="code-dot code-dot-yellow"></div>
+                            <div class="code-dot code-dot-green"></div>
+                            <span class="code-editor-title">prompt-template.md</span>
+                        </div>
+                        <div class="code-editor-body">
+                            <textarea class="code-textarea" id="prompt-content" style="min-height: 250px;">${currentPrompt.content}</textarea>
                         </div>
                     </div>
-                    <div id="test-variables" style="margin-bottom: 12px;">
-                        ${prompt.variables.map(v => `
-                            <div class="form-group" style="margin-bottom: 8px;">
-                                <label class="form-label">${v}</label>
-                                <input type="text" class="form-input" id="test-${v}" placeholder="请输入 ${v}">
-                            </div>
-                        `).join('')}
+                    <div style="margin-top: 8px; font-size: 13px; color: var(--text-secondary);">
+                        💡 使用 {{变量名}} 语法定义可替换的变量
                     </div>
-                    <div class="test-input-area">
-                        <button class="test-btn" onclick="renderTest()" style="flex: 1;">预览渲染结果</button>
-                    </div>
-                    <div class="test-output" id="test-output">
-// 渲染预览将显示在这里...
-                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-primary" onclick="savePrompt()">
+                        💾 保存更改
+                    </button>
+                    <button class="btn" onclick="copyPrompt()">
+                        📋 复制
+                    </button>
+                    <button class="btn" onclick="testPrompt()">
+                        🧪 测试
+                    </button>
+                    <button class="btn" onclick="deletePrompt()" style="margin-left: auto; color: var(--danger);">
+                        🗑️ 删除
+                    </button>
+                </div>
+                
+                <div class="test-section" style="margin-top: 20px;">
+                    <div class="test-header">🧪 预览渲染结果</div>
+                    <div id="test-vars"></div>
+                    <div class="test-output" id="test-output" style="margin-top: 12px;">// 渲染预览将显示在这里...</div>
                 </div>
             `;
+            
+            renderTestVars();
         }
         
-        // 创建新提示词
-        function createPrompt() {
+        function renderTestVars() {
+            const container = document.getElementById('test-vars');
+            if (!currentPrompt || currentPrompt.variables.length === 0) return;
+            
+            container.innerHTML = currentPrompt.variables.map(v => `
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label class="form-label">${v}</label>
+                    <input type="text" class="form-input" id="test-${v}" placeholder="请输入 ${v}">
+                </div>
+            `).join('');
+        }
+        
+        function showList() {
+            document.getElementById('view-title').textContent = '提示词管理';
+            document.getElementById('list-view').style.display = 'block';
+            document.getElementById('detail-view').style.display = 'none';
+            currentPrompt = null;
+        }
+        
+        function createNew() {
             const newPrompt = {
                 id: Date.now().toString(),
                 name: '新提示词',
-                description: '请描述这个提示词的功能',
                 icon: '📝',
+                description: '请描述这个提示词的功能',
                 category: '其他',
                 variables: [],
-                content: '请输入您的提示词内容...',
-                usageCount: 0,
-                createdAt: new Date().toISOString().split('T')[0]
+                content: '请输入您的提示词内容...'
             };
-            samplePrompts.unshift(newPrompt);
-            renderPromptsList(samplePrompts);
-            selectPrompt(newPrompt.id);
+            prompts.unshift(newPrompt);
+            renderPromptsList(prompts);
+            renderPromptNav();
+            showDetail(newPrompt.id);
         }
         
-        // 保存提示词
         function savePrompt() {
             if (!currentPrompt) return;
             
-            // 更新数据
             currentPrompt.name = document.getElementById('prompt-name').value;
             currentPrompt.icon = document.getElementById('prompt-icon').value;
             currentPrompt.category = document.getElementById('prompt-category').value;
             currentPrompt.description = document.getElementById('prompt-desc').value;
+            currentPrompt.variables = document.getElementById('prompt-vars').value.split(',').map(v => v.trim()).filter(v => v);
             currentPrompt.content = document.getElementById('prompt-content').value;
             
-            // 更新变量
-            const vars = [];
-            document.querySelectorAll('#variables-editor .param-row').forEach(row => {
-                const val = row.querySelector('.param-input').value;
-                if (val) vars.push(val);
-            });
-            currentPrompt.variables = vars;
-            
-            renderPromptsList(samplePrompts);
-            selectPrompt(currentPrompt.id);
-            
-            // 显示成功提示
+            renderPromptsList(prompts);
+            renderPromptNav();
+            showDetail(currentPrompt.id);
             alert('✅ 提示词已保存！');
         }
         
-        // 删除提示词
-        function deletePrompt() {
-            if (!currentPrompt) return;
-            if (!confirm(`确定要删除 "${currentPrompt.name}" 吗？`)) return;
-            
-            const index = samplePrompts.findIndex(p => p.id === currentPrompt.id);
-            if (index > -1) {
-                samplePrompts.splice(index, 1);
-            }
-            
-            currentPrompt = null;
-            renderPromptsList(samplePrompts);
-            document.getElementById('prompt-detail').innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">📝</div>
-                    <div class="empty-title">选择一个提示词</div>
-                    <div class="empty-desc">从左侧列表选择一个提示词进行编辑，或创建新的提示词</div>
-                    <button class="admin-btn primary" onclick="createPrompt()">
-                        <span>＋</span> 创建提示词
-                    </button>
-                </div>
-            `;
-        }
-        
-        // 复制提示词
         function copyPrompt() {
             if (!currentPrompt) return;
             navigator.clipboard.writeText(currentPrompt.content);
-            alert('✅ 提示词已复制到剪贴板！');
+            alert('✅ 已复制到剪贴板！');
         }
         
-        // 测试提示词
         function testPrompt() {
-            renderTest();
-        }
-        
-        function renderTest() {
             if (!currentPrompt) return;
             
             let content = currentPrompt.content;
@@ -445,47 +345,28 @@
             document.getElementById('test-output').textContent = content;
         }
         
-        // 变量操作
-        function addVar() {
-            const editor = document.getElementById('variables-editor');
-            const newRow = document.createElement('div');
-            newRow.className = 'param-row';
-            newRow.innerHTML = `
-                <input type="text" class="param-input" value="" placeholder="变量名">
-                <input type="text" class="param-input" value="" placeholder="默认值">
-                <select class="param-input">
-                    <option>文本</option>
-                    <option>选项</option>
-                    <option>数字</option>
-                </select>
-                <button class="param-remove" onclick="removeVar(this)">×</button>
-            `;
-            editor.insertBefore(newRow, editor.lastElementChild);
+        function deletePrompt() {
+            if (!currentPrompt) return;
+            if (!confirm(`确定要删除 "${currentPrompt.name}" 吗？`)) return;
+            
+            prompts = prompts.filter(p => p.id !== currentPrompt.id);
+            renderPromptsList(prompts);
+            renderPromptNav();
+            showList();
         }
         
-        function removeVar(btn) {
-            btn.parentElement.remove();
+        function importData() {
+            alert('📥 导入功能将在未来版本中提供！');
         }
         
-        // 导出
-        function exportPrompts() {
-            const data = JSON.stringify(samplePrompts, null, 2);
+        function exportData() {
+            const data = JSON.stringify(prompts, null, 2);
             const blob = new Blob([data], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'prompts.json';
             a.click();
-        }
-        
-        // 导入
-        function showImport() {
-            alert('📥 导入功能将在未来版本中提供！');
-        }
-        
-        // 返回
-        function goBack() {
-            window.location.href = '/';
         }
     </script>
 </body>

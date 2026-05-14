@@ -4,356 +4,315 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DATA-AI - MCP 管理</title>
-    <link rel="stylesheet" href="/static/css/admin.css">
-    <style>
-        :root {
-            --primary: #F59E0B;
-            --primary-light: #FBBF24;
-            --primary-dark: #D97706;
-            --text-primary: #1F2937;
-            --text-secondary: #6B7280;
-            --text-muted: #9CA3AF;
-            --bg-primary: #FFFFFF;
-            --bg-secondary: #F9FAFB;
-            --bg-tertiary: #F3F4F6;
-            --border: #E5E7EB;
-            --shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
-        
-        * {
-            box-sizing: border-box;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/admin-unified.css">
 </head>
 <body>
-    <div class="admin-panel">
-        <!-- 顶部工具栏 -->
-        <div class="admin-header">
-            <div class="admin-title">
-                <span style="font-size: 24px;">🔌</span>
-                MCP 服务器管理
+    <div class="admin-container">
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">🔌</div>
+                    <span class="sidebar-logo-text">DATA-AI</span>
+                </div>
+                <button class="back-btn" onclick="window.location.href='/'">
+                    <span>←</span>
+                    <span>返回主页</span>
+                </button>
             </div>
-            <div class="admin-actions">
-                <button class="admin-btn" onclick="goBack()">
-                    <span>←</span> 返回
-                </button>
-                <button class="admin-btn" onclick="discoverServers()">
-                    <span>🔍</span> 发现服务器
-                </button>
-                <button class="admin-btn" onclick="showLogs()">
-                    <span>📋</span> 查看日志
-                </button>
-                <button class="admin-btn primary" onclick="addServer()">
-                    <span>＋</span> 添加服务器
-                </button>
+            
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">管理中心</div>
+                    <div class="nav-item" onclick="window.location.href='/agents'">
+                        <span class="nav-item-icon">🤖</span>
+                        <span class="nav-item-text">智能体</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/prompts'">
+                        <span class="nav-item-icon">📝</span>
+                        <span class="nav-item-text">提示词</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/skills'">
+                        <span class="nav-item-icon">⚡</span>
+                        <span class="nav-item-text">技能</span>
+                    </div>
+                    <div class="nav-item active" onclick="showView('mcp')">
+                        <span class="nav-item-icon">🔌</span>
+                        <span class="nav-item-text">MCP</span>
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">MCP 服务器</div>
+                    <div id="mcp-nav-list"></div>
+                </div>
             </div>
         </div>
         
-        <!-- 主内容区 -->
-        <div class="admin-content">
-            <!-- 左侧列表 -->
-            <div class="admin-list">
-                <div class="admin-list-header">
-                    <input type="text" class="admin-search" placeholder="搜索 MCP 服务器..." id="search-input">
+        <div class="admin-main">
+            <div class="admin-topbar">
+                <div class="admin-topbar-left">
+                    <h1 class="admin-title" id="view-title">MCP 管理</h1>
                 </div>
-                <div class="admin-list-items" id="servers-list">
-                    <!-- 服务器卡片会在这里动态生成 -->
-                </div>
-            </div>
-            
-            <!-- 右侧详情编辑 -->
-            <div class="admin-detail" id="server-detail">
-                <div class="empty-state">
-                    <div class="empty-icon">🔌</div>
-                    <div class="empty-title">选择一个 MCP 服务器</div>
-                    <div class="empty-desc">从左侧列表选择一个服务器进行配置，或添加新的 MCP 服务器</div>
-                    <button class="admin-btn primary" onclick="addServer()">
+                <div class="admin-topbar-right">
+                    <button class="btn" onclick="discoverServers()">
+                        <span>🔍</span> 发现服务器
+                    </button>
+                    <button class="btn btn-primary" onclick="createNew()">
                         <span>＋</span> 添加服务器
                     </button>
                 </div>
+            </div>
+            
+            <div class="admin-content" id="content-area">
+                <div id="list-view">
+                    <div class="list-header">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" placeholder="搜索服务器..." id="search-input" oninput="filterServers()">
+                        </div>
+                    </div>
+                    <div class="list-grid" id="servers-grid"></div>
+                </div>
+                
+                <div id="detail-view" style="display: none;"></div>
             </div>
         </div>
     </div>
     
     <script>
-        // 示例 MCP 服务器数据
-        const sampleServers = [
+        let servers = [
             {
                 id: '1',
                 name: '文件系统',
-                description: '访问和操作本地文件系统',
                 icon: '📁',
+                description: '访问和操作本地文件系统',
                 type: 'stdio',
                 status: 'online',
                 command: 'npx',
                 args: ['-y', '@modelcontextprotocol/server-filesystem', '/workspace'],
-                env: {},
-                tools: ['read_file', 'write_file', 'list_directory', 'search_files'],
-                createdAt: '2024-01-10'
+                tools: ['read_file', 'write_file', 'list_directory', 'search_files']
             },
             {
                 id: '2',
                 name: 'GitHub',
-                description: '与 GitHub 仓库和问题交互',
                 icon: '🐙',
+                description: '与 GitHub 仓库和问题交互',
                 type: 'stdio',
                 status: 'online',
                 command: 'npx',
                 args: ['-y', '@modelcontextprotocol/server-github'],
-                env: { 'GITHUB_PERSONAL_ACCESS_TOKEN': 'ghp_xxx' },
-                tools: ['list_repos', 'get_issues', 'create_issue', 'get_prs'],
-                createdAt: '2024-02-15'
+                tools: ['list_repos', 'get_issues', 'create_issue', 'get_prs']
             },
             {
                 id: '3',
                 name: 'PostgreSQL',
-                description: '连接和查询 PostgreSQL 数据库',
                 icon: '🐘',
+                description: '连接和查询 PostgreSQL 数据库',
                 type: 'stdio',
                 status: 'offline',
                 command: 'npx',
                 args: ['-y', '@modelcontextprotocol/server-postgres'],
-                env: { 'DATABASE_URL': 'postgresql://user:pass@localhost/db' },
-                tools: ['query', 'list_tables', 'get_schema'],
-                createdAt: '2024-03-20'
+                tools: ['query', 'list_tables', 'get_schema']
             },
             {
                 id: '4',
                 name: 'SlideFlow',
-                description: '病理学图像分析服务',
                 icon: '🔬',
+                description: '病理学图像分析服务',
                 type: 'stdio',
                 status: 'connecting',
                 command: 'python',
                 args: ['-m', 'slideflow.mcp'],
-                env: { 'SLIDEFLOW_WORKSPACE': '/workspace' },
-                tools: ['analyze_slide', 'stain_normalization', 'generate_heatmap', 'extract_tiles'],
-                createdAt: '2024-04-25'
+                tools: ['analyze_slide', 'stain_normalization', 'generate_heatmap']
             }
         ];
         
         let currentServer = null;
         
-        // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            renderServersList(sampleServers);
-            
-            document.getElementById('search-input').addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
-                const filtered = sampleServers.filter(s => 
-                    s.name.toLowerCase().includes(query) || 
-                    s.description.toLowerCase().includes(query)
-                );
-                renderServersList(filtered);
-            });
+            renderServersList(servers);
+            renderServerNav();
         });
         
-        // 渲染服务器列表
-        function renderServersList(servers) {
-            const container = document.getElementById('servers-list');
-            container.innerHTML = servers.map(server => `
-                <div class="admin-item-card" onclick="selectServer('${server.id}')" id="server-card-${server.id}">
-                    <div class="admin-item-header">
-                        <div class="admin-item-icon">${server.icon}</div>
-                        <div class="admin-item-info">
-                            <div class="admin-item-name">${server.name}</div>
-                            <div class="admin-item-desc">${server.description}</div>
-                        </div>
+        function renderServersList(list) {
+            const grid = document.getElementById('servers-grid');
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">🔌</div>
+                        <div class="empty-title">暂无 MCP 服务器</div>
+                        <div class="empty-desc">点击"添加服务器"连接一个</div>
                     </div>
-                    <div class="admin-item-tags">
-                        <span class="admin-tag">${server.type}</span>
-                        <span class="admin-tag">${server.tools.length} 工具</span>
-                        <div class="mcp-server-status">
-                            <div class="status-dot ${server.status}"></div>
-                            ${server.status === 'online' ? '在线' : server.status === 'offline' ? '离线' : '连接中...'}
-                        </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = list.map(s => `
+                <div class="card" onclick="showDetail('${s.id}')">
+                    <div class="card-icon">${s.icon}</div>
+                    <div class="card-title">${s.name}</div>
+                    <div class="card-desc">${s.description}</div>
+                    <div class="card-tags">
+                        <span class="tag">${s.type}</span>
+                        <span class="tag">${s.tools.length} 工具</span>
+                        <span class="tag ${s.status === 'online' ? 'tag-success' : ''}">
+                            <span class="status-dot status-${s.status}"></span>
+                            ${s.status === 'online' ? '在线' : s.status === 'offline' ? '离线' : '连接中'}
+                        </span>
                     </div>
                 </div>
             `).join('');
         }
         
-        // 选择服务器
-        function selectServer(id) {
-            document.querySelectorAll('.admin-item-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            document.getElementById(`server-card-${id}`).classList.add('active');
-            
-            currentServer = sampleServers.find(s => s.id === id);
-            renderServerDetail(currentServer);
+        function renderServerNav() {
+            const nav = document.getElementById('mcp-nav-list');
+            nav.innerHTML = servers.map(s => `
+                <div class="nav-item" onclick="showDetail('${s.id}')" style="padding: 8px 16px; font-size: 13px;">
+                    <span>${s.icon}</span>
+                    <span>${s.name}</span>
+                    <span class="status-dot status-${s.status}" style="margin-left: auto;"></span>
+                </div>
+            `).join('');
         }
         
-        // 渲染服务器详情
-        function renderServerDetail(server) {
-            const container = document.getElementById('server-detail');
-            container.innerHTML = `
-                <div class="admin-detail-header">
-                    <div class="admin-detail-title">${server.icon} ${server.name}</div>
-                    <div class="admin-detail-subtitle">${server.description}</div>
+        function filterServers() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = servers.filter(s => 
+                s.name.toLowerCase().includes(query) || 
+                s.description.toLowerCase().includes(query)
+            );
+            renderServersList(filtered);
+        }
+        
+        function showDetail(id) {
+            currentServer = servers.find(s => s.id === id);
+            if (!currentServer) return;
+            
+            document.getElementById('view-title').textContent = currentServer.name;
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('detail-view').style.display = 'block';
+            
+            document.getElementById('detail-view').innerHTML = `
+                <div class="detail-header">
+                    <div class="detail-icon">${currentServer.icon}</div>
+                    <div>
+                        <div class="detail-title">${currentServer.name}</div>
+                        <div class="detail-desc">
+                            ${currentServer.description}
+                            <span class="status-indicator" style="margin-left: 8px;">
+                                <span class="status-dot status-${currentServer.status}"></span>
+                                ${currentServer.status === 'online' ? '在线' : currentServer.status === 'offline' ? '离线' : '连接中'}
+                            </span>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="showList()" style="margin-left: auto;">
+                        ← 返回列表
+                    </button>
                 </div>
                 
-                <form class="admin-form" id="server-form">
-                    <!-- 基本信息 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>📋</span> 基本信息
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">名称 <span class="required">*</span></label>
-                                <input type="text" class="form-input" value="${server.name}" id="server-name">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">图标</label>
-                                <input type="text" class="form-input" value="${server.icon}" id="server-icon">
-                            </div>
+                <div class="form-section">
+                    <div class="form-section-title">📋 基本信息</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">名称</label>
+                            <input type="text" class="form-input" id="server-name" value="${currentServer.name}">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">描述</label>
-                            <input type="text" class="form-input" value="${server.description}" id="server-desc">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">类型</label>
-                                <select class="form-select" id="server-type">
-                                    <option value="stdio" ${server.type === 'stdio' ? 'selected' : ''}>STDIO</option>
-                                    <option value="sse" ${server.type === 'sse' ? 'selected' : ''}>SSE</option>
-                                    <option value="websocket" ${server.type === 'websocket' ? 'selected' : ''}>WebSocket</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">状态</label>
-                                <div style="display: flex; align-items: center; gap: 12px; height: 42px;">
-                                    <div class="status-dot ${server.status}"></div>
-                                    <span>${server.status === 'online' ? '在线' : server.status === 'offline' ? '离线' : '连接中...'}</span>
-                                </div>
-                            </div>
+                            <label class="form-label">图标</label>
+                            <input type="text" class="form-input" id="server-icon" value="${currentServer.icon}">
                         </div>
                     </div>
-                    
-                    <!-- 命令配置 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>⚙️</span> 命令配置
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">命令</label>
-                            <input type="text" class="form-input" value="${server.command}" id="server-command" placeholder="e.g., npx">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">参数 (每行一个)</label>
-                            <textarea class="form-textarea" id="server-args" style="min-height: 100px;">${server.args.join('\\n')}</textarea>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <input type="text" class="form-input" id="server-desc" value="${currentServer.description}">
                     </div>
-                    
-                    <!-- 环境变量 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>🔐</span> 环境变量
-                        </div>
-                        <div class="params-editor" id="env-editor">
-                            ${Object.entries(server.env).map(([key, value]) => `
-                                <div class="param-row">
-                                    <input type="text" class="param-input" value="${key}" placeholder="变量名">
-                                    <input type="password" class="param-input" value="${value}" placeholder="值">
-                                    <button class="param-remove" onclick="removeEnv(this)">×</button>
-                                </div>
-                            `).join('')}
-                            <button class="add-param-btn" type="button" onclick="addEnv()">
-                                <span>＋</span> 添加环境变量
-                            </button>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">类型</label>
+                        <select class="form-select" id="server-type">
+                            <option value="stdio" ${currentServer.type === 'stdio' ? 'selected' : ''}>STDIO</option>
+                            <option value="sse" ${currentServer.type === 'sse' ? 'selected' : ''}>SSE</option>
+                            <option value="websocket" ${currentServer.type === 'websocket' ? 'selected' : ''}>WebSocket</option>
+                        </select>
                     </div>
-                    
-                    <!-- 可用工具 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>🔧</span> 可用工具 (${server.tools.length})
-                        </div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            ${server.tools.map(tool => `
-                                <div style="padding: 6px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">
-                                    ${tool}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    <!-- 保存和操作按钮 -->
-                    <div style="display: flex; gap: 12px; margin-top: 24px;">
-                        <button type="button" class="admin-btn primary" onclick="saveServer()">
-                            <span>💾</span> 保存配置
-                        </button>
-                        ${server.status === 'online' ? 
-                            `<button type="button" class="admin-btn" onclick="stopServer()"><span>⏹</span> 停止</button>` :
-                            `<button type="button" class="admin-btn" onclick="startServer()"><span>▶</span> 启动</button>`
-                        }
-                        <button type="button" class="admin-btn" onclick="testConnection()">
-                            <span>🔗</span> 测试连接
-                        </button>
-                        <button type="button" class="admin-btn" onclick="deleteServer()" style="margin-left: auto; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: transparent;">
-                            <span>🗑️</span> 删除
-                        </button>
-                    </div>
-                </form>
+                </div>
                 
-                <!-- 测试区 -->
-                <div class="test-section">
-                    <div class="test-header">
-                        <div class="test-title">
-                            <span>🧪</span> 工具测试
-                        </div>
+                <div class="form-section">
+                    <div class="form-section-title">⚙️ 命令配置</div>
+                    <div class="form-group">
+                        <label class="form-label">命令</label>
+                        <input type="text" class="form-input" id="server-command" value="${currentServer.command}" placeholder="e.g., npx">
                     </div>
-                    <div class="form-row" style="margin-bottom: 12px;">
-                        <div class="form-group">
-                            <label class="form-label">选择工具</label>
-                            <select class="form-select" id="test-tool">
-                                ${server.tools.map(t => `<option value="${t}">${t}</option>`).join('')}
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">参数（每行一个）</label>
+                        <textarea class="form-textarea" id="server-args" style="min-height: 80px;">${currentServer.args.join('\\n')}</textarea>
                     </div>
-                    <div class="test-input-area">
-                        <input type="text" class="test-input" placeholder="输入参数 (JSON)" id="test-params" value='{}'>
-                        <button class="test-btn" onclick="runToolTest()">调用工具</button>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">🔧 可用工具（${currentServer.tools.length}个）</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${currentServer.tools.map(t => `<span class="tag">${t}</span>`).join('')}
                     </div>
-                    <div class="test-output" id="test-output">
-// 工具调用结果将显示在这里...
+                </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-primary" onclick="saveServer()">
+                        💾 保存配置
+                    </button>
+                    ${currentServer.status === 'online' ? 
+                        `<button class="btn" onclick="stopServer()">⏹ 停止</button>` :
+                        `<button class="btn" onclick="startServer()">▶ 启动</button>`
+                    }
+                    <button class="btn" onclick="testConnection()">
+                        🔗 测试连接
+                    </button>
+                    <button class="btn" onclick="deleteServer()" style="margin-left: auto; color: var(--danger);">
+                        🗑️ 删除
+                    </button>
+                </div>
+                
+                <div class="test-section" style="margin-top: 20px;">
+                    <div class="test-header">🧪 工具调用测试</div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label class="form-label">选择工具</label>
+                        <select class="form-select" id="test-tool">
+                            ${currentServer.tools.map(t => `<option value="${t}">${t}</option>`).join('')}
+                        </select>
                     </div>
+                    <div class="test-input-group">
+                        <input type="text" class="test-input" id="test-params" value='{}' placeholder="参数 (JSON)">
+                        <button class="btn btn-primary" onclick="runToolTest()">调用工具</button>
+                    </div>
+                    <div class="test-output" id="test-output">// 工具调用结果将显示在这里...</div>
                 </div>
             `;
         }
         
-        // 添加服务器
-        function addServer() {
+        function showList() {
+            document.getElementById('view-title').textContent = 'MCP 管理';
+            document.getElementById('list-view').style.display = 'block';
+            document.getElementById('detail-view').style.display = 'none';
+            currentServer = null;
+        }
+        
+        function createNew() {
             const newServer = {
                 id: Date.now().toString(),
                 name: '新 MCP 服务器',
-                description: '请描述这个服务器的功能',
                 icon: '🔌',
+                description: '请描述这个服务器的功能',
                 type: 'stdio',
                 status: 'offline',
                 command: '',
                 args: [],
-                env: {},
-                tools: [],
-                createdAt: new Date().toISOString().split('T')[0]
+                tools: []
             };
-            sampleServers.unshift(newServer);
-            renderServersList(sampleServers);
-            selectServer(newServer.id);
+            servers.unshift(newServer);
+            renderServersList(servers);
+            renderServerNav();
+            showDetail(newServer.id);
         }
         
-        // 保存服务器
         function saveServer() {
             if (!currentServer) return;
             
@@ -362,40 +321,40 @@
             currentServer.description = document.getElementById('server-desc').value;
             currentServer.type = document.getElementById('server-type').value;
             currentServer.command = document.getElementById('server-command').value;
-            currentServer.args = document.getElementById('server-args').value.split('\\n');
+            currentServer.args = document.getElementById('server-args').value.split('\\n').filter(a => a.trim());
             
-            renderServersList(sampleServers);
-            selectServer(currentServer.id);
+            renderServersList(servers);
+            renderServerNav();
+            showDetail(currentServer.id);
             alert('✅ 服务器配置已保存！');
         }
         
-        // 启动服务器
         function startServer() {
             if (!currentServer) return;
             
             currentServer.status = 'connecting';
-            renderServersList(sampleServers);
-            renderServerDetail(currentServer);
+            renderServersList(servers);
+            renderServerNav();
+            showDetail(currentServer.id);
             
             setTimeout(() => {
                 currentServer.status = 'online';
-                renderServersList(sampleServers);
-                renderServerDetail(currentServer);
+                renderServersList(servers);
+                renderServerNav();
+                showDetail(currentServer.id);
                 alert('✅ MCP 服务器已启动！');
             }, 1500);
         }
         
-        // 停止服务器
         function stopServer() {
             if (!currentServer) return;
-            
             currentServer.status = 'offline';
-            renderServersList(sampleServers);
-            renderServerDetail(currentServer);
+            renderServersList(servers);
+            renderServerNav();
+            showDetail(currentServer.id);
             alert('⏹ MCP 服务器已停止');
         }
         
-        // 测试连接
         function testConnection() {
             if (!currentServer) return;
             
@@ -407,31 +366,6 @@
             }, 1000);
         }
         
-        // 删除服务器
-        function deleteServer() {
-            if (!currentServer) return;
-            if (!confirm(`确定要删除 "${currentServer.name}" 吗？`)) return;
-            
-            const index = sampleServers.findIndex(s => s.id === currentServer.id);
-            if (index > -1) {
-                sampleServers.splice(index, 1);
-            }
-            
-            currentServer = null;
-            renderServersList(sampleServers);
-            document.getElementById('server-detail').innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">🔌</div>
-                    <div class="empty-title">选择一个 MCP 服务器</div>
-                    <div class="empty-desc">从左侧列表选择一个服务器进行配置，或添加新的 MCP 服务器</div>
-                    <button class="admin-btn primary" onclick="addServer()">
-                        <span>＋</span> 添加服务器
-                    </button>
-                </div>
-            `;
-        }
-        
-        // 测试工具调用
         function runToolTest() {
             const tool = document.getElementById('test-tool').value;
             const params = document.getElementById('test-params').value;
@@ -444,39 +378,21 @@
             }, 800);
         }
         
-        // 环境变量操作
-        function addEnv() {
-            const editor = document.getElementById('env-editor');
-            const newRow = document.createElement('div');
-            newRow.className = 'param-row';
-            newRow.innerHTML = `
-                <input type="text" class="param-input" value="" placeholder="变量名">
-                <input type="password" class="param-input" value="" placeholder="值">
-                <button class="param-remove" onclick="removeEnv(this)">×</button>
-            `;
-            editor.insertBefore(newRow, editor.lastElementChild);
+        function deleteServer() {
+            if (!currentServer) return;
+            if (!confirm(`确定要删除 "${currentServer.name}" 吗？`)) return;
+            
+            servers = servers.filter(s => s.id !== currentServer.id);
+            renderServersList(servers);
+            renderServerNav();
+            showList();
         }
         
-        function removeEnv(btn) {
-            btn.parentElement.remove();
-        }
-        
-        // 发现服务器
         function discoverServers() {
             alert('🔍 正在扫描本地 MCP 服务器...');
             setTimeout(() => {
                 alert('✅ 发现 0 个新服务器');
             }, 1000);
-        }
-        
-        // 查看日志
-        function showLogs() {
-            alert('📋 日志功能将在未来版本中提供！');
-        }
-        
-        // 返回
-        function goBack() {
-            window.location.href = '/';
         }
     </script>
 </body>

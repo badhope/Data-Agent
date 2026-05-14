@@ -4,387 +4,356 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DATA-AI - 技能管理</title>
-    <link rel="stylesheet" href="/static/css/admin.css">
-    <style>
-        :root {
-            --primary: #22C55E;
-            --primary-light: #4ADE80;
-            --primary-dark: #16A34A;
-            --text-primary: #1F2937;
-            --text-secondary: #6B7280;
-            --text-muted: #9CA3AF;
-            --bg-primary: #FFFFFF;
-            --bg-secondary: #F9FAFB;
-            --bg-tertiary: #F3F4F6;
-            --border: #E5E7EB;
-            --shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
-        
-        * {
-            box-sizing: border-box;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/admin-unified.css">
 </head>
 <body>
-    <div class="admin-panel">
-        <!-- 顶部工具栏 -->
-        <div class="admin-header">
-            <div class="admin-title">
-                <span style="font-size: 24px;">⚡</span>
-                技能管理
+    <div class="admin-container">
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">⚡</div>
+                    <span class="sidebar-logo-text">DATA-AI</span>
+                </div>
+                <button class="back-btn" onclick="window.location.href='/'">
+                    <span>←</span>
+                    <span>返回主页</span>
+                </button>
             </div>
-            <div class="admin-actions">
-                <button class="admin-btn" onclick="goBack()">
-                    <span>←</span> 返回
-                </button>
-                <button class="admin-btn" onclick="showMarket()">
-                    <span>🛒</span> 市场
-                </button>
-                <button class="admin-btn" onclick="generateSkill()">
-                    <span>✨</span> AI 生成
-                </button>
-                <button class="admin-btn primary" onclick="createSkill()">
-                    <span>＋</span> 新建技能
-                </button>
+            
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">管理中心</div>
+                    <div class="nav-item" onclick="window.location.href='/agents'">
+                        <span class="nav-item-icon">🤖</span>
+                        <span class="nav-item-text">智能体</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/prompts'">
+                        <span class="nav-item-icon">📝</span>
+                        <span class="nav-item-text">提示词</span>
+                    </div>
+                    <div class="nav-item active" onclick="showView('skills')">
+                        <span class="nav-item-icon">⚡</span>
+                        <span class="nav-item-text">技能</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/mcp'">
+                        <span class="nav-item-icon">🔌</span>
+                        <span class="nav-item-text">MCP</span>
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">我的技能</div>
+                    <div id="skill-nav-list"></div>
+                </div>
             </div>
         </div>
         
-        <!-- 主内容区 -->
-        <div class="admin-content">
-            <!-- 左侧列表 -->
-            <div class="admin-list">
-                <div class="admin-list-header">
-                    <input type="text" class="admin-search" placeholder="搜索技能..." id="search-input">
+        <div class="admin-main">
+            <div class="admin-topbar">
+                <div class="admin-topbar-left">
+                    <h1 class="admin-title" id="view-title">技能管理</h1>
                 </div>
-                <div class="admin-list-items" id="skills-list">
-                    <!-- 技能卡片会在这里动态生成 -->
+                <div class="admin-topbar-right">
+                    <button class="btn" onclick="generateWithAI()">
+                        <span>✨</span> AI 生成
+                    </button>
+                    <button class="btn btn-primary" onclick="createNew()">
+                        <span>＋</span> 新建技能
+                    </button>
                 </div>
             </div>
             
-            <!-- 右侧详情编辑 -->
-            <div class="admin-detail" id="skill-detail">
-                <div class="empty-state">
-                    <div class="empty-icon">⚡</div>
-                    <div class="empty-title">选择一个技能</div>
-                    <div class="empty-desc">从左侧列表选择一个技能进行编辑，或创建新的技能</div>
-                    <button class="admin-btn primary" onclick="createSkill()">
-                        <span>＋</span> 创建技能
-                    </button>
+            <div class="admin-content" id="content-area">
+                <div id="list-view">
+                    <div class="list-header">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" placeholder="搜索技能..." id="search-input" oninput="filterSkills()">
+                        </div>
+                    </div>
+                    <div class="list-grid" id="skills-grid"></div>
                 </div>
+                
+                <div id="detail-view" style="display: none;"></div>
             </div>
         </div>
     </div>
     
     <script>
-        // 示例技能数据
-        const sampleSkills = [
+        let skills = [
             {
                 id: '1',
                 name: '数据分析助手',
-                description: '自动分析数据并生成报告',
                 icon: '📊',
+                description: '自动分析数据并生成报告',
                 category: '数据',
                 version: '1.2.0',
                 status: 'active',
                 steps: [
-                    { step: 1, name: '获取数据', description: '从数据源读取数据' },
-                    { step: 2, name: '清洗数据', description: '数据清洗和预处理' },
-                    { step: 3, name: '分析数据', description: '执行统计分析' },
-                    { step: 4, name: '生成报告', description: '生成可视化报告' }
+                    { step: 1, name: '获取数据', desc: '从数据源读取数据' },
+                    { step: 2, name: '清洗数据', desc: '数据清洗和预处理' },
+                    { step: 3, name: '分析数据', desc: '执行统计分析' },
+                    { step: 4, name: '生成报告', desc: '生成可视化报告' }
                 ],
-                code: `def analyze_data(data):
-    # 数据加载
-    df = pd.read_csv(data)
-    
-    # 数据分析
-    summary = df.describe()
-    
-    # 可视化
-    plt.figure(figsize=(12, 6))
-    plt.plot(df)
-    
-    return summary`,
-                createdAt: '2024-01-20'
+                code: 'def analyze_data(data):\n    df = pd.read_csv(data)\n    summary = df.describe()\n    return summary'
             },
             {
                 id: '2',
                 name: '文档翻译助手',
-                description: '翻译各种格式的文档',
                 icon: '🌐',
+                description: '翻译各种格式的文档',
                 category: '语言',
                 version: '2.0.1',
                 status: 'active',
                 steps: [
-                    { step: 1, name: '读取文档', description: '解析并提取文档内容' },
-                    { step: 2, name: '分段翻译', description: '智能分段进行翻译' },
-                    { step: 3, name: '格式保持', description: '保持原文档格式' },
-                    { step: 4, name: '导出结果', description: '保存翻译后的文档' }
+                    { step: 1, name: '读取文档', desc: '解析并提取文档内容' },
+                    { step: 2, name: '分段翻译', desc: '智能分段进行翻译' },
+                    { step: 3, name: '格式保持', desc: '保持原文档格式' }
                 ],
-                code: `def translate_document(doc, source, target):
-    # 文档解析
-    content = parse_document(doc)
-    
-    # 翻译处理
-    translated = translate_text(content, source, target)
-    
-    # 格式重建
-    result = reconstruct_format(doc, translated)
-    
-    return result`,
-                createdAt: '2024-03-05'
+                code: 'def translate_document(doc, source, target):\n    content = parse_document(doc)\n    translated = translate_text(content)\n    return reconstructed'
             },
             {
                 id: '3',
                 name: '代码审查工作流',
-                description: '完整的代码审查流程自动化',
                 icon: '🔍',
+                description: '完整的代码审查流程自动化',
                 category: '开发',
                 version: '1.5.0',
                 status: 'draft',
                 steps: [
-                    { step: 1, name: '代码扫描', description: '静态代码分析' },
-                    { step: 2, name: '问题检测', description: '检测潜在问题' },
-                    { step: 3, name: '修复建议', description: '生成修复建议' },
-                    { step: 4, name: '报告生成', description: '输出审查报告' }
+                    { step: 1, name: '代码扫描', desc: '静态代码分析' },
+                    { step: 2, name: '问题检测', desc: '检测潜在问题' },
+                    { step: 3, name: '报告生成', desc: '输出审查报告' }
                 ],
-                code: `def code_review(code):
-    # 静态分析
-    issues = static_analyze(code)
-    
-    # 安全检查
-    security = security_check(code)
-    
-    # 最佳实践
-    tips = best_practice_check(code)
-    
-    return { issues, security, tips }`,
-                createdAt: '2024-04-10'
+                code: 'def code_review(code):\n    issues = static_analyze(code)\n    return issues'
             }
         ];
         
         let currentSkill = null;
         
-        // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            renderSkillsList(sampleSkills);
-            
-            document.getElementById('search-input').addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
-                const filtered = sampleSkills.filter(s => 
-                    s.name.toLowerCase().includes(query) || 
-                    s.description.toLowerCase().includes(query)
-                );
-                renderSkillsList(filtered);
-            });
+            renderSkillsList(skills);
+            renderSkillNav();
         });
         
-        // 渲染技能列表
-        function renderSkillsList(skills) {
-            const container = document.getElementById('skills-list');
-            container.innerHTML = skills.map(skill => `
-                <div class="admin-item-card" onclick="selectSkill('${skill.id}')" id="skill-card-${skill.id}">
-                    <div class="admin-item-header">
-                        <div class="admin-item-icon">${skill.icon}</div>
-                        <div class="admin-item-info">
-                            <div class="admin-item-name">${skill.name}</div>
-                            <div class="admin-item-desc">${skill.description}</div>
-                        </div>
+        function renderSkillsList(list) {
+            const grid = document.getElementById('skills-grid');
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">⚡</div>
+                        <div class="empty-title">暂无技能</div>
+                        <div class="empty-desc">点击"新建技能"创建一个</div>
                     </div>
-                    <div class="admin-item-tags">
-                        <span class="admin-tag green">${skill.category}</span>
-                        <span class="admin-tag">v${skill.version}</span>
-                        <span class="admin-tag ${skill.status === 'active' ? 'green' : 'purple'}">${skill.status === 'active' ? '已启用' : '草稿'}</span>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = list.map(s => `
+                <div class="card" onclick="showDetail('${s.id}')">
+                    <div class="card-icon">${s.icon}</div>
+                    <div class="card-title">${s.name}</div>
+                    <div class="card-desc">${s.description}</div>
+                    <div class="card-tags">
+                        <span class="tag">${s.category}</span>
+                        <span class="tag">v${s.version}</span>
+                        <span class="tag ${s.status === 'active' ? 'tag-success' : ''}">${s.status === 'active' ? '已启用' : '草稿'}</span>
                     </div>
                 </div>
             `).join('');
         }
         
-        // 选择技能
-        function selectSkill(id) {
-            document.querySelectorAll('.admin-item-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            document.getElementById(`skill-card-${id}`).classList.add('active');
-            
-            currentSkill = sampleSkills.find(s => s.id === id);
-            renderSkillDetail(currentSkill);
+        function renderSkillNav() {
+            const nav = document.getElementById('skill-nav-list');
+            nav.innerHTML = skills.map(s => `
+                <div class="nav-item" onclick="showDetail('${s.id}')" style="padding: 8px 16px; font-size: 13px;">
+                    <span>${s.icon}</span>
+                    <span>${s.name}</span>
+                </div>
+            `).join('');
         }
         
-        // 渲染技能详情
-        function renderSkillDetail(skill) {
-            const container = document.getElementById('skill-detail');
-            container.innerHTML = `
-                <div class="admin-detail-header">
-                    <div class="admin-detail-title">${skill.icon} ${skill.name}</div>
-                    <div class="admin-detail-subtitle">${skill.description} · v${skill.version}</div>
+        function filterSkills() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = skills.filter(s => 
+                s.name.toLowerCase().includes(query) || 
+                s.description.toLowerCase().includes(query)
+            );
+            renderSkillsList(filtered);
+        }
+        
+        function showDetail(id) {
+            currentSkill = skills.find(s => s.id === id);
+            if (!currentSkill) return;
+            
+            document.getElementById('view-title').textContent = currentSkill.name;
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('detail-view').style.display = 'block';
+            
+            document.getElementById('detail-view').innerHTML = `
+                <div class="detail-header">
+                    <div class="detail-icon">${currentSkill.icon}</div>
+                    <div>
+                        <div class="detail-title">${currentSkill.name}</div>
+                        <div class="detail-desc">${currentSkill.description} · v${currentSkill.version}</div>
+                    </div>
+                    <button class="btn" onclick="showList()" style="margin-left: auto;">
+                        ← 返回列表
+                    </button>
                 </div>
                 
-                <form class="admin-form" id="skill-form">
-                    <!-- 基本信息 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>📋</span> 基本信息
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">名称 <span class="required">*</span></label>
-                                <input type="text" class="form-input" value="${skill.name}" id="skill-name">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">图标</label>
-                                <input type="text" class="form-input" value="${skill.icon}" id="skill-icon">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">分类</label>
-                                <select class="form-select" id="skill-category">
-                                    <option value="数据" ${skill.category === '数据' ? 'selected' : ''}>数据</option>
-                                    <option value="语言" ${skill.category === '语言' ? 'selected' : ''}>语言</option>
-                                    <option value="开发" ${skill.category === '开发' ? 'selected' : ''}>开发</option>
-                                    <option value="其他" ${skill.category === '其他' ? 'selected' : ''}>其他</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">版本</label>
-                                <input type="text" class="form-input" value="${skill.version}" id="skill-version">
-                            </div>
+                <div class="form-section">
+                    <div class="form-section-title">📋 基本信息</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">名称</label>
+                            <input type="text" class="form-input" id="skill-name" value="${currentSkill.name}">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">描述</label>
-                            <input type="text" class="form-input" value="${skill.description}" id="skill-desc">
+                            <label class="form-label">图标</label>
+                            <input type="text" class="form-input" id="skill-icon" value="${currentSkill.icon}">
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">状态</label>
-                            <select class="form-select" id="skill-status">
-                                <option value="draft" ${skill.status === 'draft' ? 'selected' : ''}>草稿</option>
-                                <option value="active" ${skill.status === 'active' ? 'selected' : ''}>已启用</option>
+                            <label class="form-label">分类</label>
+                            <select class="form-select" id="skill-category">
+                                <option value="数据" ${currentSkill.category === '数据' ? 'selected' : ''}>数据</option>
+                                <option value="语言" ${currentSkill.category === '语言' ? 'selected' : ''}>语言</option>
+                                <option value="开发" ${currentSkill.category === '开发' ? 'selected' : ''}>开发</option>
+                                <option value="其他" ${currentSkill.category === '其他' ? 'selected' : ''}>其他</option>
                             </select>
                         </div>
-                    </div>
-                    
-                    <!-- 工作流 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>🔄</span> 工作流
-                        </div>
-                        <div class="skill-flow" id="steps-container">
-                            ${skill.steps.map((step, i) => `
-                                <div class="flow-step" data-step="${i}">
-                                    <div class="flow-step-number">${step.step}</div>
-                                    <div class="flow-step-content">
-                                        <input type="text" class="form-input" value="${step.name}" placeholder="步骤名称" style="margin-bottom: 4px;">
-                                        <input type="text" class="form-input" value="${step.description}" placeholder="步骤描述">
-                                    </div>
-                                    <button class="param-remove" onclick="removeStep(this)">×</button>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <button class="add-param-btn" type="button" onclick="addStep()">
-                            <span>＋</span> 添加步骤
-                        </button>
-                    </div>
-                    
-                    <!-- 执行代码 -->
-                    <div class="form-section">
-                        <div class="form-section-title">
-                            <span>💻</span> 执行代码
-                        </div>
-                        <div class="code-editor">
-                            <div class="code-editor-header">
-                                <div class="code-dot red"></div>
-                                <div class="code-dot yellow"></div>
-                                <div class="code-dot green"></div>
-                                <span style="margin-left: 12px; color: #888; font-size: 12px;">skill-executor.py</span>
-                            </div>
-                            <div class="code-editor-body">
-                                <textarea class="form-textarea" id="skill-code" style="width: 100%; min-height: 300px; background: transparent; color: #d4d4d4; border: none; padding: 0;">${skill.code}</textarea>
-                            </div>
+                        <div class="form-group">
+                            <label class="form-label">版本</label>
+                            <input type="text" class="form-input" id="skill-version" value="${currentSkill.version}">
                         </div>
                     </div>
-                    
-                    <!-- 保存按钮 -->
-                    <div style="display: flex; gap: 12px; margin-top: 24px;">
-                        <button type="button" class="admin-btn primary" onclick="saveSkill()">
-                            <span>💾</span> 保存技能
-                        </button>
-                        <button type="button" class="admin-btn" onclick="testSkill()">
-                            <span>🧪</span> 测试执行
-                        </button>
-                        <button type="button" class="admin-btn" onclick="publishSkill()">
-                            <span>🚀</span> 发布
-                        </button>
-                        <button type="button" class="admin-btn" onclick="deleteSkill()" style="margin-left: auto; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: transparent;">
-                            <span>🗑️</span> 删除
-                        </button>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <input type="text" class="form-input" id="skill-desc" value="${currentSkill.description}">
                     </div>
-                </form>
+                    <div class="form-group">
+                        <label class="form-label">状态</label>
+                        <select class="form-select" id="skill-status">
+                            <option value="draft" ${currentSkill.status === 'draft' ? 'selected' : ''}>草稿</option>
+                            <option value="active" ${currentSkill.status === 'active' ? 'selected' : ''}>已启用</option>
+                        </select>
+                    </div>
+                </div>
                 
-                <!-- 测试区 -->
-                <div class="test-section">
-                    <div class="test-header">
-                        <div class="test-title">
-                            <span>🧪</span> 技能执行测试
+                <div class="form-section">
+                    <div class="form-section-title">🔄 工作流</div>
+                    <div id="steps-container">
+                        ${currentSkill.steps.map((step, i) => `
+                            <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                <span style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">${step.step}</span>
+                                <input type="text" class="form-input" id="step-name-${i}" value="${step.name}" style="flex: 1;">
+                                <input type="text" class="form-input" id="step-desc-${i}" value="${step.desc}" style="flex: 2;">
+                                <button class="btn" onclick="removeStep(${i})" style="color: var(--danger);">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn" onclick="addStep()" style="margin-top: 8px;">
+                        <span>＋</span> 添加步骤
+                    </button>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">💻 执行代码</div>
+                    <div class="code-editor">
+                        <div class="code-editor-header">
+                            <div class="code-dot code-dot-red"></div>
+                            <div class="code-dot code-dot-yellow"></div>
+                            <div class="code-dot code-dot-green"></div>
+                            <span class="code-editor-title">skill-executor.py</span>
+                        </div>
+                        <div class="code-editor-body">
+                            <textarea class="code-textarea" id="skill-code" style="min-height: 200px;">${currentSkill.code}</textarea>
                         </div>
                     </div>
-                    <div class="test-input-area">
-                        <input type="text" class="test-input" placeholder="输入测试数据..." id="test-input" value="test-data.csv">
-                        <button class="test-btn" onclick="runSkillTest()">运行技能</button>
+                </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-primary" onclick="saveSkill()">
+                        💾 保存技能
+                    </button>
+                    <button class="btn" onclick="testSkill()">
+                        🧪 测试执行
+                    </button>
+                    <button class="btn" onclick="publishSkill()">
+                        🚀 发布
+                    </button>
+                    <button class="btn" onclick="deleteSkill()" style="margin-left: auto; color: var(--danger);">
+                        🗑️ 删除
+                    </button>
+                </div>
+                
+                <div class="test-section" style="margin-top: 20px;">
+                    <div class="test-header">🧪 技能执行测试</div>
+                    <div class="test-input-group">
+                        <input type="text" class="test-input" id="test-input" value="test-data.csv" placeholder="输入测试参数...">
+                        <button class="btn btn-primary" onclick="runSkillTest()">运行技能</button>
                     </div>
-                    <div class="test-output" id="test-output">
-// 技能执行日志将显示在这里...
-                    </div>
+                    <div class="test-output" id="test-output">// 技能执行日志将显示在这里...</div>
                 </div>
             `;
         }
         
-        // 创建新技能
-        function createSkill() {
-            const newSkill = {
-                id: Date.now().toString(),
-                name: '新技能',
-                description: '请描述这个技能的功能',
-                icon: '⚡',
-                category: '其他',
-                version: '0.1.0',
-                status: 'draft',
-                steps: [
-                    { step: 1, name: '步骤 1', description: '请描述这个步骤' }
-                ],
-                code: `def execute(params):
-    # 技能实现代码
-    result = process(params)
-    return result`,
-                createdAt: new Date().toISOString().split('T')[0]
-            };
-            sampleSkills.unshift(newSkill);
-            renderSkillsList(sampleSkills);
-            selectSkill(newSkill.id);
+        function addStep() {
+            const container = document.getElementById('steps-container');
+            const num = container.children.length + 1;
+            const div = document.createElement('div');
+            div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
+            div.innerHTML = `
+                <span style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">${num}</span>
+                <input type="text" class="form-input" id="step-name-${num-1}" value="新步骤" style="flex: 1;">
+                <input type="text" class="form-input" id="step-desc-${num-1}" value="" style="flex: 2;">
+                <button class="btn" onclick="removeStep(${num-1})" style="color: var(--danger);">×</button>
+            `;
+            container.appendChild(div);
         }
         
-        // AI 生成技能
-        function generateSkill() {
-            const description = prompt('请描述您需要的功能：');
-            if (description) {
-                alert(`✨ 正在分析需求...\n\n"${description}"\n\nAI 正在生成技能，这可能需要几秒钟...`);
-                setTimeout(() => {
-                    createSkill();
-                    alert('✅ AI 技能生成完成！');
-                }, 1000);
+        function removeStep(index) {
+            const container = document.getElementById('steps-container');
+            if (container.children[index]) {
+                container.children[index].remove();
             }
         }
         
-        // 保存技能
+        function showList() {
+            document.getElementById('view-title').textContent = '技能管理';
+            document.getElementById('list-view').style.display = 'block';
+            document.getElementById('detail-view').style.display = 'none';
+            currentSkill = null;
+        }
+        
+        function createNew() {
+            const newSkill = {
+                id: Date.now().toString(),
+                name: '新技能',
+                icon: '⚡',
+                description: '请描述这个技能的功能',
+                category: '其他',
+                version: '0.1.0',
+                status: 'draft',
+                steps: [{ step: 1, name: '步骤 1', desc: '请描述这个步骤' }],
+                code: 'def execute(params):\n    result = process(params)\n    return result'
+            };
+            skills.unshift(newSkill);
+            renderSkillsList(skills);
+            renderSkillNav();
+            showDetail(newSkill.id);
+        }
+        
+        function generateWithAI() {
+            const desc = prompt('请描述您需要的技能功能：');
+            if (desc) {
+                alert(`✨ AI 正在分析需求并生成技能...\n\n"${desc}"`);
+                createNew();
+            }
+        }
+        
         function saveSkill() {
             if (!currentSkill) return;
             
@@ -396,12 +365,23 @@
             currentSkill.status = document.getElementById('skill-status').value;
             currentSkill.code = document.getElementById('skill-code').value;
             
-            renderSkillsList(sampleSkills);
-            selectSkill(currentSkill.id);
+            const steps = [];
+            const container = document.getElementById('steps-container');
+            container.querySelectorAll('div').forEach((div, i) => {
+                const nameInput = div.querySelector(`#step-name-${i}`);
+                const descInput = div.querySelector(`#step-desc-${i}`);
+                if (nameInput && descInput) {
+                    steps.push({ step: i + 1, name: nameInput.value, desc: descInput.value });
+                }
+            });
+            currentSkill.steps = steps;
+            
+            renderSkillsList(skills);
+            renderSkillNav();
+            showDetail(currentSkill.id);
             alert('✅ 技能已保存！');
         }
         
-        // 测试技能
         function testSkill() {
             runSkillTest();
         }
@@ -419,76 +399,25 @@
             });
             
             setTimeout(() => {
-                output.textContent += '\n\n✅ 技能执行完成！\n';
-                output.textContent += '📦 输出结果: {"status": "success", "data": {...}}';
+                output.textContent += '\n\n✅ 技能执行完成！\n📦 输出结果: {"status": "success"}';
             }, 300 * currentSkill.steps.length + 200);
         }
         
-        // 发布技能
         function publishSkill() {
             if (!currentSkill) return;
             currentSkill.status = 'active';
             saveSkill();
-            alert('🚀 技能已发布到市场！');
+            alert('🚀 技能已发布！');
         }
         
-        // 删除技能
         function deleteSkill() {
             if (!currentSkill) return;
             if (!confirm(`确定要删除 "${currentSkill.name}" 吗？`)) return;
             
-            const index = sampleSkills.findIndex(s => s.id === currentSkill.id);
-            if (index > -1) {
-                sampleSkills.splice(index, 1);
-            }
-            
-            currentSkill = null;
-            renderSkillsList(sampleSkills);
-            document.getElementById('skill-detail').innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">⚡</div>
-                    <div class="empty-title">选择一个技能</div>
-                    <div class="empty-desc">从左侧列表选择一个技能进行编辑，或创建新的技能</div>
-                    <button class="admin-btn primary" onclick="createSkill()">
-                        <span>＋</span> 创建技能
-                    </button>
-                </div>
-            `;
-        }
-        
-        // 步骤操作
-        function addStep() {
-            const container = document.getElementById('steps-container');
-            const stepNum = container.children.length + 1;
-            const newStep = document.createElement('div');
-            newStep.className = 'flow-step';
-            newStep.innerHTML = `
-                <div class="flow-step-number">${stepNum}</div>
-                <div class="flow-step-content">
-                    <input type="text" class="form-input" value="新步骤" placeholder="步骤名称" style="margin-bottom: 4px;">
-                    <input type="text" class="form-input" value="" placeholder="步骤描述">
-                </div>
-                <button class="param-remove" onclick="removeStep(this)">×</button>
-            `;
-            container.appendChild(newStep);
-        }
-        
-        function removeStep(btn) {
-            btn.parentElement.remove();
-            // 重新编号
-            document.querySelectorAll('#steps-container .flow-step').forEach((el, i) => {
-                el.querySelector('.flow-step-number').textContent = i + 1;
-            });
-        }
-        
-        // 市场
-        function showMarket() {
-            alert('🛒 技能市场将在未来版本中开放！');
-        }
-        
-        // 返回
-        function goBack() {
-            window.location.href = '/';
+            skills = skills.filter(s => s.id !== currentSkill.id);
+            renderSkillsList(skills);
+            renderSkillNav();
+            showList();
         }
     </script>
 </body>
