@@ -2,7 +2,11 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>DataAgent - 万能智能助手</title>
     <!-- Code highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -37,6 +41,54 @@
 }
 pre:hover .code-copy-btn { opacity: 1; }
 .code-copy-btn:hover { background: rgba(71, 85, 105, 0.9); color: #e2e8f0; }
+
+/* 移动端额外优化 */
+@media screen and (max-width: 768px) {
+    /* 禁用文本缩放 */
+    body {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+    
+    /* 优化滚动性能 */
+    .chat-area, .modal-body, .sidebar {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    
+    /* 固定输入框在可视区域 */
+    .input-area {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+    }
+    
+    /* 键盘弹出时的处理 */
+    body.keyboard-open .input-area {
+        position: absolute;
+    }
+}
+
+/* 小屏幕优化 */
+@media screen and (max-width: 480px) {
+    /* 更紧凑的头部 */
+    .header {
+        min-height: 44px;
+    }
+    
+    /* 更大的触摸区域 */
+    .nav-item, .conversation-item {
+        min-height: 44px;
+    }
+    
+    /* 优化代码块显示 */
+    pre code {
+        font-size: 12px;
+        line-height: 1.4;
+    }
+}
 </style>
 </head>
 <body>
@@ -796,6 +848,51 @@ pre:hover .code-copy-btn { opacity: 1; }
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             updateCharCount();
+            
+            // 移动端优化
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.body.classList.add('touch-device');
+            }
+            
+            // 处理键盘弹出时的视口变化
+            const viewport = document.querySelector('meta[name=viewport]');
+            let initialHeight = window.innerHeight;
+            
+            window.addEventListener('resize', function() {
+                const currentHeight = window.innerHeight;
+                const heightDiff = initialHeight - currentHeight;
+                
+                // 如果高度减少超过 150px，认为是键盘弹出
+                if (heightDiff > 150) {
+                    document.body.classList.add('keyboard-open');
+                    // 滚动到输入框
+                    const inputBox = document.querySelector('.input-box');
+                    if (inputBox && document.activeElement === inputBox) {
+                        setTimeout(() => {
+                            inputBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 100);
+                    }
+                } else {
+                    document.body.classList.remove('keyboard-open');
+                }
+            });
+            
+            // 防止双击缩放
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(e) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, { passive: false });
+            
+            // iOS 底部安全区域处理
+            const setSafeArea = () => {
+                const safeAreaBottom = getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom') || '0px';
+                document.documentElement.style.setProperty('--safe-area-inset-bottom', safeAreaBottom);
+            };
+            setSafeArea();
         });
     </script>
 </body>
