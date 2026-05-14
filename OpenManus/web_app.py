@@ -118,13 +118,6 @@ async def get():
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
-# 功能入口页面路由
-@app.get("/features")
-async def features():
-    html_path = os.path.join(os.path.dirname(__file__), "templates", "features.html")
-    with open(html_path, "r", encoding="utf-8") as f:
-        return HTMLResponse(f.read())
-
 # 日志查看器页面路由
 @app.get("/logs")
 async def logs():

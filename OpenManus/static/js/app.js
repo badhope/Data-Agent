@@ -626,3 +626,50 @@ window.onload = function() {
     loadSettings();
     loadConversations();
 };
+
+// ==================== PDF 解析功能 ====================
+
+async function handlePdfUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showToast('请选择PDF文件', 'error');
+        return;
+    }
+
+    showToast(`正在上传并解析: ${file.name}`, 'info');
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('extract_tables', 'true');
+
+        const response = await fetch('/documents/pdf/parse', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('PDF解析失败');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        const preview = data.text ? data.text.substring(0, 500) + '...' : '无文本内容';
+        const message = `我已成功解析PDF文件「${file.name}」(${data.page_count || '?'}页)：\n\n${preview}\n\n请告诉我你想对这个文档做什么？`;
+
+        document.getElementById('input-box').value = message;
+        showToast('PDF解析完成，已添加到输入框', 'success');
+    } catch (error) {
+        console.error('PDF解析错误:', error);
+        showToast('PDF解析失败: ' + error.message, 'error');
+    }
+
+    event.target.value = '';
+}
