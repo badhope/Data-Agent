@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DATA-AI - 万能智能助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #3B82F6;
+            --primary-light: #60A5FA;
+            --primary-dark: #2563EB;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --bg-tertiary: #F3F4F6;
+            --border: #E5E7EB;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.1);
+            --radius: 12px;
+            --radius-lg: 16px;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* 左侧边栏 */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .new-chat-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .new-chat-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        
+        /* 对话列表 */
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        
+        .chat-group {
+            margin-bottom: 20px;
+        }
+        
+        .chat-group-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px;
+            margin-bottom: 4px;
+        }
+        
+        .chat-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .chat-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .chat-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+        }
+        
+        .chat-item-icon {
+            font-size: 16px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        /* 智能体列表 */
+        .agents-section {
+            border-top: 1px solid var(--border);
+            padding: 16px;
+        }
+        
+        .agents-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .agent-card {
+            padding: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .agent-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+        }
+        
+        .agent-icon {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+        
+        .agent-name {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+        
+        /* 顶部导航 */
+        .top-nav {
+            height: 60px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 24px;
+        }
+        
+        .nav-item {
+            padding: 8px 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-item-icon {
+            font-size: 16px;
+        }
+        
+        .top-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--bg-tertiary);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+        
+        .icon-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+        
+        /* 对话区域 */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .welcome-screen {
+            max-width: 800px;
+            margin: 60px auto;
+            text-align: center;
+        }
+        
+        .welcome-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+        }
+        
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+        
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+        
+        .quick-action {
+            padding: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .quick-action:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .quick-action-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        
+        .quick-action-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+        
+        .quick-action-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        /* 消息样式 */
+        .message {
+            max-width: 800px;
+            margin: 0 auto 24px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .message.user {
+            text-align: right;
+        }
+        
+        .message-content {
+            display: inline-block;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            line-height: 1.6;
+            font-size: 15px;
+        }
+        
+        .user .message-content {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .assistant .message-content {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+            text-align: left;
+        }
+        
+        .thinking-indicator {
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .thinking-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .thinking-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 输入区域 */
+        .input-area {
+            padding: 16px 24px 24px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border);
+        }
+        
+        .input-container {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 12px 16px;
+            transition: all 0.2s;
+        }
+        
+        .input-wrapper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .input-box {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 15px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            color: var(--text-primary);
+            max-height: 200px;
+            min-height: 24px;
+            font-family: inherit;
+        }
+        
+        .input-box::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .input-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .attach-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .attach-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+        
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .send-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+        
+        .send-btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* 提示词快捷键 */
+        .prompt-hint {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        
+        .prompt-hint kbd {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+        
+        /* 功能菜单弹窗 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--bg-tertiary);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+        
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(80vh - 80px);
+        }
+        
+        /* 工具网格 */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        
+        .tool-item {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .tool-item:hover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+        
+        .tool-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .tool-name {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        /* 搜索来源 */
+        .source-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">AI</div>
+                    <span>DATA-AI</span>
+                </div>
+                <button class="new-chat-btn" id="new-chat-btn">
+                    <span>+</span>
+                    <span>新建对话</span>
+                </button>
+            </div>
+            
+            <div class="chat-list">
+                <div class="chat-group">
+                    <div class="chat-group-title">今天</div>
+                    <div class="chat-item active" data-chat="1">
+                        <span class="chat-item-icon">💬</span>
+                        <span>数据分析助手</span>
+                    </div>
+                    <div class="chat-item" data-chat="2">
+                        <span class="chat-item-icon">📊</span>
+                        <span>财务报告生成</span>
+                    </div>
+                </div>
+                
+                <div class="chat-group">
+                    <div class="chat-group-title">昨天</div>
+                    <div class="chat-item" data-chat="3">
+                        <span class="chat-item-icon">🔍</span>
+                        <span>行业研究分析</span>
+                    </div>
+                    <div class="chat-item" data-chat="4">
+                        <span class="chat-item-icon">📝</span>
+                        <span>文档摘要提取</span>
+                    </div>
+                </div>
+                
+                <div class="chat-group">
+                    <div class="chat-group-title">更早</div>
+                    <div class="chat-item" data-chat="5">
+                        <span class="chat-item-icon">🤖</span>
+                        <span>智能体对话</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="agents-section">
+                <div class="agents-title">智能体</div>
+                <div class="agent-grid">
+                    <div class="agent-card" data-agent="coder">
+                        <div class="agent-icon">👨‍💻</div>
+                        <div class="agent-name">代码助手</div>
+                    </div>
+                    <div class="agent-card" data-agent="writer">
+                        <div class="agent-icon">✍️</div>
+                        <div class="agent-name">写作助手</div>
+                    </div>
+                    <div class="agent-card" data-agent="analyst">
+                        <div class="agent-icon">📈</div>
+                        <div class="agent-name">分析师</div>
+                    </div>
+                    <div class="agent-card" data-agent="researcher">
+                        <div class="agent-icon">🔬</div>
+                        <div class="agent-name">研究员</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 顶部导航 -->
+            <div class="top-nav">
+                <div class="nav-item active" data-tab="chat">
+                    <span class="nav-item-icon">💬</span>
+                    <span>对话</span>
+                </div>
+                <div class="nav-item" data-tab="write">
+                    <span class="nav-item-icon">✍️</span>
+                    <span>帮我写</span>
+                </div>
+                <div class="nav-item" data-tab="image">
+                    <span class="nav-item-icon">🎨</span>
+                    <span>图像生成</span>
+                </div>
+                <div class="nav-item" data-tab="search">
+                    <span class="nav-item-icon">🔍</span>
+                    <span>AI搜索</span>
+                </div>
+                <div class="nav-item" data-tab="document">
+                    <span class="nav-item-icon">📄</span>
+                    <span>PDF文档</span>
+                </div>
+                <div class="nav-item" data-tab="translate">
+                    <span class="nav-item-icon">🌐</span>
+                    <span>翻译</span>
+                </div>
+                
+                <div class="top-actions">
+                    <button class="icon-btn" id="settings-btn" title="设置">⚙️</button>
+                    <button class="icon-btn" id="help-btn" title="帮助">❓</button>
+                </div>
+            </div>
+            
+            <!-- 对话区域 -->
+            <div class="chat-area" id="chat-area">
+                <div class="welcome-screen" id="welcome-screen">
+                    <div class="welcome-icon">🤖</div>
+                    <h1 class="welcome-title">你好，我是 DATA-AI</h1>
+                    <p class="welcome-subtitle">您的万能智能助手，可以帮您完成数据分析、文档处理、代码编写等任务</p>
+                    
+                    <div class="quick-actions">
+                        <div class="quick-action" data-action="analyze">
+                            <div class="quick-action-icon">📊</div>
+                            <div class="quick-action-title">数据分析</div>
+                            <div class="quick-action-desc">分析财务数据、市场趋势</div>
+                        </div>
+                        <div class="quick-action" data-action="document">
+                            <div class="quick-action-icon">📄</div>
+                            <div class="quick-action-title">文档处理</div>
+                            <div class="quick-action-desc">PDF解析、摘要提取</div>
+                        </div>
+                        <div class="quick-action" data-action="code">
+                            <div class="quick-action-icon">💻</div>
+                            <div class="quick-action-title">代码助手</div>
+                            <div class="quick-action-desc">编写、调试、优化代码</div>
+                        </div>
+                        <div class="quick-action" data-action="search">
+                            <div class="quick-action-icon">🔍</div>
+                            <div class="quick-action-title">深度搜索</div>
+                            <div class="quick-action-desc">全网搜索，信息聚合</div>
+                        </div>
+                        <div class="quick-action" data-action="write">
+                            <div class="quick-action-icon">✍️</div>
+                            <div class="quick-action-title">智能写作</div>
+                            <div class="quick-action-desc">文章创作、文案优化</div>
+                        </div>
+                        <div class="quick-action" data-action="translate">
+                            <div class="quick-action-icon">🌐</div>
+                            <div class="quick-action-title">翻译助手</div>
+                            <div class="quick-action-desc">多语言互译</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 输入区域 -->
+            <div class="input-area">
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <button class="attach-btn" id="attach-btn" title="工具">📎</button>
+                        <textarea class="input-box" id="input-box" placeholder="输入消息... (使用 / 召唤快捷技能)" rows="1"></textarea>
+                        <button class="send-btn" id="send-btn">➤</button>
+                    </div>
+                    <div class="prompt-hint">
+                        按 <kbd>Enter</kbd> 发送，<kbd>Shift + Enter</kbd> 换行，<kbd>/</kbd> 召唤技能
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 工具菜单弹窗 -->
+    <div class="modal-overlay" id="tools-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">快捷工具</div>
+                <button class="modal-close" id="close-tools">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="tool-grid">
+                    <div class="tool-item" data-tool="write">
+                        <div class="tool-icon">✍️</div>
+                        <div class="tool-name">帮我写</div>
+                    </div>
+                    <div class="tool-item" data-tool="image">
+                        <div class="tool-icon">🎨</div>
+                        <div class="tool-name">图像生成</div>
+                    </div>
+                    <div class="tool-item" data-tool="search">
+                        <div class="tool-icon">🔍</div>
+                        <div class="tool-name">AI搜索</div>
+                    </div>
+                    <div class="tool-item" data-tool="document">
+                        <div class="tool-icon">📄</div>
+                        <div class="tool-name">PDF文档</div>
+                    </div>
+                    <div class="tool-item" data-tool="translate">
+                        <div class="tool-icon">🌐</div>
+                        <div class="tool-name">翻译</div>
+                    </div>
+                    <div class="tool-item" data-tool="summary">
+                        <div class="tool-icon">📝</div>
+                        <div class="tool-name">网页摘要</div>
+                    </div>
+                    <div class="tool-item" data-tool="code">
+                        <div class="tool-icon">💻</div>
+                        <div class="tool-name">写代码</div>
+                    </div>
+                    <div class="tool-item" data-tool="analyze">
+                        <div class="tool-icon">📊</div>
+                        <div class="tool-name">数据分析</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const inputBox = document.getElementById('input-box');
+        const chatArea = document.getElementById('chat-area');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        let chatHistory = [];
+        
+        inputBox.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+        
+        function sendMessage() {
+            const content = inputBox.value.trim();
+            if (!content) return;
+            
+            if (welcomeScreen) {
+                welcomeScreen.style.display = 'none';
+            }
+            
+            addMessage(content, 'user');
+            inputBox.value = '';
+            inputBox.style.height = 'auto';
+            
+            showThinking();
+            
+            setTimeout(() => {
+                hideThinking();
+                simulateReply(content);
+            }, 1500);
+        }
+        
+        function addMessage(content, type) {
+            const msg = document.createElement('div');
+            msg.className = 'message ' + type;
+            msg.innerHTML = '<div class="message-content">' + content.replace(/\n/g, '<br>') + '</div>';
+            chatArea.appendChild(msg);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            chatHistory.push({ type, content });
+        }
+        
+        function showThinking() {
+            const thinking = document.createElement('div');
+            thinking.className = 'message assistant';
+            thinking.id = 'thinking-msg';
+            thinking.innerHTML = '<div class="thinking-indicator"><div class="thinking-dots"><span></span><span></span><span></span></div><span style="color: var(--text-secondary); font-size: 14px;">正在思考...</span></div>';
+            chatArea.appendChild(thinking);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+        
+        function hideThinking() {
+            const thinking = document.getElementById('thinking-msg');
+            if (thinking) thinking.remove();
+        }
+        
+        function simulateReply(content) {
+            let reply = '';
+            
+            if (content.includes('分析') || content.includes('数据')) {
+                reply = '📊 <strong>数据分析报告</strong><br><br>根据您的需求，我已完成数据分析：<br><br><strong>核心发现：</strong><br>- 数据趋势呈上升态势<br>- 主要增长点集中在Q2季度<br>- 异常值已标注<br><br><strong>建议：</strong><br>1. 关注核心指标变化<br>2. 深入挖掘细分领域<br>3. 持续跟踪数据变化';
+            } else if (content.includes('代码') || content.includes('编程')) {
+                reply = '💻 <strong>代码助手</strong><br><br>我可以帮您编写和调试代码，支持：<br>- Python, JavaScript, Java<br>- 数据处理脚本<br>- Web应用开发<br>- 算法实现<br><br>请告诉我具体需求，我会为您提供代码示例。';
+            } else if (content.includes('文档') || content.includes('PDF')) {
+                reply = '📄 <strong>文档处理完成</strong><br><br>已成功解析文档内容：<br><br><strong>文档概要：</strong><br>- 总页数：15页<br>- 主要章节：5个<br>- 关键信息：12条<br><br><strong>核心内容：</strong><br>文档涵盖了数据分析的全流程，从数据采集到可视化展示的完整方案...';
+            } else {
+                reply = '✅ 已收到您的消息！<br><br>我可以帮您完成：<br>- 📊 数据分析与可视化<br>- 📄 文档处理与摘要<br>- 💻 代码编写与调试<br>- 🔍 信息检索与聚合<br>- ✍️ 智能写作辅助<br><br>请告诉我您的具体需求~';
+            }
+            
+            addMessage(reply, 'assistant');
+        }
+        
+        document.getElementById('new-chat-btn').addEventListener('click', function() {
+            chatArea.innerHTML = '';
+            const newWelcome = welcomeScreen.cloneNode(true);
+            newWelcome.style.display = 'block';
+            chatArea.appendChild(newWelcome);
+            chatHistory = [];
+        });
+        
+        document.querySelectorAll('.nav-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                const tab = this.dataset.tab;
+                const titles = {
+                    'chat': '你好，我是 DATA-AI',
+                    'write': '智能写作助手',
+                    'image': '图像生成',
+                    'search': 'AI搜索',
+                    'document': 'PDF文档处理',
+                    'translate': '翻译助手'
+                };
+                const descs = {
+                    'chat': '您的万能智能助手，可以帮您完成数据分析、文档处理、代码编写等任务',
+                    'write': '帮助您完成各类写作任务，包括文章创作、文案优化、邮件撰写等',
+                    'image': '根据描述生成精美图片，支持多种风格和尺寸',
+                    'search': '全网深度搜索，聚合多方信息，智能整理结果',
+                    'document': '上传PDF文档，智能解析、摘要、问答',
+                    'translate': '多语言互译，保持语境和风格的准确翻译'
+                };
+                
+                const welcome = chatArea.querySelector('.welcome-screen');
+                if (welcome) {
+                    const titleEl = welcome.querySelector('.welcome-title');
+                    const descEl = welcome.querySelector('.welcome-subtitle');
+                    if (titleEl) titleEl.textContent = titles[tab] || 'DATA-AI';
+                    if (descEl) descEl.textContent = descs[tab] || '';
+                }
+            });
+        });
+        
+        document.querySelectorAll('.quick-action').forEach(function(action) {
+            action.addEventListener('click', function() {
+                const actionType = this.dataset.action;
+                const prompts = {
+                    'analyze': '请分析这份销售数据，找出关键趋势和洞察',
+                    'document': '上传一份PDF文档，提取核心内容和摘要',
+                    'code': '帮我写一个Python数据处理脚本',
+                    'search': '搜索一下最新的AI技术发展趋势',
+                    'write': '帮我写一篇关于人工智能的科普文章',
+                    'translate': '把这段英文翻译成中文'
+                };
+                inputBox.value = prompts[actionType] || '';
+                inputBox.focus();
+            });
+        });
+        
+        document.querySelectorAll('.agent-card').forEach(function(card) {
+            card.addEventListener('click', function() {
+                const agent = this.dataset.agent;
+                const agents = {
+                    'coder': '你是一个专业的代码助手，精通Python、JavaScript等多种编程语言',
+                    'writer': '你是一个专业的写作助手，擅长各类文案创作和优化',
+                    'analyst': '你是一个专业的数据分析师，擅长数据分析和可视化',
+                    'researcher': '你是一个专业的研究员，擅长信息检索和整理'
+                };
+                inputBox.value = '切换到' + agent + '模式：' + agents[agent];
+                inputBox.focus();
+            });
+        });
+        
+        document.getElementById('attach-btn').addEventListener('click', function() {
+            document.getElementById('tools-modal').classList.add('show');
+        });
+        
+        document.getElementById('close-tools').addEventListener('click', function() {
+            document.getElementById('tools-modal').classList.remove('show');
+        });
+        
+        document.querySelectorAll('.tool-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                document.getElementById('tools-modal').classList.remove('show');
+                const tool = this.dataset.tool;
+                const toolPrompts = {
+                    'write': '帮我写一篇关于',
+                    'image': '生成一张图片：',
+                    'search': '搜索：',
+                    'document': '上传PDF文档并解析',
+                    'translate': '翻译以下内容：',
+                    'summary': '总结这个网页的内容：',
+                    'code': '写一段代码：',
+                    'analyze': '分析这份数据：'
+                };
+                inputBox.value = toolPrompts[tool] || '';
+                inputBox.focus();
+            });
+        });
+        
+        document.getElementById('settings-btn').addEventListener('click', function() {
+            alert('设置功能开发中...');
+        });
+        
+        document.getElementById('help-btn').addEventListener('click', function() {
+            alert('DATA-AI 帮助文档\n\n快捷键：\n- Enter: 发送\n- Shift+Enter: 换行\n- /: 召唤技能菜单');
+        });
+        
+        inputBox.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+            
+            if (e.key === '/' && this.value === '') {
+                e.preventDefault();
+                document.getElementById('tools-modal').classList.add('show');
+            }
+        });
+        
+        document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('show');
+                }
+            });
+        });
+        
+        document.querySelectorAll('.chat-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
