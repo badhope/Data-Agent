@@ -3,1311 +3,425 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataAgent - 技能管理</title>
-    <style>
-        :root {
-            --ai-primary: #22C55E;
-            --ai-primary-glow: #4ADE80;
-            --ai-accent: #A855F7;
-            --ai-bg-dark: #0F172A;
-            --ai-bg-card: #1E293B;
-            --ai-bg-hover: #334155;
-            --ai-text-primary: #F8FAFC;
-            --ai-text-secondary: #94A3B8;
-            --ai-border: #334155;
-            --ai-success: #22C55E;
-            --ai-warning: #F59E0B;
-            --ai-danger: #EF4444;
-            --ai-glow: rgba(34, 197, 94, 0.3);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--ai-bg-dark) 0%, #1A1F3A 100%);
-            color: var(--ai-text-primary);
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        /* 数据流背景效果 */
-        .data-flow-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-
-        .data-flow-bg::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.04) 0%, transparent 40%);
-            animation: dataFlow 25s linear infinite;
-        }
-
-        @keyframes dataFlow {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 主容器 */
-        .app-container {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            height: 100vh;
-        }
-
-        /* 顶部导航栏 */
-        .top-nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 64px;
-            background: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--ai-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-            z-index: 100;
-        }
-
-        .nav-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .app-logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 0 20px var(--ai-glow);
-            animation: pulseGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 20px var(--ai-glow); }
-            50% { box-shadow: 0 0 40px var(--ai-glow), 0 0 60px rgba(34, 197, 94, 0.2); }
-        }
-
-        .logo-text {
-            font-size: 18px;
-            font-weight: 600;
-            background: linear-gradient(90deg, var(--ai-primary), var(--ai-accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 4px;
-            margin-left: 32px;
-        }
-
-        .nav-tab {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            color: var(--ai-text-secondary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .nav-tab:hover {
-            background: var(--ai-bg-hover);
-            color: var(--ai-text-primary);
-        }
-
-        .nav-tab.active {
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
-            color: var(--ai-primary-glow);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-
-        /* 主内容区 */
-        .main-content {
-            margin-top: 64px;
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
-
-        /* 左侧技能列表 */
-        .skill-list {
-            width: 320px;
-            background: rgba(30, 41, 59, 0.7);
-            border-right: 1px solid var(--ai-border);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .list-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--ai-border);
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .create-btn {
-            flex: 1;
-            padding: 12px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        }
-
-        .create-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
-        }
-
-        .search-box {
-            position: relative;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 12px 16px 12px 44px;
-            background: var(--ai-bg-card);
-            border: 1px solid var(--ai-border);
-            border-radius: 10px;
-            color: var(--ai-text-primary);
-            font-size: 14px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            border-color: var(--ai-primary);
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--ai-text-secondary);
-            font-size: 18px;
-        }
-
-        .list-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px;
-        }
-
-        .list-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .list-content::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .list-content::-webkit-scrollbar-thumb {
-            background: var(--ai-border);
-            border-radius: 3px;
-        }
-
-        .list-content::-webkit-scrollbar-thumb:hover {
-            background: var(--ai-bg-hover);
-        }
-
-        /* 技能卡片 */
-        .skill-card {
-            padding: 16px;
-            background: var(--ai-bg-card);
-            border: 1px solid var(--ai-border);
-            border-radius: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .skill-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .skill-card:hover::before {
-            left: 100%;
-        }
-
-        .skill-card:hover {
-            border-color: rgba(34, 197, 94, 0.3);
-            transform: translateX(4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        .skill-card.active {
-            border-color: var(--ai-primary);
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%);
-            box-shadow: 0 0 0 1px var(--ai-primary), 0 8px 24px rgba(34, 197, 94, 0.15);
-        }
-
-        .skill-header {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .skill-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
-        }
-
-        .skill-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .skill-name {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--ai-text-primary);
-            margin-bottom: 4px;
-        }
-
-        .skill-desc {
-            font-size: 13px;
-            color: var(--ai-text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .skill-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .meta-tag {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            background: var(--ai-bg-hover);
-            color: var(--ai-text-secondary);
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .meta-tag.version {
-            background: rgba(59, 130, 246, 0.15);
-            color: #60A5FA;
-        }
-
-        .meta-tag.active {
-            background: rgba(34, 197, 94, 0.15);
-            color: var(--ai-success);
-        }
-
-        .meta-tag.draft {
-            background: rgba(245, 158, 11, 0.15);
-            color: var(--ai-warning);
-        }
-
-        /* 右侧详情面板 */
-        .detail-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: rgba(15, 23, 42, 0.6);
-        }
-
-        .panel-empty {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .empty-icon {
-            width: 100px;
-            height: 100px;
-            border-radius: 24px;
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            border: 1px solid var(--ai-border);
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .empty-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--ai-text-primary);
-        }
-
-        .empty-desc {
-            font-size: 14px;
-            color: var(--ai-text-secondary);
-            text-align: center;
-            max-width: 320px;
-            line-height: 1.6;
-        }
-
-        .detail-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-        }
-
-        .detail-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .detail-content::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .detail-content::-webkit-scrollbar-thumb {
-            background: var(--ai-border);
-            border-radius: 3px;
-        }
-
-        /* 详情头部 */
-        .detail-header {
-            margin-bottom: 24px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--ai-border);
-        }
-
-        .detail-title-row {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 8px;
-        }
-
-        .detail-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
-        }
-
-        .detail-title {
-            flex: 1;
-        }
-
-        .detail-name {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--ai-text-primary);
-            margin-bottom: 4px;
-        }
-
-        .detail-subtitle {
-            font-size: 14px;
-            color: var(--ai-text-secondary);
-        }
-
-        .detail-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .action-btn {
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border: 1px solid var(--ai-border);
-            background: var(--ai-bg-card);
-            color: var(--ai-text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .action-btn:hover {
-            border-color: var(--ai-primary);
-            background: var(--ai-bg-hover);
-        }
-
-        .action-btn.primary {
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            border: none;
-            color: white;
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        }
-
-        .action-btn.primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
-        }
-
-        .action-btn.danger {
-            border-color: rgba(239, 68, 68, 0.3);
-            color: var(--ai-danger);
-        }
-
-        .action-btn.danger:hover {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: var(--ai-danger);
-        }
-
-        /* 表单区域 */
-        .form-section {
-            margin-bottom: 24px;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .section-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--ai-text-primary);
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-
-        .form-label {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--ai-text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .form-label .required {
-            color: var(--ai-danger);
-        }
-
-        .form-input,
-        .form-select,
-        .form-textarea {
-            padding: 12px 14px;
-            background: var(--ai-bg-card);
-            border: 1px solid var(--ai-border);
-            border-radius: 10px;
-            color: var(--ai-text-primary);
-            font-size: 14px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus,
-        .form-select:focus,
-        .form-textarea:focus {
-            border-color: var(--ai-primary);
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
-        }
-
-        .form-textarea {
-            resize: vertical;
-            min-height: 100px;
-            font-family: inherit;
-        }
-
-        /* 工作流步骤 */
-        .skill-flow {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .flow-step {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-            padding: 12px;
-            background: var(--ai-bg-card);
-            border: 1px solid var(--ai-border);
-            border-radius: 10px;
-        }
-
-        .flow-step-number {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
-            flex-shrink: 0;
-        }
-
-        .flow-step-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .param-remove {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            border: none;
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--ai-danger);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
-        }
-
-        .param-remove:hover {
-            background: rgba(239, 68, 68, 0.2);
-        }
-
-        .add-param-btn {
-            padding: 12px;
-            border: 1px dashed var(--ai-border);
-            border-radius: 10px;
-            background: transparent;
-            color: var(--ai-text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            margin-top: 12px;
-        }
-
-        .add-param-btn:hover {
-            border-color: var(--ai-primary);
-            color: var(--ai-primary-glow);
-            background: rgba(34, 197, 94, 0.05);
-        }
-
-        /* 代码编辑器 */
-        .code-editor {
-            background: #0B1120;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--ai-border);
-        }
-
-        .code-header {
-            padding: 12px 16px;
-            background: rgba(15, 23, 42, 0.8);
-            border-bottom: 1px solid var(--ai-border);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .code-dots {
-            display: flex;
-            gap: 6px;
-        }
-
-        .code-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .code-dot.red { background: #EF4444; }
-        .code-dot.yellow { background: #F59E0B; }
-        .code-dot.green { background: #22C55E; }
-
-        .code-title {
-            font-size: 12px;
-            color: var(--ai-text-secondary);
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-
-        .code-body {
-            padding: 16px;
-        }
-
-        .code-input {
-            width: 100%;
-            min-height: 300px;
-            background: transparent;
-            border: none;
-            color: #E2E8F0;
-            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.7;
-            resize: vertical;
-            outline: none;
-        }
-
-        /* 测试区域 */
-        .test-section {
-            margin-top: 24px;
-            padding: 20px;
-            background: var(--ai-bg-card);
-            border-radius: 12px;
-            border: 1px solid var(--ai-border);
-        }
-
-        .test-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .test-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .test-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--ai-text-primary);
-        }
-
-        .test-input-area {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .test-input {
-            flex: 1;
-            padding: 12px 16px;
-            background: var(--ai-bg-dark);
-            border: 1px solid var(--ai-border);
-            border-radius: 10px;
-            color: var(--ai-text-primary);
-            font-size: 14px;
-            outline: none;
-        }
-
-        .test-input:focus {
-            border-color: var(--ai-primary);
-        }
-
-        .test-btn {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, var(--ai-success) 0%, var(--ai-primary) 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .test-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
-        }
-
-        .test-output {
-            padding: 16px;
-            background: var(--ai-bg-dark);
-            border-radius: 10px;
-            font-family: 'SF Mono', Monaco, monospace;
-            font-size: 13px;
-            color: #A0AEC0;
-            line-height: 1.7;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .test-output::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .test-output::-webkit-scrollbar-thumb {
-            background: var(--ai-border);
-            border-radius: 3px;
-        }
-
-        /* 返回按钮 */
-        .back-btn {
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 1px solid var(--ai-border);
-            background: var(--ai-bg-card);
-            color: var(--ai-text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-            border-color: var(--ai-primary);
-            color: var(--ai-text-primary);
-            background: var(--ai-bg-hover);
-        }
-    </style>
+    <title>DATA-AI - 技能管理</title>
+    <link rel="stylesheet" href="/static/css/admin-unified.css">
 </head>
 <body>
-    <div class="data-flow-bg"></div>
-    
-    <div class="app-container">
-        <!-- 顶部导航栏 -->
-        <div class="top-nav">
-            <div class="nav-left">
-                <div class="app-logo">
-                    <div class="logo-icon">🤖</div>
-                    <span class="logo-text">DataAgent</span>
+    <div class="admin-container">
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">⚡</div>
+                    <span class="sidebar-logo-text">DATA-AI</span>
                 </div>
-                <div class="nav-tabs">
-                    <div class="nav-tab" onclick="window.location.href='/'">💬 对话</div>
-                    <div class="nav-tab" onclick="window.location.href='/agents'">🤖 智能体</div>
-                    <div class="nav-tab active">⚡ 技能</div>
-                    <div class="nav-tab" onclick="window.location.href='/mcp'">🔌 工具</div>
-                </div>
-            </div>
-            <div class="nav-right">
                 <button class="back-btn" onclick="window.location.href='/'">
-                    ← 返回工作台
+                    <span>←</span>
+                    <span>返回主页</span>
                 </button>
             </div>
-        </div>
-
-        <!-- 主内容区 -->
-        <div class="main-content">
-            <!-- 左侧技能列表 -->
-            <div class="skill-list">
-                <div class="list-header">
-                    <div class="header-actions">
-                        <button class="create-btn" onclick="createSkill()">
-                            <span>+</span> 新建技能
-                        </button>
+            
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">管理中心</div>
+                    <div class="nav-item" onclick="window.location.href='/agents'">
+                        <span class="nav-item-icon">🤖</span>
+                        <span class="nav-item-text">智能体</span>
                     </div>
-                    <div class="search-box">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" class="search-input" placeholder="搜索技能..." id="searchInput" oninput="filterSkills()">
+                    <div class="nav-item" onclick="window.location.href='/prompts'">
+                        <span class="nav-item-icon">📝</span>
+                        <span class="nav-item-text">提示词</span>
+                    </div>
+                    <div class="nav-item active" onclick="showView('skills')">
+                        <span class="nav-item-icon">⚡</span>
+                        <span class="nav-item-text">技能</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/mcp'">
+                        <span class="nav-item-icon">🔌</span>
+                        <span class="nav-item-text">MCP</span>
                     </div>
                 </div>
-                <div class="list-content" id="skillList">
-                    <!-- 技能列表由JS生成 -->
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">我的技能</div>
+                    <div id="skill-nav-list"></div>
                 </div>
             </div>
-
-            <!-- 右侧详情面板 -->
-            <div class="detail-panel" id="detailPanel">
-                <div class="panel-empty">
-                    <div class="empty-icon">⚡</div>
-                    <div class="empty-title">选择技能</div>
-                    <div class="empty-desc">从左侧列表选择一个技能进行编辑，或创建新的技能</div>
-                    <button class="action-btn primary" onclick="createSkill()">
-                        <span>+</span> 创建技能
+        </div>
+        
+        <div class="admin-main">
+            <div class="admin-topbar">
+                <div class="admin-topbar-left">
+                    <button class="btn btn-secondary" onclick="window.location.href='/'" style="margin-right: 16px;">
+                        <span>←</span> 返回主页
+                    </button>
+                    <h1 class="admin-title" id="view-title">技能管理</h1>
+                </div>
+                <div class="admin-topbar-right">
+                    <button class="btn" onclick="generateWithAI()">
+                        <span>✨</span> AI 生成
+                    </button>
+                    <button class="btn btn-primary" onclick="createNew()">
+                        <span>＋</span> 新建技能
                     </button>
                 </div>
             </div>
+            
+            <div class="admin-content" id="content-area">
+                <div id="list-view">
+                    <div class="list-header">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" placeholder="搜索技能..." id="search-input" oninput="filterSkills()">
+                        </div>
+                    </div>
+                    <div class="list-grid" id="skills-grid"></div>
+                </div>
+                
+                <div id="detail-view" style="display: none;"></div>
+            </div>
         </div>
     </div>
-
+    
     <script>
-        const sampleSkills = [
+        let skills = [
             {
                 id: '1',
                 name: '数据分析助手',
-                description: '自动分析数据并生成报告',
                 icon: '📊',
+                description: '自动分析数据并生成报告',
                 category: '数据',
                 version: '1.2.0',
                 status: 'active',
                 steps: [
-                    { step: 1, name: '获取数据', description: '从数据源读取数据' },
-                    { step: 2, name: '清洗数据', description: '数据清洗和预处理' },
-                    { step: 3, name: '分析数据', description: '执行统计分析' },
-                    { step: 4, name: '生成报告', description: '生成可视化报告' }
+                    { step: 1, name: '获取数据', desc: '从数据源读取数据' },
+                    { step: 2, name: '清洗数据', desc: '数据清洗和预处理' },
+                    { step: 3, name: '分析数据', desc: '执行统计分析' },
+                    { step: 4, name: '生成报告', desc: '生成可视化报告' }
                 ],
-                code: `def analyze_data(data):
-    # 数据加载
-    df = pd.read_csv(data)
-    
-    # 数据分析
-    summary = df.describe()
-    
-    # 可视化
-    plt.figure(figsize=(12, 6))
-    plt.plot(df)
-    
-    return summary`,
-                createdAt: '2024-01-20'
+                code: 'def analyze_data(data):\n    df = pd.read_csv(data)\n    summary = df.describe()\n    return summary'
             },
             {
                 id: '2',
                 name: '文档翻译助手',
-                description: '翻译各种格式的文档',
                 icon: '🌐',
+                description: '翻译各种格式的文档',
                 category: '语言',
                 version: '2.0.1',
                 status: 'active',
                 steps: [
-                    { step: 1, name: '读取文档', description: '解析并提取文档内容' },
-                    { step: 2, name: '分段翻译', description: '智能分段进行翻译' },
-                    { step: 3, name: '格式保持', description: '保持原文档格式' },
-                    { step: 4, name: '导出结果', description: '保存翻译后的文档' }
+                    { step: 1, name: '读取文档', desc: '解析并提取文档内容' },
+                    { step: 2, name: '分段翻译', desc: '智能分段进行翻译' },
+                    { step: 3, name: '格式保持', desc: '保持原文档格式' }
                 ],
-                code: `def translate_document(doc, source, target):
-    # 文档解析
-    content = parse_document(doc)
-    
-    # 翻译处理
-    translated = translate_text(content, source, target)
-    
-    # 格式重建
-    result = reconstruct_format(doc, translated)
-    
-    return result`,
-                createdAt: '2024-03-05'
+                code: 'def translate_document(doc, source, target):\n    content = parse_document(doc)\n    translated = translate_text(content)\n    return reconstructed'
             },
             {
                 id: '3',
                 name: '代码审查工作流',
-                description: '完整的代码审查流程自动化',
                 icon: '🔍',
+                description: '完整的代码审查流程自动化',
                 category: '开发',
                 version: '1.5.0',
                 status: 'draft',
                 steps: [
-                    { step: 1, name: '代码扫描', description: '静态代码分析' },
-                    { step: 2, name: '问题检测', description: '检测潜在问题' },
-                    { step: 3, name: '修复建议', description: '生成修复建议' },
-                    { step: 4, name: '报告生成', description: '输出审查报告' }
+                    { step: 1, name: '代码扫描', desc: '静态代码分析' },
+                    { step: 2, name: '问题检测', desc: '检测潜在问题' },
+                    { step: 3, name: '报告生成', desc: '输出审查报告' }
                 ],
-                code: `def code_review(code):
-    # 静态分析
-    issues = static_analyze(code)
-    
-    # 安全检查
-    security = security_check(code)
-    
-    # 最佳实践
-    tips = best_practice_check(code)
-    
-    return { issues, security, tips }`,
-                createdAt: '2024-04-10'
+                code: 'def code_review(code):\n    issues = static_analyze(code)\n    return issues'
             }
         ];
-
+        
         let currentSkill = null;
-        let filteredSkills = [...sampleSkills];
-
-        function init() {
-            renderSkillsList();
-        }
-
-        function renderSkillsList() {
-            const container = document.getElementById('skillList');
-            container.innerHTML = filteredSkills.map(skill => `
-                <div class="skill-card ${currentSkill && currentSkill.id === skill.id ? 'active' : ''}" 
-                     onclick="selectSkill('${skill.id}')">
-                    <div class="skill-header">
-                        <div class="skill-icon">${skill.icon}</div>
-                        <div class="skill-info">
-                            <div class="skill-name">${skill.name}</div>
-                            <div class="skill-desc">${skill.description}</div>
-                        </div>
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSkillsList(skills);
+            renderSkillNav();
+        });
+        
+        function renderSkillsList(list) {
+            const grid = document.getElementById('skills-grid');
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">⚡</div>
+                        <div class="empty-title">暂无技能</div>
+                        <div class="empty-desc">点击"新建技能"创建一个</div>
                     </div>
-                    <div class="skill-meta">
-                        <span class="meta-tag version">v${skill.version}</span>
-                        <span class="meta-tag">${skill.category}</span>
-                        <span class="meta-tag ${skill.status}">${skill.status === 'active' ? '🟢 已启用' : '📝 草稿'}</span>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = list.map(s => `
+                <div class="card" onclick="showDetail('${s.id}')">
+                    <div class="card-icon">${s.icon}</div>
+                    <div class="card-title">${s.name}</div>
+                    <div class="card-desc">${s.description}</div>
+                    <div class="card-tags">
+                        <span class="tag">${s.category}</span>
+                        <span class="tag">v${s.version}</span>
+                        <span class="tag ${s.status === 'active' ? 'tag-success' : ''}">${s.status === 'active' ? '已启用' : '草稿'}</span>
                     </div>
                 </div>
             `).join('');
         }
-
+        
+        function renderSkillNav() {
+            const nav = document.getElementById('skill-nav-list');
+            nav.innerHTML = skills.map(s => `
+                <div class="nav-item" onclick="showDetail('${s.id}')" style="padding: 8px 16px; font-size: 13px;">
+                    <span>${s.icon}</span>
+                    <span>${s.name}</span>
+                </div>
+            `).join('');
+        }
+        
         function filterSkills() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            filteredSkills = sampleSkills.filter(skill => 
-                skill.name.toLowerCase().includes(query) || 
-                skill.description.toLowerCase().includes(query) ||
-                skill.category.toLowerCase().includes(query)
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = skills.filter(s => 
+                s.name.toLowerCase().includes(query) || 
+                s.description.toLowerCase().includes(query)
             );
-            renderSkillsList();
+            renderSkillsList(filtered);
         }
-
-        function selectSkill(id) {
-            currentSkill = sampleSkills.find(s => s.id === id);
-            renderSkillsList();
-            renderSkillDetail();
-        }
-
-        function renderSkillDetail() {
-            const container = document.getElementById('detailPanel');
-            container.innerHTML = `
-                <div class="detail-content">
-                    <div class="detail-header">
-                        <div class="detail-title-row">
-                            <div class="detail-icon">${currentSkill.icon}</div>
-                            <div class="detail-title">
-                                <div class="detail-name">${currentSkill.name}</div>
-                                <div class="detail-subtitle">${currentSkill.description} · v${currentSkill.version}</div>
-                            </div>
-                            <div class="detail-actions">
-                                <button class="action-btn" onclick="testSkill()">
-                                    🧪 测试
-                                </button>
-                                <button class="action-btn primary" onclick="publishSkill()">
-                                    🚀 发布
-                                </button>
-                                <button class="action-btn primary" onclick="saveSkill()">
-                                    💾 保存
-                                </button>
-                                <button class="action-btn danger" onclick="deleteSkill()">
-                                    🗑️
-                                </button>
-                            </div>
+        
+        function showDetail(id) {
+            currentSkill = skills.find(s => s.id === id);
+            if (!currentSkill) return;
+            
+            document.getElementById('view-title').textContent = currentSkill.name;
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('detail-view').style.display = 'block';
+            
+            document.getElementById('detail-view').innerHTML = `
+                <div class="detail-header">
+                    <div class="detail-icon">${currentSkill.icon}</div>
+                    <div>
+                        <div class="detail-title">${currentSkill.name}</div>
+                        <div class="detail-desc">${currentSkill.description} · v${currentSkill.version}</div>
+                    </div>
+                    <button class="btn" onclick="showList()" style="margin-left: auto;">
+                        ← 返回列表
+                    </button>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">📋 基本信息</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">名称</label>
+                            <input type="text" class="form-input" id="skill-name" value="${currentSkill.name}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">图标</label>
+                            <input type="text" class="form-input" id="skill-icon" value="${currentSkill.icon}">
                         </div>
                     </div>
-
-                    <!-- 基本信息 -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <div class="section-icon">📋</div>
-                            <div class="section-title">基本信息</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">分类</label>
+                            <select class="form-select" id="skill-category">
+                                <option value="数据" ${currentSkill.category === '数据' ? 'selected' : ''}>数据</option>
+                                <option value="语言" ${currentSkill.category === '语言' ? 'selected' : ''}>语言</option>
+                                <option value="开发" ${currentSkill.category === '开发' ? 'selected' : ''}>开发</option>
+                                <option value="其他" ${currentSkill.category === '其他' ? 'selected' : ''}>其他</option>
+                            </select>
                         </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label">名称 <span class="required">*</span></label>
-                                <input type="text" class="form-input" value="${currentSkill.name}" id="skillName">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">图标</label>
-                                <input type="text" class="form-input" value="${currentSkill.icon}" id="skillIcon">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">分类</label>
-                                <select class="form-select" id="skillCategory">
-                                    <option value="数据" ${currentSkill.category === '数据' ? 'selected' : ''}>数据</option>
-                                    <option value="语言" ${currentSkill.category === '语言' ? 'selected' : ''}>语言</option>
-                                    <option value="开发" ${currentSkill.category === '开发' ? 'selected' : ''}>开发</option>
-                                    <option value="其他" ${currentSkill.category === '其他' ? 'selected' : ''}>其他</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">版本</label>
-                                <input type="text" class="form-input" value="${currentSkill.version}" id="skillVersion">
-                            </div>
-                            <div class="form-group full">
-                                <label class="form-label">描述</label>
-                                <input type="text" class="form-input" value="${currentSkill.description}" id="skillDesc">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">状态</label>
-                                <select class="form-select" id="skillStatus">
-                                    <option value="draft" ${currentSkill.status === 'draft' ? 'selected' : ''}>📝 草稿</option>
-                                    <option value="active" ${currentSkill.status === 'active' ? 'selected' : ''}>🟢 已启用</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label class="form-label">版本</label>
+                            <input type="text" class="form-input" id="skill-version" value="${currentSkill.version}">
                         </div>
                     </div>
-
-                    <!-- 工作流步骤 -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <div class="section-icon">🔄</div>
-                            <div class="section-title">工作流步骤</div>
-                        </div>
-                        <div class="skill-flow" id="stepsContainer">
-                            ${currentSkill.steps.map((step, i) => `
-                                <div class="flow-step" data-index="${i}">
-                                    <div class="flow-step-number">${step.step}</div>
-                                    <div class="flow-step-content">
-                                        <input type="text" class="form-input" value="${step.name}" placeholder="步骤名称" id="stepName${i}">
-                                        <input type="text" class="form-input" value="${step.description}" placeholder="步骤描述" id="stepDesc${i}">
-                                    </div>
-                                    <button class="param-remove" onclick="removeStep(${i})">×</button>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <button class="add-param-btn" onclick="addStep()">
-                            <span>+</span> 添加步骤
-                        </button>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <input type="text" class="form-input" id="skill-desc" value="${currentSkill.description}">
                     </div>
-
-                    <!-- 执行代码 -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <div class="section-icon">💻</div>
-                            <div class="section-title">执行代码</div>
-                        </div>
-                        <div class="code-editor">
-                            <div class="code-header">
-                                <div class="code-dots">
-                                    <div class="code-dot.red"></div>
-                                    <div class="code-dot.yellow"></div>
-                                    <div class="code-dot.green"></div>
-                                </div>
-                                <span class="code-title">skill-executor.py</span>
-                            </div>
-                            <div class="code-body">
-                                <textarea class="code-input" id="skillCode">${currentSkill.code}</textarea>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">状态</label>
+                        <select class="form-select" id="skill-status">
+                            <option value="draft" ${currentSkill.status === 'draft' ? 'selected' : ''}>草稿</option>
+                            <option value="active" ${currentSkill.status === 'active' ? 'selected' : ''}>已启用</option>
+                        </select>
                     </div>
-
-                    <!-- 测试区域 -->
-                    <div class="test-section">
-                        <div class="test-header">
-                            <div class="test-icon">🧪</div>
-                            <div class="test-title">技能执行测试</div>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">🔄 工作流</div>
+                    <div id="steps-container">
+                        ${currentSkill.steps.map((step, i) => `
+                            <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                <span style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">${step.step}</span>
+                                <input type="text" class="form-input" id="step-name-${i}" value="${step.name}" style="flex: 1;">
+                                <input type="text" class="form-input" id="step-desc-${i}" value="${step.desc}" style="flex: 2;">
+                                <button class="btn" onclick="removeStep(${i})" style="color: var(--danger);">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn" onclick="addStep()" style="margin-top: 8px;">
+                        <span>＋</span> 添加步骤
+                    </button>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">💻 执行代码</div>
+                    <div class="code-editor">
+                        <div class="code-editor-header">
+                            <div class="code-dot code-dot-red"></div>
+                            <div class="code-dot code-dot-yellow"></div>
+                            <div class="code-dot code-dot-green"></div>
+                            <span class="code-editor-title">skill-executor.py</span>
                         </div>
-                        <div class="test-input-area">
-                            <input type="text" class="test-input" placeholder="输入测试数据..." id="testInput" value="test-data.csv">
-                            <button class="test-btn" onclick="runSkillTest()">运行技能</button>
-                        </div>
-                        <div class="test-output" id="testOutput">
-// 技能执行日志将显示在这里...
+                        <div class="code-editor-body">
+                            <textarea class="code-textarea" id="skill-code" style="min-height: 200px;">${currentSkill.code}</textarea>
                         </div>
                     </div>
                 </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-primary" onclick="saveSkill()">
+                        💾 保存技能
+                    </button>
+                    <button class="btn" onclick="testSkill()">
+                        🧪 测试执行
+                    </button>
+                    <button class="btn" onclick="publishSkill()">
+                        🚀 发布
+                    </button>
+                    <button class="btn" onclick="deleteSkill()" style="margin-left: auto; color: var(--danger);">
+                        🗑️ 删除
+                    </button>
+                </div>
+                
+                <div class="test-section" style="margin-top: 20px;">
+                    <div class="test-header">🧪 技能执行测试</div>
+                    <div class="test-input-group">
+                        <input type="text" class="test-input" id="test-input" value="test-data.csv" placeholder="输入测试参数...">
+                        <button class="btn btn-primary" onclick="runSkillTest()">运行技能</button>
+                    </div>
+                    <div class="test-output" id="test-output">// 技能执行日志将显示在这里...</div>
+                </div>
             `;
         }
-
-        function createSkill() {
+        
+        function addStep() {
+            const container = document.getElementById('steps-container');
+            const num = container.children.length + 1;
+            const div = document.createElement('div');
+            div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
+            div.innerHTML = `
+                <span style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">${num}</span>
+                <input type="text" class="form-input" id="step-name-${num-1}" value="新步骤" style="flex: 1;">
+                <input type="text" class="form-input" id="step-desc-${num-1}" value="" style="flex: 2;">
+                <button class="btn" onclick="removeStep(${num-1})" style="color: var(--danger);">×</button>
+            `;
+            container.appendChild(div);
+        }
+        
+        function removeStep(index) {
+            const container = document.getElementById('steps-container');
+            if (container.children[index]) {
+                container.children[index].remove();
+            }
+        }
+        
+        function showList() {
+            document.getElementById('view-title').textContent = '技能管理';
+            document.getElementById('list-view').style.display = 'block';
+            document.getElementById('detail-view').style.display = 'none';
+            currentSkill = null;
+        }
+        
+        function createNew() {
             const newSkill = {
                 id: Date.now().toString(),
                 name: '新技能',
-                description: '请描述这个技能的功能',
                 icon: '⚡',
+                description: '请描述这个技能的功能',
                 category: '其他',
                 version: '0.1.0',
                 status: 'draft',
-                steps: [
-                    { step: 1, name: '步骤 1', description: '请描述这个步骤' }
-                ],
-                code: `def execute(params):
-    # 技能实现代码
-    result = process(params)
-    return result`,
-                createdAt: new Date().toISOString().split('T')[0]
+                steps: [{ step: 1, name: '步骤 1', desc: '请描述这个步骤' }],
+                code: 'def execute(params):\n    result = process(params)\n    return result'
             };
-            sampleSkills.unshift(newSkill);
-            filteredSkills = [...sampleSkills];
-            renderSkillsList();
-            selectSkill(newSkill.id);
+            skills.unshift(newSkill);
+            renderSkillsList(skills);
+            renderSkillNav();
+            showDetail(newSkill.id);
         }
-
+        
+        function generateWithAI() {
+            const desc = prompt('请描述您需要的技能功能：');
+            if (desc) {
+                alert(`✨ AI 正在分析需求并生成技能...\n\n"${desc}"`);
+                createNew();
+            }
+        }
+        
         function saveSkill() {
             if (!currentSkill) return;
-            currentSkill.name = document.getElementById('skillName').value;
-            currentSkill.icon = document.getElementById('skillIcon').value;
-            currentSkill.description = document.getElementById('skillDesc').value;
-            currentSkill.category = document.getElementById('skillCategory').value;
-            currentSkill.version = document.getElementById('skillVersion').value;
-            currentSkill.status = document.getElementById('skillStatus').value;
-            currentSkill.code = document.getElementById('skillCode').value;
             
-            // 保存步骤
-            currentSkill.steps = [];
-            document.querySelectorAll('#stepsContainer .flow-step').forEach((stepEl, i) => {
-                const nameEl = stepEl.querySelector('input:first-child');
-                const descEl = stepEl.querySelector('input:nth-child(2)');
-                if (nameEl && descEl) {
-                    currentSkill.steps.push({
-                        step: i + 1,
-                        name: nameEl.value,
-                        description: descEl.value
-                    });
+            currentSkill.name = document.getElementById('skill-name').value;
+            currentSkill.icon = document.getElementById('skill-icon').value;
+            currentSkill.category = document.getElementById('skill-category').value;
+            currentSkill.version = document.getElementById('skill-version').value;
+            currentSkill.description = document.getElementById('skill-desc').value;
+            currentSkill.status = document.getElementById('skill-status').value;
+            currentSkill.code = document.getElementById('skill-code').value;
+            
+            const steps = [];
+            const container = document.getElementById('steps-container');
+            container.querySelectorAll('div').forEach((div, i) => {
+                const nameInput = div.querySelector(`#step-name-${i}`);
+                const descInput = div.querySelector(`#step-desc-${i}`);
+                if (nameInput && descInput) {
+                    steps.push({ step: i + 1, name: nameInput.value, desc: descInput.value });
                 }
             });
+            currentSkill.steps = steps;
             
-            renderSkillsList();
+            renderSkillsList(skills);
+            renderSkillNav();
+            showDetail(currentSkill.id);
             alert('✅ 技能已保存！');
         }
-
-        function publishSkill() {
-            if (!currentSkill) return;
-            currentSkill.status = 'active';
-            saveSkill();
-            alert('🚀 技能已发布到市场！');
-        }
-
+        
         function testSkill() {
-            document.getElementById('testInput').value = 'test-data.csv';
             runSkillTest();
         }
-
+        
         function runSkillTest() {
-            const output = document.getElementById('testOutput');
-            const input = document.getElementById('testInput').value;
+            const output = document.getElementById('test-output');
+            const input = document.getElementById('test-input').value;
             
             output.textContent = `▶ 开始执行: ${currentSkill.name}\n`;
             
             currentSkill.steps.forEach((step, i) => {
                 setTimeout(() => {
                     output.textContent += `\nStep ${i + 1}/${currentSkill.steps.length}: ${step.name}... ✔️`;
-                }, 300 * (i + 1));
+                }, 300 * i);
             });
             
             setTimeout(() => {
-                output.textContent += `\n\n✅ 技能执行完成！\n`;
-                output.textContent += `📦 输出结果: { "status": "ok", "data": "..." }`;
-            }, 300 * currentSkill.steps.length + 500);
+                output.textContent += '\n\n✅ 技能执行完成！\n📦 输出结果: {"status": "success"}';
+            }, 300 * currentSkill.steps.length + 200);
         }
-
+        
+        function publishSkill() {
+            if (!currentSkill) return;
+            currentSkill.status = 'active';
+            saveSkill();
+            alert('🚀 技能已发布！');
+        }
+        
         function deleteSkill() {
             if (!currentSkill) return;
             if (!confirm(`确定要删除 "${currentSkill.name}" 吗？`)) return;
-            const index = sampleSkills.findIndex(s => s.id === currentSkill.id);
-            if (index > -1) {
-                sampleSkills.splice(index, 1);
-            }
-            filteredSkills = [...sampleSkills];
-            currentSkill = null;
-            renderSkillsList();
-            document.getElementById('detailPanel').innerHTML = `
-                <div class="panel-empty">
-                    <div class="empty-icon">⚡</div>
-                    <div class="empty-title">选择技能</div>
-                    <div class="empty-desc">从左侧列表选择一个技能进行编辑，或创建新的技能</div>
-                    <button class="action-btn primary" onclick="createSkill()">
-                        <span>+</span> 创建技能
-                    </button>
-                </div>
-            `;
+            
+            skills = skills.filter(s => s.id !== currentSkill.id);
+            renderSkillsList(skills);
+            renderSkillNav();
+            showList();
         }
-
-        function addStep() {
-            if (!currentSkill) return;
-            const newStepNum = currentSkill.steps.length + 1;
-            currentSkill.steps.push({
-                step: newStepNum,
-                name: '新步骤',
-                description: '请描述这个步骤'
-            });
-            renderSkillDetail();
-        }
-
-        function removeStep(index) {
-            if (!currentSkill) return;
-            if (currentSkill.steps.length <= 1) {
-                alert('⚠️ 至少需要保留一个步骤');
-                return;
-            }
-            currentSkill.steps.splice(index, 1);
-            // 重新编号
-            currentSkill.steps.forEach((step, i) => {
-                step.step = i + 1;
-            });
-            renderSkillDetail();
-        }
-
-        init();
     </script>
 </body>
 </html>

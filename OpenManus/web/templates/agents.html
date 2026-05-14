@@ -3,1316 +3,395 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataAgent - 智能体管理</title>
-    <style>
-        :root {
-            --ai-primary: #3B82F6;
-            --ai-primary-glow: #60A5FA;
-            --ai-secondary: #22C55E;
-            --ai-accent: #A855F7;
-            --ai-bg-dark: #0F172A;
-            --ai-bg-card: #1E293B;
-            --ai-bg-hover: #334155;
-            --ai-text-primary: #F8FAFC;
-            --ai-text-secondary: #94A3B8;
-            --ai-border: #334155;
-            --ai-success: #22C55E;
-            --ai-warning: #F59E0B;
-            --ai-danger: #EF4444;
-            --ai-glow: rgba(96, 165, 250, 0.3);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--ai-bg-dark) 0%, #1A1F3A 100%);
-            color: var(--ai-text-primary);
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        /* 数据流背景效果 */
-        .data-flow-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-
-        .data-flow-bg::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(34, 197, 94, 0.04) 0%, transparent 40%);
-            animation: dataFlow 25s linear infinite;
-        }
-
-        @keyframes dataFlow {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 主容器 */
-        .app-container {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            height: 100vh;
-        }
-
-        /* 顶部导航栏 */
-        .top-nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 64px;
-            background: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--ai-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-            z-index: 100;
-        }
-
-        .nav-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .app-logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 0 20px var(--ai-glow);
-            animation: pulseGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 20px var(--ai-glow); }
-            50% { box-shadow: 0 0 40px var(--ai-glow), 0 0 60px rgba(59, 130, 246, 0.2); }
-        }
-
-        .logo-text {
-            font-size: 18px;
-            font-weight: 600;
-            background: linear-gradient(90deg, var(--ai-primary), var(--ai-accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 4px;
-            margin-left: 32px;
-        }
-
-        .nav-tab {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            color: var(--ai-text-secondary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .nav-tab:hover {
-            background: var(--ai-bg-hover);
-            color: var(--ai-text-primary);
-        }
-
-        .nav-tab.active {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
-            color: var(--ai-primary-glow);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-
-        /* 主内容区 */
-        .main-content {
-            margin-top: 64px;
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
-
-        /* 左侧智能体列表 */
-        .agent-list {
-            width: 320px;
-            background: rgba(30, 41, 59, 0.7);
-            border-right: 1px solid var(--ai-border);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .list-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--ai-border);
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .create-btn {
-            flex: 1;
-            padding: 12px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .create-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-        }
-
-        .search-box {
-            position: relative;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 12px 16px 12px 44px;
-            background: var(--ai-bg-card);
-            border: 1px solid var(--ai-border);
-            border-radius: 10px;
-            color: var(--ai-text-primary);
-            font-size: 14px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            border-color: var(--ai-primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--ai-text-secondary);
-            font-size: 18px;
-        }
-
-        .list-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px;
-        }
-
-        .list-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .list-content::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .list-content::-webkit-scrollbar-thumb {
-            background: var(--ai-border);
-            border-radius: 3px;
-        }
-
-        .list-content::-webkit-scrollbar-thumb:hover {
-            background: var(--ai-bg-hover);
-        }
-
-        /* 智能体卡片 */
-        .agent-card {
-            padding: 16px;
-            background: var(--ai-bg-card);
-            border: 1px solid var(--ai-border);
-            border-radius: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .agent-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .agent-card:hover::before {
-            left: 100%;
-        }
-
-        .agent-card:hover {
-            border-color: rgba(59, 130, 246, 0.3);
-            transform: translateX(4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        .agent-card.active {
-            border-color: var(--ai-primary);
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%);
-            box-shadow: 0 0 0 1px var(--ai-primary), 0 8px 24px rgba(59, 130, 246, 0.15);
-        }
-
-        .agent-header {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .agent-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-        }
-
-        .agent-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .agent-name {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--ai-text-primary);
-            margin-bottom: 4px;
-        }
-
-        .agent-desc {
-            font-size: 13px;
-            color: var(--ai-text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .agent-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .meta-tag {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            background: var(--ai-bg-hover);
-            color: var(--ai-text-secondary);
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .meta-tag.model {
-            background: rgba(59, 130, 246, 0.15);
-            color: var(--ai-primary-glow);
-        }
-
-        .meta-tag.public {
-            background: rgba(34, 197, 94, 0.15);
-            color: var(--ai-success);
-        }
-
-        .meta-tag.private {
-            background: rgba(168, 85, 247, 0.15);
-            color: var(--ai-accent);
-        }
-
-        /* 右侧详情面板 */
-        .detail-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: rgba(15, 23, 42, 0.6);
-        }
-
-        .panel-empty {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .empty-icon {
-            width: 100px;
-            height: 100px;
-            border-radius: 24px;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            border: 1px solid var(--ai-border);
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .empty-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--ai-text-primary);
-        }
-
-        .empty-desc {
-            font-size: 14px;
-            color: var(--ai-text-secondary);
-            text-align: center;
-            max-width: 320px;
-            line-height: 1.6;
-        }
-
-        .detail-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-        }
-
-        .detail-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .detail-content::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .detail-content::-webkit-scrollbar-thumb {
-            background: var(--ai-border);
-            border-radius: 3px;
-        }
-
-        /* 详情头部 */
-        .detail-header {
-            margin-bottom: 24px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--ai-border);
-        }
-
-        .detail-title-row {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 8px;
-        }
-
-        .detail-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
-        }
-
-        .detail-title {
-            flex: 1;
-        }
-
-        .detail-name {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--ai-text-primary);
-            margin-bottom: 4px;
-        }
-
-        .detail-subtitle {
-            font-size: 14px;
-            color: var(--ai-text-secondary);
-        }
-
-        .detail-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .action-btn {
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border: 1px solid var(--ai-border);
-            background: var(--ai-bg-card);
-            color: var(--ai-text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .action-btn:hover {
-            border-color: var(--ai-primary);
-            background: var(--ai-bg-hover);
-        }
-
-        .action-btn.primary {
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            border: none;
-            color: white;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .action-btn.primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-        }
-
-        .action-btn.danger {
-            border-color: rgba(239, 68, 68, 0.3);
-            color: var(--ai-danger);
-        }
-
-        .action-btn.danger:hover {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: var(--ai-danger);
-        }
-
-        /* 表单区域 */
-        .form-section {
-            margin-bottom: 24px;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .section-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--ai-text-primary);
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-
-        .form-label {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--ai-text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .form-label .required {
-            color: var(--ai-danger);
-        }
-
-        .form-input,
-        .form-select,
-        .form-textarea {
-            padding: 12px 14px;
-            background: var(--ai-bg-card);
-            border: 1px solid var(--ai-border);
-            border-radius: 10px;
-            color: var(--ai-text-primary);
-            font-size: 14px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus,
-        .form-select:focus,
-        .form-textarea:focus {
-            border-color: var(--ai-primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .form-textarea {
-            resize: vertical;
-            min-height: 100px;
-            font-family: inherit;
-        }
-
-        /* 温度滑块 */
-        .temp-slider {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .temp-display {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .temp-value {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--ai-primary-glow);
-        }
-
-        .temp-range {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--ai-bg-hover);
-            outline: none;
-        }
-
-        .temp-range::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        .temp-range::-webkit-slider-thumb:hover {
-            transform: scale(1.15);
-        }
-
-        /* 代码编辑器 */
-        .code-editor {
-            background: #0B1120;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--ai-border);
-        }
-
-        .code-header {
-            padding: 12px 16px;
-            background: rgba(15, 23, 42, 0.8);
-            border-bottom: 1px solid var(--ai-border);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .code-dots {
-            display: flex;
-            gap: 6px;
-        }
-
-        .code-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .code-dot.red { background: #EF4444; }
-        .code-dot.yellow { background: #F59E0B; }
-        .code-dot.green { background: #22C55E; }
-
-        .code-title {
-            font-size: 12px;
-            color: var(--ai-text-secondary);
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-
-        .code-body {
-            padding: 16px;
-        }
-
-        .code-input {
-            width: 100%;
-            min-height: 200px;
-            background: transparent;
-            border: none;
-            color: #E2E8F0;
-            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.7;
-            resize: vertical;
-            outline: none;
-        }
-
-        /* 工具配置 */
-        .tools-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .tool-item {
-            padding: 14px 16px;
-            background: var(--ai-bg-card);
-            border: 1px solid var(--ai-border);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .tool-item:hover {
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .tool-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .tool-info {
-            flex: 1;
-        }
-
-        .tool-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--ai-text-primary);
-        }
-
-        .tool-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 6px;
-            background: rgba(34, 197, 94, 0.15);
-            color: var(--ai-success);
-            font-size: 12px;
-        }
-
-        .tool-remove {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            border: none;
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--ai-danger);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .tool-remove:hover {
-            background: rgba(239, 68, 68, 0.2);
-        }
-
-        .add-tool-btn {
-            padding: 12px;
-            border: 1px dashed var(--ai-border);
-            border-radius: 10px;
-            background: transparent;
-            color: var(--ai-text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .add-tool-btn:hover {
-            border-color: var(--ai-primary);
-            color: var(--ai-primary-glow);
-            background: rgba(59, 130, 246, 0.05);
-        }
-
-        /* 测试区域 */
-        .test-section {
-            margin-top: 24px;
-            padding: 20px;
-            background: var(--ai-bg-card);
-            border-radius: 12px;
-            border: 1px solid var(--ai-border);
-        }
-
-        .test-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .test-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .test-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--ai-text-primary);
-        }
-
-        .test-input-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .test-input {
-            flex: 1;
-            padding: 12px 16px;
-            background: var(--ai-bg-dark);
-            border: 1px solid var(--ai-border);
-            border-radius: 10px;
-            color: var(--ai-text-primary);
-            font-size: 14px;
-            outline: none;
-        }
-
-        .test-input:focus {
-            border-color: var(--ai-primary);
-        }
-
-        .test-run-btn {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, var(--ai-success) 0%, var(--ai-primary) 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .test-run-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
-        }
-
-        .test-output {
-            padding: 16px;
-            background: var(--ai-bg-dark);
-            border-radius: 10px;
-            font-family: 'SF Mono', Monaco, monospace;
-            font-size: 13px;
-            color: #A0AEC0;
-            line-height: 1.7;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .test-output::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .test-output::-webkit-scrollbar-thumb {
-            background: var(--ai-border);
-            border-radius: 3px;
-        }
-
-        /* 返回按钮 */
-        .back-btn {
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 1px solid var(--ai-border);
-            background: var(--ai-bg-card);
-            color: var(--ai-text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-            border-color: var(--ai-primary);
-            color: var(--ai-text-primary);
-            background: var(--ai-bg-hover);
-        }
-    </style>
+    <title>DATA-AI - 智能体管理</title>
+    <link rel="stylesheet" href="/static/css/admin-unified.css">
 </head>
 <body>
-    <div class="data-flow-bg"></div>
-    
-    <div class="app-container">
-        <!-- 顶部导航栏 -->
-        <div class="top-nav">
-            <div class="nav-left">
-                <div class="app-logo">
-                    <div class="logo-icon">🤖</div>
-                    <span class="logo-text">DataAgent</span>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">🤖</div>
+                    <span class="sidebar-logo-text">DATA-AI</span>
                 </div>
-                <div class="nav-tabs">
-                    <div class="nav-tab" onclick="window.location.href='/'">💬 对话</div>
-                    <div class="nav-tab active">🤖 智能体</div>
-                    <div class="nav-tab" onclick="window.location.href='/skills'">⚡ 技能</div>
-                    <div class="nav-tab" onclick="window.location.href='/mcp'">🔌 工具</div>
-                </div>
-            </div>
-            <div class="nav-right">
                 <button class="back-btn" onclick="window.location.href='/'">
-                    ← 返回工作台
+                    <span>←</span>
+                    <span>返回主页</span>
                 </button>
             </div>
-        </div>
-
-        <!-- 主内容区 -->
-        <div class="main-content">
-            <!-- 左侧智能体列表 -->
-            <div class="agent-list">
-                <div class="list-header">
-                    <div class="header-actions">
-                        <button class="create-btn" onclick="createAgent()">
-                            <span>+</span> 新建智能体
-                        </button>
+            
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">管理中心</div>
+                    <div class="nav-item active" onclick="showView('agents')">
+                        <span class="nav-item-icon">🤖</span>
+                        <span class="nav-item-text">智能体</span>
                     </div>
-                    <div class="search-box">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" class="search-input" placeholder="搜索智能体..." id="searchInput" oninput="filterAgents()">
+                    <div class="nav-item" onclick="window.location.href='/prompts'">
+                        <span class="nav-item-icon">📝</span>
+                        <span class="nav-item-text">提示词</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/skills'">
+                        <span class="nav-item-icon">⚡</span>
+                        <span class="nav-item-text">技能</span>
+                    </div>
+                    <div class="nav-item" onclick="window.location.href='/mcp'">
+                        <span class="nav-item-icon">🔌</span>
+                        <span class="nav-item-text">MCP</span>
                     </div>
                 </div>
-                <div class="list-content" id="agentList">
-                    <!-- 智能体列表由JS生成 -->
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">我的智能体</div>
+                    <div id="agent-nav-list"></div>
                 </div>
             </div>
-
-            <!-- 右侧详情面板 -->
-            <div class="detail-panel" id="detailPanel">
-                <div class="panel-empty">
-                    <div class="empty-icon">🤖</div>
-                    <div class="empty-title">选择智能体</div>
-                    <div class="empty-desc">从左侧列表选择一个智能体进行编辑，或创建新的智能体开始构建</div>
-                    <button class="action-btn primary" onclick="createAgent()">
-                        <span>+</span> 创建智能体
+        </div>
+        
+        <!-- 主内容 -->
+        <div class="admin-main">
+            <!-- 顶部栏 -->
+            <div class="admin-topbar">
+                <div class="admin-topbar-left">
+                    <button class="btn btn-secondary" onclick="window.location.href='/'" style="margin-right: 16px;">
+                        <span>←</span> 返回主页
+                    </button>
+                    <h1 class="admin-title" id="view-title">智能体管理</h1>
+                </div>
+                <div class="admin-topbar-right">
+                    <button class="btn" onclick="exportData()">
+                        <span>📤</span> 导出
+                    </button>
+                    <button class="btn btn-primary" onclick="createNew()">
+                        <span>＋</span> 新建智能体
                     </button>
                 </div>
             </div>
+            
+            <!-- 内容区 -->
+            <div class="admin-content" id="content-area">
+                <!-- 列表视图 -->
+                <div id="list-view">
+                    <div class="list-header">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" placeholder="搜索智能体..." id="search-input" oninput="filterAgents()">
+                        </div>
+                    </div>
+                    <div class="list-grid" id="agents-grid"></div>
+                </div>
+                
+                <!-- 详情视图 -->
+                <div id="detail-view" style="display: none;"></div>
+            </div>
         </div>
     </div>
-
+    
     <script>
-        const sampleAgents = [
+        // 智能体数据
+        let agents = [
             {
                 id: '1',
                 name: '代码助手',
-                description: '专业的代码编写、调试和优化助手',
                 icon: '👨‍💻',
+                description: '专业的代码编写、调试和优化助手',
                 tags: ['代码', '开发'],
-                model: 'GPT-4',
-                temperature: 0.7,
-                systemPrompt: '你是一个专业的代码助手。你擅长编写、调试和优化各种编程语言的代码。你应该提供高质量的代码示例和清晰的解释。',
-                tools: [
-                    { name: 'python-execute', icon: '💻' },
-                    { name: 'web-search', icon: '🔍' }
-                ],
                 visibility: 'public',
-                createdAt: '2024-01-15'
+                model: 'gpt-4',
+                temperature: 0.7,
+                prompt: '你是一个专业的代码助手。你擅长编写、调试和优化各种编程语言的代码。',
+                tools: ['python-execute', 'search']
             },
             {
                 id: '2',
                 name: '写作助手',
-                description: '帮助您创作文章、邮件和文档',
                 icon: '✍️',
+                description: '帮助您创作文章、邮件和各类文档',
                 tags: ['写作', '文案'],
-                model: 'GPT-3.5 Turbo',
-                temperature: 0.8,
-                systemPrompt: '你是一个专业的写作助手。你擅长创作高质量的文章、邮件、文案和各类文档。你的文字优美、准确且富有感染力。',
-                tools: [],
                 visibility: 'private',
-                createdAt: '2024-02-20'
+                model: 'gpt-3.5-turbo',
+                temperature: 0.8,
+                prompt: '你是一个专业的写作助手，擅长创作高质量的文章、邮件和文案。',
+                tools: []
             },
             {
                 id: '3',
-                name: '数据分析员',
+                name: '数据分析师',
+                icon: '📊',
                 description: '数据分析和可视化专家',
-                icon: '📈',
                 tags: ['数据', '分析'],
-                model: 'GPT-4',
-                temperature: 0.6,
-                systemPrompt: '你是一个专业的数据分析员。你擅长解读数据、发现趋势、创建可视化图表并提供数据驱动的建议。',
-                tools: [
-                    { name: 'python-execute', icon: '💻' },
-                    { name: 'data-viz', icon: '📊' }
-                ],
                 visibility: 'public',
-                createdAt: '2024-03-10'
+                model: 'gpt-4',
+                temperature: 0.6,
+                prompt: '你是一个专业的数据分析师，擅长解读数据、发现趋势并创建可视化。',
+                tools: ['python-execute', 'data-viz']
             },
             {
                 id: '4',
-                name: '病理分析',
-                description: 'SlideFlow 病理图像分析助手',
+                name: '病理分析助手',
                 icon: '🔬',
+                description: 'SlideFlow 病理学图像分析专家',
                 tags: ['病理', '医学'],
-                model: 'GPT-4',
-                temperature: 0.5,
-                systemPrompt: '你是一个专业的病理分析助手。你擅长分析病理图像、解释结果并提供医学见解。',
-                tools: [
-                    { name: 'slideflow', icon: '🩺' },
-                    { name: 'image-analysis', icon: '🔍' }
-                ],
                 visibility: 'private',
-                createdAt: '2024-04-05'
+                model: 'gpt-4',
+                temperature: 0.5,
+                prompt: '你是一个专业的病理分析助手，擅长分析病理图像和提供医学见解。',
+                tools: ['slideflow', 'image-analysis']
             }
         ];
-
+        
         let currentAgent = null;
-        let filteredAgents = [...sampleAgents];
-
-        function init() {
-            renderAgentsList();
-        }
-
-        function renderAgentsList() {
-            const container = document.getElementById('agentList');
-            container.innerHTML = filteredAgents.map(agent => `
-                <div class="agent-card ${currentAgent && currentAgent.id === agent.id ? 'active' : ''}" 
-                     onclick="selectAgent('${agent.id}')">
-                    <div class="agent-header">
-                        <div class="agent-icon">${agent.icon}</div>
-                        <div class="agent-info">
-                            <div class="agent-name">${agent.name}</div>
-                            <div class="agent-desc">${agent.description}</div>
-                        </div>
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAgentsList(agents);
+            renderAgentNav();
+        });
+        
+        // 渲染智能体列表
+        function renderAgentsList(list) {
+            const grid = document.getElementById('agents-grid');
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">🤖</div>
+                        <div class="empty-title">暂无智能体</div>
+                        <div class="empty-desc">点击"新建智能体"创建一个</div>
                     </div>
-                    <div class="agent-meta">
-                        <span class="meta-tag model">${agent.model}</span>
-                        ${agent.tags.map(tag => `<span class="meta-tag">${tag}</span>`).join('')}
-                        <span class="meta-tag ${agent.visibility}">${agent.visibility === 'public' ? '🌐 公开' : '🔒 私有'}</span>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = list.map(agent => `
+                <div class="card" onclick="showDetail('${agent.id}')">
+                    <div class="card-icon">${agent.icon}</div>
+                    <div class="card-title">${agent.name}</div>
+                    <div class="card-desc">${agent.description}</div>
+                    <div class="card-tags">
+                        ${agent.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                        <span class="tag ${agent.visibility === 'public' ? 'tag-success' : ''}">${agent.visibility === 'public' ? '公开' : '私有'}</span>
                     </div>
                 </div>
             `).join('');
         }
-
+        
+        // 渲染侧边栏导航
+        function renderAgentNav() {
+            const nav = document.getElementById('agent-nav-list');
+            nav.innerHTML = agents.map(a => `
+                <div class="nav-item" onclick="showDetail('${a.id}')" style="padding: 8px 16px; font-size: 13px;">
+                    <span>${a.icon}</span>
+                    <span>${a.name}</span>
+                </div>
+            `).join('');
+        }
+        
+        // 筛选
         function filterAgents() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            filteredAgents = sampleAgents.filter(agent => 
-                agent.name.toLowerCase().includes(query) || 
-                agent.description.toLowerCase().includes(query) ||
-                agent.tags.some(tag => tag.toLowerCase().includes(query))
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = agents.filter(a => 
+                a.name.toLowerCase().includes(query) || 
+                a.description.toLowerCase().includes(query)
             );
-            renderAgentsList();
+            renderAgentsList(filtered);
         }
-
-        function selectAgent(id) {
-            currentAgent = sampleAgents.find(a => a.id === id);
-            renderAgentsList();
-            renderAgentDetail();
-        }
-
-        function renderAgentDetail() {
-            const container = document.getElementById('detailPanel');
-            container.innerHTML = `
-                <div class="detail-content">
-                    <div class="detail-header">
-                        <div class="detail-title-row">
-                            <div class="detail-icon">${currentAgent.icon}</div>
-                            <div class="detail-title">
-                                <div class="detail-name">${currentAgent.name}</div>
-                                <div class="detail-subtitle">${currentAgent.description}</div>
-                            </div>
-                            <div class="detail-actions">
-                                <button class="action-btn" onclick="testAgent()">
-                                    🧪 测试
-                                </button>
-                                <button class="action-btn primary" onclick="saveAgent()">
-                                    💾 保存
-                                </button>
-                                <button class="action-btn danger" onclick="deleteAgent()">
-                                    🗑️
-                                </button>
-                            </div>
+        
+        // 显示详情
+        function showDetail(id) {
+            currentAgent = agents.find(a => a.id === id);
+            if (!currentAgent) return;
+            
+            document.getElementById('view-title').textContent = currentAgent.name;
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('detail-view').style.display = 'block';
+            
+            document.getElementById('detail-view').innerHTML = `
+                <div class="detail-header">
+                    <div class="detail-icon">${currentAgent.icon}</div>
+                    <div>
+                        <div class="detail-title">${currentAgent.name}</div>
+                        <div class="detail-desc">${currentAgent.description}</div>
+                    </div>
+                    <button class="btn" onclick="showList()" style="margin-left: auto;">
+                        ← 返回列表
+                    </button>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">📋 基本信息</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">名称</label>
+                            <input type="text" class="form-input" id="agent-name" value="${currentAgent.name}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">图标</label>
+                            <input type="text" class="form-input" id="agent-icon" value="${currentAgent.icon}">
                         </div>
                     </div>
-
-                    <!-- 基本信息 -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <div class="section-icon">📋</div>
-                            <div class="section-title">基本信息</div>
-                        </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label">名称 <span class="required">*</span></label>
-                                <input type="text" class="form-input" value="${currentAgent.name}" id="agentName">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">图标</label>
-                                <input type="text" class="form-input" value="${currentAgent.icon}" id="agentIcon">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">可见性</label>
-                                <select class="form-select" id="agentVisibility">
-                                    <option value="private" ${currentAgent.visibility === 'private' ? 'selected' : ''}>🔒 私有</option>
-                                    <option value="public" ${currentAgent.visibility === 'public' ? 'selected' : ''}>🌐 公开</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">标签 (逗号分隔)</label>
-                                <input type="text" class="form-input" value="${currentAgent.tags.join(', ')}" id="agentTags">
-                            </div>
-                            <div class="form-group full">
-                                <label class="form-label">描述</label>
-                                <input type="text" class="form-input" value="${currentAgent.description}" id="agentDesc">
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <input type="text" class="form-input" id="agent-desc" value="${currentAgent.description}">
                     </div>
-
-                    <!-- 模型配置 -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <div class="section-icon">⚙️</div>
-                            <div class="section-title">模型配置</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">可见性</label>
+                            <select class="form-select" id="agent-visibility">
+                                <option value="public" ${currentAgent.visibility === 'public' ? 'selected' : ''}>公开</option>
+                                <option value="private" ${currentAgent.visibility === 'private' ? 'selected' : ''}>私有</option>
+                            </select>
                         </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label">模型</label>
-                                <select class="form-select" id="agentModel">
-                                    <option value="GPT-4" ${currentAgent.model === 'GPT-4' ? 'selected' : ''}>GPT-4</option>
-                                    <option value="GPT-3.5 Turbo" ${currentAgent.model === 'GPT-3.5 Turbo' ? 'selected' : ''}>GPT-3.5 Turbo</option>
-                                    <option value="Claude 3">Claude 3</option>
-                                    <option value="Llama 2">Llama 2</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">温度参数</label>
-                                <div class="temp-slider">
-                                    <div class="temp-display">
-                                        <span style="color: var(--ai-text-secondary); font-size:13px;">创造性程度</span>
-                                        <span class="temp-value" id="tempValue">${currentAgent.temperature}</span>
-                                    </div>
-                                    <input type="range" class="temp-range" min="0" max="2" step="0.1" 
-                                           value="${currentAgent.temperature}" id="agentTemp"
-                                           oninput="document.getElementById('tempValue').textContent = this.value">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 系统提示词 -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <div class="section-icon">📝</div>
-                            <div class="section-title">系统提示词</div>
-                        </div>
-                        <div class="code-editor">
-                            <div class="code-header">
-                                <div class="code-dots">
-                                    <div class="code-dot red"></div>
-                                    <div class="code-dot yellow"></div>
-                                    <div class="code-dot green"></div>
-                                </div>
-                                <span class="code-title">system-prompt.txt</span>
-                            </div>
-                            <div class="code-body">
-                                <textarea class="code-input" id="agentPrompt">${currentAgent.systemPrompt}</textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 工具配置 -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <div class="section-icon">🔧</div>
-                            <div class="section-title">工具配置</div>
-                        </div>
-                        <div class="tools-container" id="toolsContainer">
-                            ${currentAgent.tools.map(tool => `
-                                <div class="tool-item">
-                                    <div class="tool-icon">${tool.icon}</div>
-                                    <div class="tool-info">
-                                        <div class="tool-name">${tool.name}</div>
-                                    </div>
-                                    <span class="tool-status">✓ 已启用</span>
-                                    <button class="tool-remove" onclick="removeTool(this)">×</button>
-                                </div>
-                            `).join('')}
-                            <button class="add-tool-btn" onclick="addTool()">
-                                <span>+</span> 添加工具
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 测试区域 -->
-                    <div class="test-section">
-                        <div class="test-header">
-                            <div class="test-icon">🧪</div>
-                            <div class="test-title">测试此智能体</div>
-                        </div>
-                        <div class="test-input-row">
-                            <input type="text" class="test-input" placeholder="输入测试消息..." id="testInput" value="你好，请介绍一下你自己！">
-                            <button class="test-run-btn" onclick="runTest()">运行测试</button>
-                        </div>
-                        <div class="test-output" id="testOutput">
-// 测试输出将显示在这里...
+                        <div class="form-group">
+                            <label class="form-label">标签</label>
+                            <input type="text" class="form-input" id="agent-tags" value="${currentAgent.tags.join(', ')}">
                         </div>
                     </div>
                 </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">⚙️ 模型配置</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">模型</label>
+                            <select class="form-select" id="agent-model">
+                                <option value="gpt-4" ${currentAgent.model === 'gpt-4' ? 'selected' : ''}>GPT-4</option>
+                                <option value="gpt-3.5-turbo" ${currentAgent.model === 'gpt-3.5-turbo' ? 'selected' : ''}>GPT-3.5 Turbo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">温度: <span id="temp-value">${currentAgent.temperature}</span></label>
+                            <input type="range" class="form-input" id="agent-temp" value="${currentAgent.temperature}" min="0" max="2" step="0.1" oninput="document.getElementById('temp-value').textContent = this.value">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">📝 系统提示词</div>
+                    <div class="code-editor">
+                        <div class="code-editor-header">
+                            <div class="code-dot code-dot-red"></div>
+                            <div class="code-dot code-dot-yellow"></div>
+                            <div class="code-dot code-dot-green"></div>
+                            <span class="code-editor-title">system-prompt.txt</span>
+                        </div>
+                        <div class="code-editor-body">
+                            <textarea class="code-textarea" id="agent-prompt">${currentAgent.prompt}</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-primary" onclick="saveAgent()">
+                        💾 保存更改
+                    </button>
+                    <button class="btn" onclick="testAgent()">
+                        🧪 测试
+                    </button>
+                    <button class="btn" onclick="deleteAgent()" style="margin-left: auto; color: var(--danger);">
+                        🗑️ 删除
+                    </button>
+                </div>
+                
+                <div class="test-section" style="margin-top: 20px;">
+                    <div class="test-header">🧪 测试此智能体</div>
+                    <div class="test-input-group">
+                        <input type="text" class="test-input" id="test-input" placeholder="输入测试消息...">
+                        <button class="btn btn-primary" onclick="runTest()">发送</button>
+                    </div>
+                    <div class="test-output" id="test-output">// 测试输出将显示在这里...</div>
+                </div>
             `;
         }
-
-        function createAgent() {
+        
+        // 返回列表
+        function showList() {
+            document.getElementById('view-title').textContent = '智能体管理';
+            document.getElementById('list-view').style.display = 'block';
+            document.getElementById('detail-view').style.display = 'none';
+            currentAgent = null;
+        }
+        
+        // 新建
+        function createNew() {
             const newAgent = {
                 id: Date.now().toString(),
                 name: '新智能体',
-                description: '请描述这个智能体的功能',
                 icon: '🤖',
+                description: '请描述这个智能体的功能',
                 tags: ['新'],
-                model: 'GPT-3.5 Turbo',
-                temperature: 0.7,
-                systemPrompt: '你是一个有帮助的 AI 助手。',
-                tools: [],
                 visibility: 'private',
-                createdAt: new Date().toISOString().split('T')[0]
+                model: 'gpt-3.5-turbo',
+                temperature: 0.7,
+                prompt: '你是一个有帮助的AI助手。',
+                tools: []
             };
-            sampleAgents.unshift(newAgent);
-            filteredAgents = [...sampleAgents];
-            renderAgentsList();
-            selectAgent(newAgent.id);
+            agents.unshift(newAgent);
+            renderAgentsList(agents);
+            renderAgentNav();
+            showDetail(newAgent.id);
         }
-
+        
+        // 保存
         function saveAgent() {
             if (!currentAgent) return;
-            currentAgent.name = document.getElementById('agentName').value;
-            currentAgent.icon = document.getElementById('agentIcon').value;
-            currentAgent.description = document.getElementById('agentDesc').value;
-            currentAgent.visibility = document.getElementById('agentVisibility').value;
-            currentAgent.tags = document.getElementById('agentTags').value.split(',').map(t => t.trim()).filter(Boolean);
-            currentAgent.model = document.getElementById('agentModel').value;
-            currentAgent.temperature = parseFloat(document.getElementById('agentTemp').value);
-            currentAgent.systemPrompt = document.getElementById('agentPrompt').value;
-            renderAgentsList();
+            
+            currentAgent.name = document.getElementById('agent-name').value;
+            currentAgent.icon = document.getElementById('agent-icon').value;
+            currentAgent.description = document.getElementById('agent-desc').value;
+            currentAgent.visibility = document.getElementById('agent-visibility').value;
+            currentAgent.tags = document.getElementById('agent-tags').value.split(',').map(t => t.trim());
+            currentAgent.model = document.getElementById('agent-model').value;
+            currentAgent.temperature = parseFloat(document.getElementById('agent-temp').value);
+            currentAgent.prompt = document.getElementById('agent-prompt').value;
+            
+            renderAgentsList(agents);
+            renderAgentNav();
+            showDetail(currentAgent.id);
+            
             alert('✅ 智能体已保存！');
         }
-
+        
+        // 测试
         function testAgent() {
-            document.getElementById('testInput').value = '你好，请介绍一下你自己！';
+            document.getElementById('test-input').value = '你好，请介绍一下你自己！';
             runTest();
         }
-
+        
         function runTest() {
-            const output = document.getElementById('testOutput');
-            const input = document.getElementById('testInput').value;
-            output.textContent = `// 发送: ${input}\n\n// 正在思考...`;
+            const input = document.getElementById('test-input').value;
+            const output = document.getElementById('test-output');
+            
+            if (!input.trim()) return;
+            
+            output.textContent = `// 发送: ${input}\n\n// 正在思考...\n`;
+            
             setTimeout(() => {
                 output.textContent += `\n// 收到回复!\n\n你好！我是 ${currentAgent.name}。\n${currentAgent.description}\n\n有什么可以帮你的吗？`;
-            }, 1000);
+            }, 800);
         }
-
+        
+        // 删除
         function deleteAgent() {
             if (!currentAgent) return;
             if (!confirm(`确定要删除 "${currentAgent.name}" 吗？`)) return;
-            const index = sampleAgents.findIndex(a => a.id === currentAgent.id);
-            if (index > -1) {
-                sampleAgents.splice(index, 1);
-            }
-            filteredAgents = [...sampleAgents];
-            currentAgent = null;
-            renderAgentsList();
-            document.getElementById('detailPanel').innerHTML = `
-                <div class="panel-empty">
-                    <div class="empty-icon">🤖</div>
-                    <div class="empty-title">选择智能体</div>
-                    <div class="empty-desc">从左侧列表选择一个智能体进行编辑，或创建新的智能体开始构建</div>
-                    <button class="action-btn primary" onclick="createAgent()">
-                        <span>+</span> 创建智能体
-                    </button>
-                </div>
-            `;
+            
+            agents = agents.filter(a => a.id !== currentAgent.id);
+            renderAgentsList(agents);
+            renderAgentNav();
+            showList();
         }
-
-        function removeTool(btn) {
-            btn.parentElement.remove();
+        
+        // 导出
+        function exportData() {
+            const data = JSON.stringify(agents, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'agents.json';
+            a.click();
         }
-
-        function addTool() {
-            alert('🔧 工具选择面板将在未来版本中开放！');
-        }
-
-        init();
     </script>
 </body>
 </html>
