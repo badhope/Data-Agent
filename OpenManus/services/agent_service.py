@@ -178,9 +178,8 @@ class WebAgent:
             api_key = self.settings.get("llm", {}).get("api_key", "")
             if not api_key:
                 await self.send_error(
-                    "请先配置 API Key 才能使用 AI 对话功能。\n\n"
-                    "点击左上角 ☰ → 设置 → 填入 API Key → 保存设置\n\n"
-                    "支持 OpenAI、Anthropic、阿里云通义千问 等多种模型。"
+                    "⚠️ 未配置 API Key\n\n"
+                    "点击左上角 ☰ → 设置 → 填入 API Key"
                 )
                 return
 

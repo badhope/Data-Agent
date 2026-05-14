@@ -677,49 +677,81 @@ pre code {
     color: #e2e8f0 !important;
 }
 
-/* ==================== Toast 通知 ==================== */
+/* ==================== Toast 通知 - 居中卡片式 ==================== */
 .toast {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    border-radius: 8px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    padding: 20px 28px;
+    border-radius: 16px;
     color: #fff;
-    font-size: 14px;
+    font-size: 15px;
     z-index: 10000;
     opacity: 0;
-    transform: translateX(100%);
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.3s ease;
-    max-width: 400px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    border-left: 4px solid rgba(255, 255, 255, 0.3);
+    min-width: 280px;
+    max-width: 480px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .toast.show {
     opacity: 1;
-    transform: translateX(0);
+    transform: translate(-50%, -50%) scale(1);
     pointer-events: auto;
 }
 
 .toast-success {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(16, 185, 129, 0.85));
-    border-left-color: #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(16, 185, 129, 0.75));
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .toast-error {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(239, 68, 68, 0.85));
-    border-left-color: #ef4444;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(239, 68, 68, 0.75));
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .toast-info {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(59, 130, 246, 0.85));
-    border-left-color: #3b82f6;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.75));
+    border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .toast-warning {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(245, 158, 11, 0.85));
-    border-left-color: #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(245, 158, 11, 0.75));
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Toast 图标样式 */
+.toast-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    display: block;
+}
+
+/* Toast 标题 */
+.toast-title {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+/* Toast 内容 */
+.toast-content {
+    line-height: 1.5;
+    opacity: 0.95;
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+    .toast {
+        min-width: 260px;
+        max-width: 90vw;
+        padding: 16px 20px;
+    }
 }
 
 /* ==================== 响应式适配 ==================== */

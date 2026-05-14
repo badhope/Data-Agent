@@ -13,22 +13,32 @@ let appSettings = {};
 let currentConversationId = null;
 let currentKnowledgeBaseId = null;
 
-// Toast通知系统
+// Toast通知系统 - 居中卡片式
 function showToast(message, type = 'info') {
     // Remove existing toasts
     document.querySelectorAll('.toast').forEach(t => t.remove());
 
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = `toast toast-${type}`;
 
-    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-    const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+    const icons = { 
+        success: '✓', 
+        error: '✕', 
+        warning: '!', 
+        info: 'i' 
+    };
+    const titles = {
+        success: '成功',
+        error: '错误',
+        warning: '警告',
+        info: '提示'
+    };
 
     toast.innerHTML = `
-        <span style="margin-right: 8px;">${icons[type] || icons.info}</span>
-        <span>${escapeHtml(message)}</span>
+        <span class="toast-icon">${icons[type] || icons.info}</span>
+        <div class="toast-title">${titles[type] || titles.info}</div>
+        <div class="toast-content">${escapeHtml(message)}</div>
     `;
-    toast.style.borderLeft = `3px solid ${colors[type] || colors.info}`;
 
     document.body.appendChild(toast);
 
@@ -37,11 +47,12 @@ function showToast(message, type = 'info') {
         toast.classList.add('show');
     });
 
-    // Auto remove after 3 seconds
+    // Auto remove after 3 seconds (5 seconds for errors)
+    const duration = type === 'error' ? 5000 : 3000;
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, duration);
 }
 
 // 涟漪效果
