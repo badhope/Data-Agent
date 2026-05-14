@@ -109,17 +109,17 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
 
-# 首页路由
+# 首页路由 - 聊天界面
 @app.get("/")
 async def get():
-    html_path = os.path.join(os.path.dirname(__file__), "templates", "features.html")
+    html_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
-# 聊天页面路由
-@app.get("/chat")
-async def chat():
-    html_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
+# 功能入口页面路由
+@app.get("/features")
+async def features():
+    html_path = os.path.join(os.path.dirname(__file__), "templates", "features.html")
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
