@@ -229,6 +229,18 @@ body {
     background: var(--primary-dark);
 }
 
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--primary);
+}
+
 /* 内容区 */
 .admin-content {
     flex: 1;
