@@ -75,17 +75,25 @@ const WS_BASE_DELAY = 1000;
 
 function connectWS() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
+    const wsUrl = protocol + '//' + window.location.host + '/ws';
+    console.log('Connecting to WebSocket:', wsUrl);
+    
+    ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connected successfully');
         wsReconnectAttempts = 0;
         updateWSStatus('connected', '已连接');
+        showToast('连接成功，可以开始对话', 'success');
     };
 
-    ws.onmessage = (event) => handleWSMessage(JSON.parse(event.data));
+    ws.onmessage = (event) => {
+        console.log('WebSocket message received');
+        handleWSMessage(JSON.parse(event.data));
+    };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
         updateWSStatus('error', '已断开');
         if (wsReconnectAttempts < WS_MAX_RETRIES) {
             const delay = Math.min(WS_BASE_DELAY * Math.pow(2, wsReconnectAttempts), 30000);
@@ -98,8 +106,10 @@ function connectWS() {
         }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
         updateWSStatus('error', '连接失败');
+        showToast('WebSocket连接出错，请检查服务器状态', 'error');
     };
 }
 
@@ -331,7 +341,14 @@ let lastUserMessage = '';
 
 function sendMessageWithText(content) {
     const inputBox = document.getElementById('input-box');
-    if (!content || !ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!content) return;
+    
+    // 检查 WebSocket 连接状态
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        showToast('WebSocket 连接未建立，请检查网络连接或刷新页面', 'error');
+        return;
+    }
+    
     inputBox.value = '';
     updateCharCount();
     hideWelcomePage();
@@ -365,7 +382,11 @@ function retryLastMessage() {
 function sendMessage() {
     const inputBox = document.getElementById('input-box');
     const content = inputBox.value.trim();
-    if (!content) return;
+    if (!content) {
+        showToast('请输入消息内容', 'warning');
+        inputBox.focus();
+        return;
+    }
     sendMessageWithText(content);
 }
 

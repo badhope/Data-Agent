@@ -41,6 +41,40 @@ from middleware.rate_limiter import RateLimitMiddleware
 app.add_middleware(ErrorHandlerMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
 
+# WebSocket 端点 - 必须在其他路由之前定义
+from services.agent_service import run_universal_agent
+from services.input_sanitizer import validate_message
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            message = data.get("content", "")
+
+            # 输入验证
+            validation = validate_message(message)
+            if not validation["valid"]:
+                await websocket.send_json({"type": "error", "content": validation["error"]})
+                continue
+
+            # 使用净化后的输入
+            if validation.get("sanitized") != message:
+                message = validation["sanitized"]
+                if validation.get("warning"):
+                    await websocket.send_json({
+                        "type": "thinking",
+                        "title": "⚠️ 安全提示",
+                        "content": validation["warning"]
+                    })
+
+            await run_universal_agent(websocket, message)
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 
@@ -76,40 +110,6 @@ app.include_router(logs_router)
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "service": "DataAgent"}
-
-# WebSocket 端点
-from services.agent_service import run_universal_agent
-from services.input_sanitizer import validate_message
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        while True:
-            data = await websocket.receive_json()
-            message = data.get("content", "")
-
-            # 输入验证
-            validation = validate_message(message)
-            if not validation["valid"]:
-                await websocket.send_json({"type": "error", "content": validation["error"]})
-                continue
-
-            # 使用净化后的输入
-            if validation.get("sanitized") != message:
-                message = validation["sanitized"]
-                if validation.get("warning"):
-                    await websocket.send_json({
-                        "type": "thinking",
-                        "title": "⚠️ 安全提示",
-                        "content": validation["warning"]
-                    })
-
-            await run_universal_agent(websocket, message)
-    except WebSocketDisconnect:
-        pass
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
 
 # 首页路由 - 聊天界面
 @app.get("/")
