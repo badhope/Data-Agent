@@ -42,5 +42,5 @@ async def websocket_endpoint(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     print("🚀 DATA-AI 豆包风格界面启动中...")
-    print("📱 访问地址: http://localhost:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print("📱 访问地址: http://localhost:8001")
+    uvicorn.run(app, host="0.0.0.0", port=8001)
