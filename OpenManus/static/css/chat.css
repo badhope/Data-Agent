@@ -113,6 +113,44 @@
 .message-text {
     line-height: 1.7;
     word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* 时间戳样式 */
+.message-time {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 6px;
+    padding: 0 8px;
+}
+
+.user .message-time {
+    text-align: right;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* 反馈按钮样式 */
+.message-feedback {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.feedback-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 3px 10px;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.feedback-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #94a3b8;
 }
 
 /* 错误消息 */
