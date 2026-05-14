@@ -2,7 +2,7 @@
 文档处理API路由
 提供文档生成、摘要、格式化等API
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, File, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
@@ -229,6 +229,76 @@ async def manage_citations(request: CitationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class PDFSearchRequest(BaseModel):
+    content: Dict
+    query: str
+
+
+class OutlineRequest(BaseModel):
+    topic: str
+    document_type: str = "general"
+    depth: int = 3
+
+
+@router.post("/pdf/parse")
+async def parse_pdf(file: UploadFile = File(...), extract_tables: bool = False):
+    """解析PDF文档"""
+    try:
+        pdf_bytes = await file.read()
+        result = await doc_service.parse_pdf(pdf_bytes, extract_tables)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/pdf/search")
+async def search_pdf(request: PDFSearchRequest):
+    """在PDF内容中搜索"""
+    try:
+        result = await doc_service.search_pdf(request.content, request.query)
+        return {"results": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/outline")
+async def generate_outline(request: OutlineRequest):
+    """生成文章提纲"""
+    try:
+        result = await doc_service.generate_outline(
+            topic=request.topic,
+            document_type=request.document_type,
+            depth=request.depth
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/outline/markdown")
+async def generate_outline_markdown(request: OutlineRequest):
+    """生成Markdown格式提纲"""
+    try:
+        result = await doc_service.generate_outline_markdown(
+            topic=request.topic,
+            document_type=request.document_type,
+            depth=request.depth
+        )
+        return {"markdown": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/outline/templates")
+async def get_outline_templates():
+    """获取提纲模板列表"""
+    try:
+        templates = doc_service.get_outline_templates()
+        return {"templates": templates}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/")
 async def documents_index():
     """文档处理API首页"""
@@ -246,5 +316,10 @@ async def documents_index():
             "GET /documents/ppt/templates": "获取PPT模板",
             "POST /documents/ppt/generate": "生成PPT",
             "POST /documents/citations": "管理引用",
+            "POST /documents/pdf/parse": "解析PDF文档",
+            "POST /documents/pdf/search": "在PDF中搜索",
+            "POST /documents/outline": "生成文章提纲",
+            "POST /documents/outline/markdown": "生成Markdown格式提纲",
+            "GET /documents/outline/templates": "获取提纲模板列表",
         }
     }

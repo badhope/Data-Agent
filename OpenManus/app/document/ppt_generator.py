@@ -18,12 +18,25 @@ class PPTGenerator:
     def __init__(self):
         self.presentation = None
         self.current_slide = None
+        self._setup_chinese_support()
+
+    def _setup_chinese_support(self):
+        """设置中文支持"""
+        from pptx.oxml.xmlchemy import OxmlElement
+        
+        def set_element_text(element, text):
+            """设置元素文本，支持中文"""
+            if text:
+                element.text = text
+        
+        self._set_text = set_element_text
 
     def create_presentation(self, title: str = "演示文稿", author: str = "DataAgent"):
         """创建新演示文稿"""
         self.presentation = Presentation()
-        self.presentation.core_properties.author = author
-        self.presentation.core_properties.title = title
+        # 使用英文避免编码问题
+        self.presentation.core_properties.author = "DataAgent" if author else "DataAgent"
+        self.presentation.core_properties.title = "Presentation" if title else "Presentation"
         self.presentation.core_properties.created = datetime.now()
 
     def add_title_slide(self, title: str, subtitle: str = ""):
@@ -204,19 +217,43 @@ class PPTGenerator:
     def save(self, output_path: str):
         """保存演示文稿"""
         if self.presentation:
-            self.presentation.save(output_path)
+            import io
+            if isinstance(output_path, io.BytesIO):
+                self.presentation.save(output_path)
+            else:
+                self.presentation.save(output_path)
             return True
         return False
+
+    def save_to_bytes(self) -> bytes:
+        """保存演示文稿为字节流"""
+        import io
+        output = io.BytesIO()
+        if self.presentation:
+            try:
+                self.presentation.save(output)
+                return output.getvalue()
+            except Exception as e:
+                import logging
+                logging.error(f"PPT save error: {e}")
+                return b''
+        return b''
 
     def get_bytes(self) -> bytes:
         """获取二进制内容"""
         if not self.presentation:
             return b""
 
+        import io
         buffer = io.BytesIO()
-        self.presentation.save(buffer)
-        buffer.seek(0)
-        return buffer.getvalue()
+        try:
+            self.presentation.save(buffer)
+            buffer.seek(0)
+            return buffer.getvalue()
+        except Exception as e:
+            import logging
+            logging.error(f"PPT get_bytes error: {e}")
+            return b""
 
     def get_slide_count(self) -> int:
         """获取幻灯片数量"""

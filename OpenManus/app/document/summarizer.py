@@ -419,14 +419,20 @@ class StructuredSummaryGenerator:
     def _generate_abstract(self, text: str) -> str:
         """生成摘要"""
         summarizer = DocumentSummarizer()
-        result = summarizer._extractive_summary(text, num_sentences=3)
-        return result.full_summary
+        sentences = summarizer._split_sentences(text)
+        if sentences:
+            sentences = [s for s in sentences if len(s) > 10]
+            return ' '.join(sentences[:3])
+        return text[:200]
 
     def _generate_summary(self, text: str) -> str:
         """生成总结"""
         summarizer = DocumentSummarizer()
-        result = summarizer._extractive_summary(text, num_sentences=5)
-        return result.full_summary
+        sentences = summarizer._split_sentences(text)
+        if sentences:
+            sentences = [s for s in sentences if len(s) > 10]
+            return ' '.join(sentences[:5])
+        return text[:300]
 
     def _extract_main_points(self, text: str) -> List[str]:
         """提取主要观点"""

@@ -86,13 +86,19 @@ class CitationManager:
         if year_match:
             citation.year = year_match.group(1) or year_match.group(2)
 
-        title_match = re.search(r'《(.+?)》|"(.+?)"|"(.+?)"|\'(.+?)\'', line)
+        author_pattern = r'^([A-Za-z][a-z]+(?:,\s*[A-Z][a-z]*\.?)*)'
+        author_match = re.match(author_pattern, line)
+        if author_match:
+            author_str = author_match.group(1)
+            citation.authors = [a.strip().rstrip('.') for a in author_str.split(',')]
+
+        title_match = re.search(r'《(.+?)》|"(.+?)"|"(.+?)"|\'(.+?)\'|([A-Z][^,.]+?)\.', line)
         if title_match:
-            citation.title = title_match.group(1) or title_match.group(2) or title_match.group(3) or title_match.group(4)
+            citation.title = title_match.group(1) or title_match.group(2) or title_match.group(3) or title_match.group(4) or title_match.group(5)
         else:
-            words = line.split()
-            if words:
-                citation.title = words[0][:100] if len(words[0]) < 100 else words[0][:100]
+            parts = re.split(r'[\.,]\s*', line)
+            if len(parts) > 1:
+                citation.title = parts[1].strip()[:100]
 
         doi_match = re.search(r'doi[:：]?\s*(10\.\S+)', line, re.IGNORECASE)
         if doi_match:

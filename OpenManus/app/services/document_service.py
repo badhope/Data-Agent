@@ -10,6 +10,8 @@ from app.document.report_generator import ReportGenerator, generate_weekly_repor
 from app.document.formatter import format_chinese_text, format_document
 from app.document.citation_manager import CitationManager, format_citation
 from app.document.todo_extractor import TodoExtractor, extract_todos
+from app.document.pdf_parser import PDFParser, parse_pdf_bytes, search_pdf_content
+from app.document.outline_generator import OutlineGenerator, generate_outline, generate_outline_markdown
 
 
 class DocumentService:
@@ -23,6 +25,8 @@ class DocumentService:
         self.report_generator = ReportGenerator()
         self.citation_manager = CitationManager()
         self.todo_extractor = TodoExtractor()
+        self.pdf_parser = PDFParser()
+        self.outline_generator = OutlineGenerator()
 
     async def summarize_document(
         self,
@@ -157,3 +161,44 @@ class DocumentService:
         items = [WorkItem(**item) for item in work_items]
         report = self.report_generator.generate(items, report_type)
         return self.report_generator.to_ppt(report)
+
+    async def parse_pdf(
+        self,
+        pdf_bytes: bytes,
+        extract_tables: bool = False
+    ) -> Dict:
+        """解析PDF文档"""
+        try:
+            return parse_pdf_bytes(pdf_bytes, extract_tables)
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def search_pdf(
+        self,
+        content: Dict,
+        query: str
+    ) -> List[Dict]:
+        """在PDF内容中搜索"""
+        return search_pdf_content(content, query)
+
+    async def generate_outline(
+        self,
+        topic: str,
+        document_type: str = "general",
+        depth: int = 3
+    ) -> Dict:
+        """生成文章提纲"""
+        return generate_outline(topic, document_type, depth)
+
+    async def generate_outline_markdown(
+        self,
+        topic: str,
+        document_type: str = "general",
+        depth: int = 3
+    ) -> str:
+        """生成Markdown格式提纲"""
+        return generate_outline_markdown(topic, document_type, depth)
+
+    def get_outline_templates(self) -> List[Dict]:
+        """获取提纲模板列表"""
+        return self.outline_generator.get_templates()

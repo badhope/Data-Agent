@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataAgent - 智能助手功能入口</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 20px;
+            padding-left: 12px;
+            border-left: 4px solid #60a5fa;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-title svg {
+            width: 24px;
+            height: 24px;
+            color: #60a5fa;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(96, 165, 250, 0.4);
+            box-shadow: 0 20px 40px rgba(96, 165, 250, 0.1);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-size: 24px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .tag {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
+        }
+
+        .tag.primary { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+        .tag.success { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .tag.warning { background: rgba(251, 191, 36, 0.15); color: #f59e0b; }
+        .tag.danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .tag.info { background: rgba(14, 165, 233, 0.15); color: #0ea5e9; }
+
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(96, 165, 250, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+        .card:nth-child(5) { animation-delay: 0.5s; }
+        .card:nth-child(6) { animation-delay: 0.6s; }
+        .card:nth-child(7) { animation-delay: 0.7s; }
+        .card:nth-child(8) { animation-delay: 0.8s; }
+        .card:nth-child(9) { animation-delay: 0.9s; }
+        .card:nth-child(10) { animation-delay: 1.0s; }
+        .card:nth-child(11) { animation-delay: 1.1s; }
+        .card:nth-child(12) { animation-delay: 1.2s; }
+        .card:nth-child(13) { animation-delay: 1.3s; }
+        .card:nth-child(14) { animation-delay: 1.4s; }
+        .card:nth-child(15) { animation-delay: 1.5s; }
+        .card:nth-child(16) { animation-delay: 1.6s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DataAgent 智能助手</h1>
+            <p>强大的文档处理、内容生成和办公自动化平台</p>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                文档处理
+            </div>
+            <div class="grid">
+                <div class="card" onclick="navigateTo('/documents/summarize')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #60a5fa, #3b82f6);">📄</div>
+                    <div class="card-title">文档摘要</div>
+                    <div class="card-desc">抽取式/生成式摘要，智能关键词提取</div>
+                    <div class="card-tags"><span class="tag">文本处理</span><span class="tag primary">AI</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/meeting-minutes')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #a78bfa, #8b5cf6);">📝</div>
+                    <div class="card-title">会议纪要</div>
+                    <div class="card-desc">自动提取议程、讨论要点、决策和待办事项</div>
+                    <div class="card-tags"><span class="tag">办公</span><span class="tag primary">AI</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/todos')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">✅</div>
+                    <div class="card-title">待办提取</div>
+                    <div class="card-desc">智能识别任务、负责人、截止时间和优先级</div>
+                    <div class="card-tags"><span class="tag">任务管理</span><span class="tag success">高效</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/pdf-parser')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">📕</div>
+                    <div class="card-title">PDF解析</div>
+                    <div class="card-desc">智能文档解析、文本提取和内容检索</div>
+                    <div class="card-tags"><span class="tag">文件处理</span><span class="tag warning">解析</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7.5 19.5a2.121 2.121 0 0 1-3-3z"/>
+                </svg>
+                内容生成
+            </div>
+            <div class="grid">
+                <div class="card" onclick="navigateTo('/documents/ppt/generate')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #f472b6, #ec4899);">🎬</div>
+                    <div class="card-title">PPT生成</div>
+                    <div class="card-desc">一键生成商务/学术/会议PPT，支持多种模板</div>
+                    <div class="card-tags"><span class="tag">办公</span><span class="tag primary">AI</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/report')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">📊</div>
+                    <div class="card-title">工作汇报</div>
+                    <div class="card-desc">自动生成日报、周报、月报，数据可视化</div>
+                    <div class="card-tags"><span class="tag">办公</span><span class="tag success">高效</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/outline')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">📋</div>
+                    <div class="card-title">提纲生成</div>
+                    <div class="card-desc">智能生成文章结构和内容大纲</div>
+                    <div class="card-tags"><span class="tag">写作</span><span class="tag primary">AI</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/citations')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #10b981, #059669);">📚</div>
+                    <div class="card-title">引用整理</div>
+                    <div class="card-desc">支持APA/MLA/GB/T 7714等多种引用格式</div>
+                    <div class="card-tags"><span class="tag">学术</span><span class="tag success">规范</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+                文本优化
+            </div>
+            <div class="grid">
+                <div class="card" onclick="navigateTo('/documents/format')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #60a5fa, #3b82f6);">✨</div>
+                    <div class="card-title">自动排版</div>
+                    <div class="card-desc">中英文智能排版、标点符号标准化</div>
+                    <div class="card-tags"><span class="tag">排版</span><span class="tag">美化</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/translate')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #a78bfa, #8b5cf6);">🌍</div>
+                    <div class="card-title">多语言翻译</div>
+                    <div class="card-desc">支持多种语言互译，保持上下文语义</div>
+                    <div class="card-tags"><span class="tag">翻译</span><span class="tag primary">AI</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/proofread')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">✏️</div>
+                    <div class="card-title">语法纠错</div>
+                    <div class="card-desc">智能检测并修正语法、拼写错误</div>
+                    <div class="card-tags"><span class="tag">校对</span><span class="tag success">精准</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/documents/polish')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">💎</div>
+                    <div class="card-title">学术润色</div>
+                    <div class="card-desc">优化文风、提升表达质量</div>
+                    <div class="card-tags"><span class="tag">学术</span><span class="tag warning">专业</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                AI智能功能
+            </div>
+            <div class="grid">
+                <div class="card" onclick="navigateTo('/chat')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #60a5fa, #3b82f6);">💬</div>
+                    <div class="card-title">文本对话</div>
+                    <div class="card-desc">智能问答、上下文记忆、主动澄清</div>
+                    <div class="card-tags"><span class="tag">对话</span><span class="tag primary">AI</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/tools/nl2sql')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">🗄️</div>
+                    <div class="card-title">NL2SQL</div>
+                    <div class="card-desc">自然语言转SQL，智能数据查询</div>
+                    <div class="card-tags"><span class="tag">数据</span><span class="tag success">高效</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/tools/visualization')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #a78bfa, #8b5cf6);">📈</div>
+                    <div class="card-title">数据可视化</div>
+                    <div class="card-desc">图表生成、数据分析、可视化报告</div>
+                    <div class="card-tags"><span class="tag">分析</span><span class="tag primary">AI</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/tools/planning')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔧</div>
+                    <div class="card-title">任务拆解</div>
+                    <div class="card-desc">智能任务规划、DAG构建、进度跟踪</div>
+                    <div class="card-tags"><span class="tag">规划</span><span class="tag warning">高效</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                高级功能
+            </div>
+            <div class="grid">
+                <div class="card" onclick="navigateTo('/tools/knowledge')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">🧠</div>
+                    <div class="card-title">知识管理</div>
+                    <div class="card-desc">文档知识库、智能问答、信息检索</div>
+                    <div class="card-tags"><span class="tag">知识</span><span class="tag danger">高级</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/tools/mcp')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">🔗</div>
+                    <div class="card-title">MCP工具</div>
+                    <div class="card-desc">模型上下文协议、工具调用扩展</div>
+                    <div class="card-tags"><span class="tag">扩展</span><span class="tag info">接口</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/tools/sandbox')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #84cc16, #65a30d);">🛡️</div>
+                    <div class="card-title">安全沙箱</div>
+                    <div class="card-desc">代码执行沙箱、安全隔离环境</div>
+                    <div class="card-tags"><span class="tag">安全</span><span class="tag success">隔离</span></div>
+                </div>
+
+                <div class="card" onclick="navigateTo('/tools/browser')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #f97316, #ea580c);">🌐</div>
+                    <div class="card-title">浏览器自动化</div>
+                    <div class="card-desc">网页浏览、表单填写、数据抓取</div>
+                    <div class="card-tags"><span class="tag">自动化</span><span class="tag warning">高级</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="action-btn" onclick="navigateTo('/chat')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                开始使用
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function navigateTo(path) {
+            window.location.href = path;
+        }
+    </script>
+</body>
+</html>
