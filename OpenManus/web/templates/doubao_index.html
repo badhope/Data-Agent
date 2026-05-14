@@ -784,9 +784,66 @@
             </div>
             
             <div class="sidebar-content">
+                <!-- 对话历史 -->
+                <div class="chat-history-section">
+                    <div class="chat-group-title">历史对话</div>
+                    <div class="chat-item" data-chat="1" style="background: rgba(59, 130, 246, 0.1); color: #3B82F6; display: flex; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="chat-item-icon">💬</span>
+                            <span>当前对话</span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); renameChat(1)">✏️</button>
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); deleteChat(1)">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="chat-item" data-chat="2" style="display: flex; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="chat-item-icon">📊</span>
+                            <span>数据分析报告</span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); renameChat(2)">✏️</button>
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); deleteChat(2)">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="chat-item" data-chat="3" style="display: flex; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="chat-item-icon">✍️</span>
+                            <span>文档写作</span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); renameChat(3)">✏️</button>
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); deleteChat(3)">🗑️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-group-title" style="margin-top: 16px;">昨天</div>
+                    <div class="chat-item" data-chat="4" style="display: flex; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="chat-item-icon">🔍</span>
+                            <span>行业研究分析</span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); renameChat(4)">✏️</button>
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); deleteChat(4)">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="chat-item" data-chat="5" style="display: flex; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="chat-item-icon">💻</span>
+                            <span>代码调试</span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); renameChat(5)">✏️</button>
+                            <button style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; padding: 2px;" onclick="event.stopPropagation(); deleteChat(5)">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 功能分类 - 豆包风格 -->
                 <div class="feature-category">
-                    <div class="category-title">常用功能</div>
+                    <div class="category-title">快捷功能</div>
                     <div class="feature-list">
                         <button class="feature-item active" data-feature="chat">
                             <span class="feature-icon">💬</span>
@@ -800,19 +857,23 @@
                             <span class="feature-icon">🔍</span>
                             <span class="feature-name">网页搜索</span>
                         </button>
-                        <button class="feature-item" data-feature="document">
-                            <span class="feature-icon">📄</span>
-                            <span class="feature-name">文档分析</span>
+                        <button class="feature-item" data-feature="write">
+                            <span class="feature-icon">✍️</span>
+                            <span class="feature-name">帮我写</span>
+                        </button>
+                        <button class="feature-item" data-feature="code">
+                            <span class="feature-icon">💻</span>
+                            <span class="feature-name">代码助手</span>
                         </button>
                     </div>
                 </div>
                 
                 <div class="feature-category">
-                    <div class="category-title">内容创作</div>
+                    <div class="category-title">创作与分析</div>
                     <div class="feature-list">
-                        <button class="feature-item" data-feature="write">
-                            <span class="feature-icon">✍️</span>
-                            <span class="feature-name">帮我写</span>
+                        <button class="feature-item" data-feature="document">
+                            <span class="feature-icon">📄</span>
+                            <span class="feature-name">文档分析</span>
                         </button>
                         <button class="feature-item" data-feature="ppt">
                             <span class="feature-icon">📊</span>
@@ -821,6 +882,10 @@
                         <button class="feature-item" data-feature="chart">
                             <span class="feature-icon">📈</span>
                             <span class="feature-name">图表生成</span>
+                        </button>
+                        <button class="feature-item" data-feature="data">
+                            <span class="feature-icon">📊</span>
+                            <span class="feature-name">数据分析</span>
                         </button>
                         <button class="feature-item" data-feature="translate">
                             <span class="feature-icon">🌐</span>
@@ -832,17 +897,9 @@
                 <div class="feature-category">
                     <div class="category-title">专业工具</div>
                     <div class="feature-list">
-                        <button class="feature-item" data-feature="code">
-                            <span class="feature-icon">💻</span>
-                            <span class="feature-name">代码助手</span>
-                        </button>
                         <button class="feature-item" data-feature="sandbox">
                             <span class="feature-icon">🐍</span>
                             <span class="feature-name">代码沙盒</span>
-                        </button>
-                        <button class="feature-item" data-feature="data">
-                            <span class="feature-icon">📊</span>
-                            <span class="feature-name">数据分析</span>
                         </button>
                         <button class="feature-item" data-feature="math">
                             <span class="feature-icon">🧮</span>
@@ -875,52 +932,6 @@
                             <span class="feature-icon">🔌</span>
                             <span class="feature-name">MCP 管理</span>
                         </button>
-                    </div>
-                </div>
-                
-                <!-- 对话历史 -->
-                <div class="chat-history-section">
-                    <div class="chat-group-title">今天</div>
-                    <div class="chat-item" data-chat="1">
-                        <span class="chat-item-icon">💬</span>
-                        <span>智能对话测试</span>
-                    </div>
-                    <div class="chat-item" data-chat="2">
-                        <span class="chat-item-icon">📊</span>
-                        <span>数据可视化分析</span>
-                    </div>
-                    
-                    <div class="chat-group-title">昨天</div>
-                    <div class="chat-item" data-chat="3">
-                        <span class="chat-item-icon">🔍</span>
-                        <span>行业研究分析</span>
-                    </div>
-                    <div class="chat-item" data-chat="4">
-                        <span class="chat-item-icon">📝</span>
-                        <span>文档摘要提取</span>
-                    </div>
-                </div>
-                
-                <!-- 智能体 -->
-                <div class="agents-section">
-                    <div class="agents-title">智能体</div>
-                    <div class="agent-grid">
-                        <div class="agent-card" data-agent="coder">
-                            <div class="agent-icon">👨‍💻</div>
-                            <div class="agent-name">代码助手</div>
-                        </div>
-                        <div class="agent-card" data-agent="writer">
-                            <div class="agent-icon">✍️</div>
-                            <div class="agent-name">写作助手</div>
-                        </div>
-                        <div class="agent-card" data-agent="analyst">
-                            <div class="agent-icon">📈</div>
-                            <div class="agent-name">分析师</div>
-                        </div>
-                        <div class="agent-card" data-agent="pathology">
-                            <div class="agent-icon">🔬</div>
-                            <div class="agent-name">病理分析</div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1350,6 +1361,50 @@
         document.querySelectorAll('.toggle-switch').forEach(toggle => {
             toggle.addEventListener('click', () => {
                 toggle.classList.toggle('active');
+            });
+        });
+        
+        // 历史对话管理
+        function renameChat(chatId) {
+            const chatItem = document.querySelector(`[data-chat="${chatId}"]`);
+            const span = chatItem.querySelector('span:nth-child(2)');
+            const currentName = span.textContent;
+            const newName = prompt('请输入新的对话名称:', currentName);
+            if (newName && newName.trim()) {
+                span.textContent = newName.trim();
+            }
+        }
+        
+        function deleteChat(chatId) {
+            if (confirm('确定要删除这个对话吗？')) {
+                const chatItem = document.querySelector(`[data-chat="${chatId}"]`);
+                if (chatItem) {
+                    chatItem.style.opacity = '0';
+                    chatItem.style.transition = 'opacity 0.3s';
+                    setTimeout(() => {
+                        chatItem.remove();
+                    }, 300);
+                }
+            }
+        }
+        
+        // 点击历史对话
+        document.querySelectorAll('.chat-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') return;
+                
+                document.querySelectorAll('.chat-item').forEach(i => {
+                    i.style.background = '';
+                    i.style.color = '';
+                });
+                
+                item.style.background = 'rgba(59, 130, 246, 0.1)';
+                item.style.color = '#3B82F6';
+                
+                const welcomeScreen = document.getElementById('welcome-screen');
+                if (welcomeScreen) {
+                    welcomeScreen.style.display = 'none';
+                }
             });
         });
     </script>
