@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DATA-AI - 智能体管理</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        :root {
+            --primary: #3B82F6;
+            --primary-light: #60A5FA;
+            --primary-dark: #2563EB;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --bg-tertiary: #F3F4F6;
+            --border: #E5E7EB;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-panel">
+        <!-- 顶部工具栏 -->
+        <div class="admin-header">
+            <div class="admin-title">
+                <span style="font-size: 24px;">🤖</span>
+                智能体管理
+            </div>
+            <div class="admin-actions">
+                <button class="admin-btn" onclick="goBack()">
+                    <span>←</span> 返回
+                </button>
+                <button class="admin-btn" onclick="exportAgents()">
+                    <span>📦</span> 导出
+                </button>
+                <button class="admin-btn primary" onclick="createAgent()">
+                    <span>＋</span> 新建智能体
+                </button>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="admin-content">
+            <!-- 左侧列表 -->
+            <div class="admin-list">
+                <div class="admin-list-header">
+                    <input type="text" class="admin-search" placeholder="搜索智能体..." id="search-input">
+                </div>
+                <div class="admin-list-items" id="agents-list">
+                    <!-- 智能体卡片会在这里动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 右侧详情编辑 -->
+            <div class="admin-detail" id="agent-detail">
+                <div class="empty-state">
+                    <div class="empty-icon">🤖</div>
+                    <div class="empty-title">选择一个智能体</div>
+                    <div class="empty-desc">从左侧列表选择一个智能体进行编辑，或创建新的智能体</div>
+                    <button class="admin-btn primary" onclick="createAgent()">
+                        <span>＋</span> 创建智能体
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 示例智能体数据
+        const sampleAgents = [
+            {
+                id: '1',
+                name: '代码助手',
+                description: '专业的代码编写、调试和优化助手',
+                icon: '👨‍💻',
+                tags: ['代码', '开发'],
+                model: 'gpt-4',
+                temperature: 0.7,
+                systemPrompt: '你是一个专业的代码助手。你擅长编写、调试和优化各种编程语言的代码。你应该提供高质量的代码示例和清晰的解释。',
+                tools: ['python-execute', 'search'],
+                visibility: 'public',
+                createdAt: '2024-01-15'
+            },
+            {
+                id: '2',
+                name: '写作助手',
+                description: '帮助您创作文章、邮件和文档',
+                icon: '✍️',
+                tags: ['写作', '文案'],
+                model: 'gpt-3.5-turbo',
+                temperature: 0.8,
+                systemPrompt: '你是一个专业的写作助手。你擅长创作高质量的文章、邮件、文案和各类文档。你的文字优美、准确且富有感染力。',
+                tools: [],
+                visibility: 'private',
+                createdAt: '2024-02-20'
+            },
+            {
+                id: '3',
+                name: '数据分析员',
+                description: '数据分析和可视化专家',
+                icon: '📈',
+                tags: ['数据', '分析'],
+                model: 'gpt-4',
+                temperature: 0.6,
+                systemPrompt: '你是一个专业的数据分析员。你擅长解读数据、发现趋势、创建可视化图表并提供数据驱动的建议。',
+                tools: ['python-execute', 'data-visualization'],
+                visibility: 'public',
+                createdAt: '2024-03-10'
+            },
+            {
+                id: '4',
+                name: '病理分析',
+                description: 'SlideFlow 病理图像分析助手',
+                icon: '🔬',
+                tags: ['病理', '医学'],
+                model: 'gpt-4',
+                temperature: 0.5,
+                systemPrompt: '你是一个专业的病理分析助手。你擅长分析病理图像、解释结果并提供医学见解。',
+                tools: ['slideflow', 'image-analysis'],
+                visibility: 'private',
+                createdAt: '2024-04-05'
+            }
+        ];
+        
+        let currentAgent = null;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAgentsList(sampleAgents);
+            
+            // 搜索功能
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const filtered = sampleAgents.filter(agent => 
+                    agent.name.toLowerCase().includes(query) || 
+                    agent.description.toLowerCase().includes(query)
+                );
+                renderAgentsList(filtered);
+            });
+        });
+        
+        // 渲染智能体列表
+        function renderAgentsList(agents) {
+            const container = document.getElementById('agents-list');
+            container.innerHTML = agents.map(agent => `
+                <div class="admin-item-card" onclick="selectAgent('${agent.id}')" id="agent-card-${agent.id}">
+                    <div class="admin-item-header">
+                        <div class="admin-item-icon">${agent.icon}</div>
+                        <div class="admin-item-info">
+                            <div class="admin-item-name">${agent.name}</div>
+                            <div class="admin-item-desc">${agent.description}</div>
+                        </div>
+                    </div>
+                    <div class="admin-item-tags">
+                        ${agent.tags.map(tag => `<span class="admin-tag blue">${tag}</span>`).join('')}
+                        <span class="admin-tag ${agent.visibility === 'public' ? 'green' : 'purple'}">${agent.visibility === 'public' ? '公开' : '私有'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 选择智能体
+        function selectAgent(id) {
+            // 更新列表选中状态
+            document.querySelectorAll('.admin-item-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.getElementById(`agent-card-${id}`).classList.add('active');
+            
+            // 显示详情
+            currentAgent = sampleAgents.find(a => a.id === id);
+            renderAgentDetail(currentAgent);
+        }
+        
+        // 渲染智能体详情
+        function renderAgentDetail(agent) {
+            const container = document.getElementById('agent-detail');
+            container.innerHTML = `
+                <div class="admin-detail-header">
+                    <div class="admin-detail-title">${agent.icon} ${agent.name}</div>
+                    <div class="admin-detail-subtitle">${agent.description}</div>
+                </div>
+                
+                <form class="admin-form" id="agent-form">
+                    <!-- 基本信息 -->
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <span>📋</span> 基本信息
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">名称 <span class="required">*</span></label>
+                                <input type="text" class="form-input" value="${agent.name}" id="agent-name">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">图标</label>
+                                <input type="text" class="form-input" value="${agent.icon}" id="agent-icon">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">描述</label>
+                            <input type="text" class="form-input" value="${agent.description}" id="agent-desc">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">可见性</label>
+                                <select class="form-select" id="agent-visibility">
+                                    <option value="private" ${agent.visibility === 'private' ? 'selected' : ''}>私有</option>
+                                    <option value="public" ${agent.visibility === 'public' ? 'selected' : ''}>公开</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">标签</label>
+                                <input type="text" class="form-input" value="${agent.tags.join(', ')}" id="agent-tags" placeholder="用逗号分隔">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 模型配置 -->
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <span>⚙️</span> 模型配置
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">模型</label>
+                                <select class="form-select" id="agent-model">
+                                    <option value="gpt-4" ${agent.model === 'gpt-4' ? 'selected' : ''}>GPT-4</option>
+                                    <option value="gpt-3.5-turbo" ${agent.model === 'gpt-3.5-turbo' ? 'selected' : ''}>GPT-3.5 Turbo</option>
+                                    <option value="claude-3">Claude 3</option>
+                                    <option value="llama-2">Llama 2</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">温度: <span id="temp-value">${agent.temperature}</span></label>
+                                <input type="range" min="0" max="2" step="0.1" value="${agent.temperature}" 
+                                    class="form-input" id="agent-temp" 
+                                    oninput="document.getElementById('temp-value').textContent = this.value">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 系统提示词 -->
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <span>📝</span> 系统提示词
+                        </div>
+                        <div class="code-editor">
+                            <div class="code-editor-header">
+                                <div class="code-dot red"></div>
+                                <div class="code-dot yellow"></div>
+                                <div class="code-dot green"></div>
+                                <span style="margin-left: 12px; color: #888; font-size: 12px;">system-prompt.txt</span>
+                            </div>
+                            <div class="code-editor-body">
+                                <textarea class="form-textarea" id="agent-prompt" style="width: 100%; min-height: 200px; background: transparent; color: #d4d4d4; border: none; padding: 0;">${agent.systemPrompt}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 工具配置 -->
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <span>🔧</span> 工具配置
+                        </div>
+                        <div class="params-editor">
+                            <div class="param-row">
+                                <span style="padding: 8px;">💻</span>
+                                <span style="font-size: 14px; color: var(--text-primary);">python-execute</span>
+                                <span class="admin-tag green">已启用</span>
+                                <button class="param-remove">×</button>
+                            </div>
+                            <div class="param-row">
+                                <span style="padding: 8px;">🔍</span>
+                                <span style="font-size: 14px; color: var(--text-primary);">search</span>
+                                <span class="admin-tag green">已启用</span>
+                                <button class="param-remove">×</button>
+                            </div>
+                            <button class="add-param-btn">
+                                <span>＋</span> 添加工具
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 保存按钮 -->
+                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <button type="button" class="admin-btn primary" onclick="saveAgent()">
+                            <span>💾</span> 保存更改
+                        </button>
+                        <button type="button" class="admin-btn" onclick="testAgent()">
+                            <span>🧪</span> 测试
+                        </button>
+                        <button type="button" class="admin-btn" onclick="deleteAgent()" style="margin-left: auto; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: transparent;">
+                            <span>🗑️</span> 删除
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- 测试区 -->
+                <div class="test-section">
+                    <div class="test-header">
+                        <div class="test-title">
+                            <span>🧪</span> 测试此智能体
+                        </div>
+                    </div>
+                    <div class="test-input-area">
+                        <input type="text" class="test-input" placeholder="输入测试消息..." id="test-input">
+                        <button class="test-btn" onclick="runTest()">发送</button>
+                    </div>
+                    <div class="test-output" id="test-output">
+// 测试输出将显示在这里...
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 创建新智能体
+        function createAgent() {
+            const newAgent = {
+                id: Date.now().toString(),
+                name: '新智能体',
+                description: '请描述这个智能体的功能',
+                icon: '🤖',
+                tags: ['新'],
+                model: 'gpt-3.5-turbo',
+                temperature: 0.7,
+                systemPrompt: '你是一个有帮助的 AI 助手。',
+                tools: [],
+                visibility: 'private',
+                createdAt: new Date().toISOString().split('T')[0]
+            };
+            sampleAgents.unshift(newAgent);
+            renderAgentsList(sampleAgents);
+            selectAgent(newAgent.id);
+        }
+        
+        // 保存智能体
+        function saveAgent() {
+            if (!currentAgent) return;
+            
+            // 更新数据
+            currentAgent.name = document.getElementById('agent-name').value;
+            currentAgent.icon = document.getElementById('agent-icon').value;
+            currentAgent.description = document.getElementById('agent-desc').value;
+            currentAgent.visibility = document.getElementById('agent-visibility').value;
+            currentAgent.tags = document.getElementById('agent-tags').value.split(',').map(t => t.trim());
+            currentAgent.model = document.getElementById('agent-model').value;
+            currentAgent.temperature = parseFloat(document.getElementById('agent-temp').value);
+            currentAgent.systemPrompt = document.getElementById('agent-prompt').value;
+            
+            renderAgentsList(sampleAgents);
+            selectAgent(currentAgent.id);
+            
+            // 显示成功提示
+            alert('✅ 智能体已保存！');
+        }
+        
+        // 测试智能体
+        function testAgent() {
+            const testInput = document.getElementById('test-input');
+            if (!testInput.value.trim()) {
+                testInput.value = '你好，请介绍一下你自己！';
+            }
+            runTest();
+        }
+        
+        function runTest() {
+            const output = document.getElementById('test-output');
+            const input = document.getElementById('test-input').value;
+            
+            output.textContent = `// 发送: ${input}\n\n// 正在思考...\n`;
+            
+            setTimeout(() => {
+                output.textContent += `// 收到回复!\n\n你好！我是 ${currentAgent.name}。\n${currentAgent.description}\n\n有什么可以帮你的吗？`;
+            }, 1000);
+        }
+        
+        // 删除智能体
+        function deleteAgent() {
+            if (!currentAgent) return;
+            if (!confirm(`确定要删除 "${currentAgent.name}" 吗？`)) return;
+            
+            const index = sampleAgents.findIndex(a => a.id === currentAgent.id);
+            if (index > -1) {
+                sampleAgents.splice(index, 1);
+            }
+            
+            currentAgent = null;
+            renderAgentsList(sampleAgents);
+            document.getElementById('agent-detail').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🤖</div>
+                    <div class="empty-title">选择一个智能体</div>
+                    <div class="empty-desc">从左侧列表选择一个智能体进行编辑，或创建新的智能体</div>
+                    <button class="admin-btn primary" onclick="createAgent()">
+                        <span>＋</span> 创建智能体
+                    </button>
+                </div>
+            `;
+        }
+        
+        // 导出
+        function exportAgents() {
+            const data = JSON.stringify(sampleAgents, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'agents.json';
+            a.click();
+        }
+        
+        // 返回
+        function goBack() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
