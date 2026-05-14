@@ -877,6 +877,16 @@ pre:hover .code-copy-btn { opacity: 1; }
                     <input type="text" class="setting-input" id="ppt-topic" placeholder="例如：人工智能在医疗领域的应用">
                 </div>
                 <div class="setting-row">
+                    <span class="setting-label">模板风格</span>
+                    <select class="setting-select" id="ppt-template">
+                        <option value="academic">学术报告</option>
+                        <option value="business" selected>商业报告</option>
+                        <option value="meeting">会议纪要</option>
+                        <option value="proposal">项目提案</option>
+                        <option value="weekly_report">周报</option>
+                    </select>
+                </div>
+                <div class="setting-row">
                     <span class="setting-label">页数</span>
                     <select class="setting-select" id="ppt-pages">
                         <option value="5">5页</option>
@@ -889,7 +899,7 @@ pre:hover .code-copy-btn { opacity: 1; }
                     <span class="setting-label">补充内容（可选）</span>
                     <textarea class="setting-input" id="ppt-content" placeholder="添加详细内容或要点..." rows="4"></textarea>
                 </div>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="generatePPT()">生成PPT大纲</button>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="generatePPT()">生成并下载PPT</button>
                 <div id="ppt-result" style="margin-top: 16px; display: none;">
                     <h4 style="color: white; margin-bottom: 12px;">📋 PPT大纲</h4>
                     <div class="result-content" id="ppt-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>

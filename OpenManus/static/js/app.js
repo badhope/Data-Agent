@@ -1030,6 +1030,7 @@ async function generateMeetingMinutes() {
 async function generatePPT() {
     const topic = document.getElementById('ppt-topic').value.trim();
     const pages = document.getElementById('ppt-pages').value;
+    const template = document.getElementById('ppt-template').value;
     const content = document.getElementById('ppt-content').value.trim();
 
     if (!topic) {
@@ -1049,9 +1050,10 @@ async function generatePPT() {
                 pptContent[`section_${i}`] = [section.trim()];
             });
         } else {
-            // 没有提供内容，使用默认结构
+            // 没有提供内容，根据页数生成默认结构
             pptContent['引言'] = [`${topic}概述`, '背景与意义'];
-            pptContent['核心内容'] = ['主要观点与分析', '案例研究'];
+            pptContent['核心内容'] = ['主要观点与分析', '案例研究', '数据支撑'];
+            pptContent['深入探讨'] = ['技术路线', '实施方案'];
             pptContent['总结'] = ['关键结论', '未来展望'];
         }
 
@@ -1061,7 +1063,7 @@ async function generatePPT() {
             body: JSON.stringify({
                 title: topic,
                 content: pptContent,
-                template: 'academic'
+                template: template
             })
         });
 
@@ -1262,10 +1264,10 @@ async function extractTodos() {
     showToast('正在提取待办事项...', 'info');
 
     try {
-        const response = await fetch('/documents/extract-todos', {
+        const response = await fetch('/documents/todos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: input })
+            body: JSON.stringify({ text: input })
         });
 
         if (!response.ok) {
