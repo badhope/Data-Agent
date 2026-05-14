@@ -1,14 +1,14 @@
 [project]
 name = "data-agent"
 version = "1.0.0"
-description = "智能数据助手 - 基于 OpenManus 的 AI Agent 平台"
+description = "智能数据助手 - 基于 OpenManus 的全能 AI Agent 平台"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "badhope"}
 ]
-keywords = ["ai", "agent", "llm", "openai", "anthropic", "langchain"]
+keywords = ["ai", "agent", "llm", "openai", "anthropic", "openmanus", "office", "ppt", "document", "summary"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.7", "mypy>=1.0"]
@@ -18,9 +18,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py310"
 line-length = 120
 
 [tool.mypy]
-python_version = "3.12"
-strict = true
+python_version = "3.10"
+strict = false

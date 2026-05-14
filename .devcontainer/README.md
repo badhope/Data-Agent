@@ -1,23 +1,40 @@
 # Development with devcontainer
 
-This project includes a devcontainer configuration that allows you to open the project in a container with a fully configured development environment.
-Both frontend and backend environments are initialized when the container is started.
+This project includes a devcontainer configuration that allows you to open the Data-Agent project in a container with a fully configured development environment.
 
 ## GitHub Codespaces
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/langgenius/dify)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/badhope/Data-Agent)
 
-you can simply click the button above to open this project in GitHub Codespaces.
+You can simply click the button above to open this project in GitHub Codespaces.
 
 For more info, check out the [GitHub documentation](https://docs.github.com/en/free-pro-team@latest/github/developing-online-with-codespaces/creating-a-codespace#creating-a-codespace).
 
 ## VS Code Dev Containers
 
-[![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/langgenius/dify)
+[![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/badhope/Data-Agent)
 
-if you have VS Code installed, you can click the button above to open this project in VS Code Dev Containers.
+If you have VS Code installed, you can click the button above to open this project in VS Code Dev Containers.
 
 You can learn more in the [Dev Containers documentation](https://code.visualstudio.com/docs/devcontainers/containers).
+
+## Quick Start
+
+1. Open the project in VS Code
+2. When prompted, select "Reopen in Container"
+3. Wait for the container to start and dependencies to install
+4. Start the application:
+   ```bash
+   cd OpenManus
+   python web_app.py
+   ```
+
+## Features
+
+- **Fully configured Python environment**
+- **Pre-installed dependencies**
+- **Access to all tools and extensions**
+- **Integrated debugging support**
 
 ## Pros of Devcontainer
 
@@ -32,11 +49,3 @@ Isolation: Devcontainers isolate your project from your host operating system, r
 Learning Curve: For developers unfamiliar with Docker and VS Code, using devcontainers may be somewhat complex.
 
 Performance Impact: While usually minimal, programs running inside a devcontainer may be slightly slower than those running directly on the host.
-
-## Troubleshooting
-
-if you see such error message when you open this project in codespaces:
-![Alt text](troubleshooting.png)
-
-a simple workaround is change `/signin` endpoint into another one, then login with GitHub account and close the tab, then change it back to `/signin` endpoint. Then all things will be fine.
-The reason is `signin` endpoint is not allowed in codespaces, details can be found [here](https://github.com/orgs/community/discussions/5204)
