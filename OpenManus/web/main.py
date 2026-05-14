@@ -131,6 +131,31 @@ async def root():
         return FileResponse(str(template_path))
     return {"message": "DATA-AI API Server"}
 
+# 管理界面路由
+@app.get("/agents")
+async def agents_page():
+    """Agent management page"""
+    template_path = BASE_DIR / "web" / "templates" / "agents.html"
+    if template_path.exists():
+        return FileResponse(str(template_path))
+    return {"message": "Agents page"}
+
+@app.get("/skills")
+async def skills_page():
+    """Skills management page"""
+    template_path = BASE_DIR / "web" / "templates" / "skills.html"
+    if template_path.exists():
+        return FileResponse(str(template_path))
+    return {"message": "Skills page"}
+
+@app.get("/mcp")
+async def mcp_page():
+    """MCP tools management page"""
+    template_path = BASE_DIR / "web" / "templates" / "mcp.html"
+    if template_path.exists():
+        return FileResponse(str(template_path))
+    return {"message": "MCP page"}
+
 @app.get("/api/v1/status")
 async def system_status():
     """Get system status"""

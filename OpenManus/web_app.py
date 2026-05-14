@@ -132,6 +132,25 @@ async def logs():
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
+# 管理界面路由 - 智能体、技能、工具
+@app.get("/agents")
+async def agents():
+    html_path = os.path.join(os.path.dirname(__file__), "web", "templates", "agents.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+@app.get("/skills")
+async def skills():
+    html_path = os.path.join(os.path.dirname(__file__), "web", "templates", "skills.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+@app.get("/mcp")
+async def mcp():
+    html_path = os.path.join(os.path.dirname(__file__), "web", "templates", "mcp.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
 if __name__ == "__main__":
     import uvicorn
     logger.info("Starting DataAgent Web Interface...")
