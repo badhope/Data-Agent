@@ -3,90 +3,906 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DATA-AI - MCP 管理</title>
-    <link rel="stylesheet" href="/static/css/admin.css">
+    <title>DataAgent - MCP 工具管理</title>
     <style>
         :root {
-            --primary: #F59E0B;
-            --primary-light: #FBBF24;
-            --primary-dark: #D97706;
-            --text-primary: #1F2937;
-            --text-secondary: #6B7280;
-            --text-muted: #9CA3AF;
-            --bg-primary: #FFFFFF;
-            --bg-secondary: #F9FAFB;
-            --bg-tertiary: #F3F4F6;
-            --border: #E5E7EB;
-            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --ai-primary: #F59E0B;
+            --ai-primary-glow: #FBBF24;
+            --ai-accent: #A855F7;
+            --ai-bg-dark: #0F172A;
+            --ai-bg-card: #1E293B;
+            --ai-bg-hover: #334155;
+            --ai-text-primary: #F8FAFC;
+            --ai-text-secondary: #94A3B8;
+            --ai-border: #334155;
+            --ai-success: #22C55E;
+            --ai-warning: #F59E0B;
+            --ai-danger: #EF4444;
+            --ai-glow: rgba(245, 158, 11, 0.3);
         }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+
+        * {
             margin: 0;
             padding: 0;
-            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--ai-bg-dark) 0%, #1A1F3A 100%);
+            color: var(--ai-text-primary);
+            min-height: 100vh;
             overflow: hidden;
         }
-        
-        * {
-            box-sizing: border-box;
+
+        /* 数据流背景效果 */
+        .data-flow-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .data-flow-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.04) 0%, transparent 40%);
+            animation: dataFlow 25s linear infinite;
+        }
+
+        @keyframes dataFlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 主容器 */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 顶部导航栏 */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--ai-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .app-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 20px var(--ai-glow);
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px var(--ai-glow); }
+            50% { box-shadow: 0 0 40px var(--ai-glow), 0 0 60px rgba(245, 158, 11, 0.2); }
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--ai-primary), var(--ai-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            margin-left: 32px;
+        }
+
+        .nav-tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--ai-text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab:hover {
+            background: var(--ai-bg-hover);
+            color: var(--ai-text-primary);
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
+            color: var(--ai-primary-glow);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            margin-top: 64px;
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 左侧服务器列表 */
+        .server-list {
+            width: 320px;
+            background: rgba(30, 41, 59, 0.7);
+            border-right: 1px solid var(--ai-border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .list-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--ai-border);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .create-btn {
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .create-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            background: var(--ai-bg-card);
+            border: 1px solid var(--ai-border);
+            border-radius: 10px;
+            color: var(--ai-text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--ai-primary);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--ai-text-secondary);
+            font-size: 18px;
+        }
+
+        .list-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .list-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .list-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .list-content::-webkit-scrollbar-thumb {
+            background: var(--ai-border);
+            border-radius: 3px;
+        }
+
+        .list-content::-webkit-scrollbar-thumb:hover {
+            background: var(--ai-bg-hover);
+        }
+
+        /* 服务器卡片 */
+        .server-card {
+            padding: 16px;
+            background: var(--ai-bg-card);
+            border: 1px solid var(--ai-border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .server-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .server-card:hover::before {
+            left: 100%;
+        }
+
+        .server-card:hover {
+            border-color: rgba(245, 158, 11, 0.3);
+            transform: translateX(4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .server-card.active {
+            border-color: var(--ai-primary);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%);
+            box-shadow: 0 0 0 1px var(--ai-primary), 0 8px 24px rgba(245, 158, 11, 0.15);
+        }
+
+        .server-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .server-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .server-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .server-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ai-text-primary);
+            margin-bottom: 4px;
+        }
+
+        .server-desc {
+            font-size: 13px;
+            color: var(--ai-text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .server-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .meta-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            background: var(--ai-bg-hover);
+            color: var(--ai-text-secondary);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .meta-tag.type {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60A5FA;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.online {
+            background: var(--ai-success);
+            box-shadow: 0 0 8px var(--ai-success);
+        }
+
+        .status-dot.offline {
+            background: var(--ai-danger);
+        }
+
+        .status-dot.connecting {
+            background: var(--ai-warning);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 右侧详情面板 */
+        .detail-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        .panel-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .empty-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            border: 1px solid var(--ai-border);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .empty-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--ai-text-primary);
+        }
+
+        .empty-desc {
+            font-size: 14px;
+            color: var(--ai-text-secondary);
+            text-align: center;
+            max-width: 320px;
+            line-height: 1.6;
+        }
+
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .detail-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .detail-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .detail-content::-webkit-scrollbar-thumb {
+            background: var(--ai-border);
+            border-radius: 3px;
+        }
+
+        /* 详情头部 */
+        .detail-header {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--ai-border);
+        }
+
+        .detail-title-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        .detail-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+        }
+
+        .detail-title {
+            flex: 1;
+        }
+
+        .detail-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--ai-text-primary);
+            margin-bottom: 4px;
+        }
+
+        .detail-subtitle {
+            font-size: 14px;
+            color: var(--ai-text-secondary);
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--ai-border);
+            background: var(--ai-bg-card);
+            color: var(--ai-text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            border-color: var(--ai-primary);
+            background: var(--ai-bg-hover);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-accent) 100%);
+            border: none;
+            color: white;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .action-btn.danger {
+            border-color: rgba(239, 68, 68, 0.3);
+            color: var(--ai-danger);
+        }
+
+        .action-btn.danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--ai-danger);
+        }
+
+        .action-btn.success {
+            border-color: rgba(34, 197, 94, 0.3);
+            color: var(--ai-success);
+        }
+
+        .action-btn.success:hover {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--ai-success);
+        }
+
+        /* 表单区域 */
+        .form-section {
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--ai-text-primary);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ai-text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .form-label .required {
+            color: var(--ai-danger);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            padding: 12px 14px;
+            background: var(--ai-bg-card);
+            border: 1px solid var(--ai-border);
+            border-radius: 10px;
+            color: var(--ai-text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            border-color: var(--ai-primary);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        /* 环境变量 */
+        .params-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .param-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .param-input {
+            flex: 1;
+            padding: 10px 12px;
+            background: var(--ai-bg-card);
+            border: 1px solid var(--ai-border);
+            border-radius: 8px;
+            color: var(--ai-text-primary);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .param-input:focus {
+            border-color: var(--ai-primary);
+        }
+
+        .param-remove {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--ai-danger);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .param-remove:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .add-param-btn {
+            padding: 12px;
+            border: 1px dashed var(--ai-border);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--ai-text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            margin-top: 12px;
+        }
+
+        .add-param-btn:hover {
+            border-color: var(--ai-primary);
+            color: var(--ai-primary-glow);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        /* 工具列表 */
+        .tools-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tool-badge {
+            padding: 8px 14px;
+            background: var(--ai-bg-card);
+            border: 1px solid var(--ai-border);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--ai-text-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 测试区域 */
+        .test-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--ai-bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--ai-border);
+        }
+
+        .test-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .test-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .test-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--ai-text-primary);
+        }
+
+        .test-input-area {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .test-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--ai-bg-dark);
+            border: 1px solid var(--ai-border);
+            border-radius: 10px;
+            color: var(--ai-text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .test-input:focus {
+            border-color: var(--ai-primary);
+        }
+
+        .test-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--ai-success) 0%, var(--ai-primary) 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .test-output {
+            padding: 16px;
+            background: var(--ai-bg-dark);
+            border-radius: 10px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            color: #A0AEC0;
+            line-height: 1.7;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .test-output::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .test-output::-webkit-scrollbar-thumb {
+            background: var(--ai-border);
+            border-radius: 3px;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--ai-border);
+            background: var(--ai-bg-card);
+            color: var(--ai-text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            border-color: var(--ai-primary);
+            color: var(--ai-text-primary);
+            background: var(--ai-bg-hover);
         }
     </style>
 </head>
 <body>
-    <div class="admin-panel">
-        <!-- 顶部工具栏 -->
-        <div class="admin-header">
-            <div class="admin-title">
-                <span style="font-size: 24px;">🔌</span>
-                MCP 服务器管理
+    <div class="data-flow-bg"></div>
+    
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <div class="app-logo">
+                    <div class="logo-icon">🤖</div>
+                    <span class="logo-text">DataAgent</span>
+                </div>
+                <div class="nav-tabs">
+                    <div class="nav-tab" onclick="window.location.href='/'">💬 对话</div>
+                    <div class="nav-tab" onclick="window.location.href='/agents'">🤖 智能体</div>
+                    <div class="nav-tab" onclick="window.location.href='/skills'">⚡ 技能</div>
+                    <div class="nav-tab active">🔌 工具</div>
+                </div>
             </div>
-            <div class="admin-actions">
-                <button class="admin-btn" onclick="goBack()">
-                    <span>←</span> 返回
-                </button>
-                <button class="admin-btn" onclick="discoverServers()">
-                    <span>🔍</span> 发现服务器
-                </button>
-                <button class="admin-btn" onclick="showLogs()">
-                    <span>📋</span> 查看日志
-                </button>
-                <button class="admin-btn primary" onclick="addServer()">
-                    <span>＋</span> 添加服务器
+            <div class="nav-right">
+                <button class="back-btn" onclick="window.location.href='/'">
+                    ← 返回工作台
                 </button>
             </div>
         </div>
-        
+
         <!-- 主内容区 -->
-        <div class="admin-content">
-            <!-- 左侧列表 -->
-            <div class="admin-list">
-                <div class="admin-list-header">
-                    <input type="text" class="admin-search" placeholder="搜索 MCP 服务器..." id="search-input">
+        <div class="main-content">
+            <!-- 左侧服务器列表 -->
+            <div class="server-list">
+                <div class="list-header">
+                    <div class="header-actions">
+                        <button class="create-btn" onclick="addServer()">
+                            <span>+</span> 添加服务器
+                        </button>
+                    </div>
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-input" placeholder="搜索 MCP 服务器..." id="searchInput" oninput="filterServers()">
+                    </div>
                 </div>
-                <div class="admin-list-items" id="servers-list">
-                    <!-- 服务器卡片会在这里动态生成 -->
+                <div class="list-content" id="serverList">
+                    <!-- 服务器列表由JS生成 -->
                 </div>
             </div>
-            
-            <!-- 右侧详情编辑 -->
-            <div class="admin-detail" id="server-detail">
-                <div class="empty-state">
+
+            <!-- 右侧详情面板 -->
+            <div class="detail-panel" id="detailPanel">
+                <div class="panel-empty">
                     <div class="empty-icon">🔌</div>
-                    <div class="empty-title">选择一个 MCP 服务器</div>
+                    <div class="empty-title">选择 MCP 服务器</div>
                     <div class="empty-desc">从左侧列表选择一个服务器进行配置，或添加新的 MCP 服务器</div>
-                    <button class="admin-btn primary" onclick="addServer()">
-                        <span>＋</span> 添加服务器
+                    <button class="action-btn primary" onclick="addServer()">
+                        <span>+</span> 添加服务器
                     </button>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <script>
-        // 示例 MCP 服务器数据
         const sampleServers = [
             {
                 id: '1',
@@ -141,199 +957,200 @@
                 createdAt: '2024-04-25'
             }
         ];
-        
+
         let currentServer = null;
-        
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            renderServersList(sampleServers);
-            
-            document.getElementById('search-input').addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
-                const filtered = sampleServers.filter(s => 
-                    s.name.toLowerCase().includes(query) || 
-                    s.description.toLowerCase().includes(query)
-                );
-                renderServersList(filtered);
-            });
-        });
-        
-        // 渲染服务器列表
-        function renderServersList(servers) {
-            const container = document.getElementById('servers-list');
-            container.innerHTML = servers.map(server => `
-                <div class="admin-item-card" onclick="selectServer('${server.id}')" id="server-card-${server.id}">
-                    <div class="admin-item-header">
-                        <div class="admin-item-icon">${server.icon}</div>
-                        <div class="admin-item-info">
-                            <div class="admin-item-name">${server.name}</div>
-                            <div class="admin-item-desc">${server.description}</div>
+        let filteredServers = [...sampleServers];
+
+        function init() {
+            renderServersList();
+        }
+
+        function renderServersList() {
+            const container = document.getElementById('serverList');
+            container.innerHTML = filteredServers.map(server => `
+                <div class="server-card ${currentServer && currentServer.id === server.id ? 'active' : ''}" 
+                     onclick="selectServer('${server.id}')">
+                    <div class="server-header">
+                        <div class="server-icon">${server.icon}</div>
+                        <div class="server-info">
+                            <div class="server-name">${server.name}</div>
+                            <div class="server-desc">${server.description}</div>
                         </div>
                     </div>
-                    <div class="admin-item-tags">
-                        <span class="admin-tag">${server.type}</span>
-                        <span class="admin-tag">${server.tools.length} 工具</span>
-                        <div class="mcp-server-status">
+                    <div class="server-meta">
+                        <span class="meta-tag type">${server.type}</span>
+                        <span class="meta-tag">${server.tools.length} 工具</span>
+                        <div class="status-container">
                             <div class="status-dot ${server.status}"></div>
-                            ${server.status === 'online' ? '在线' : server.status === 'offline' ? '离线' : '连接中...'}
+                            <span style="font-size: 12px; color: var(--ai-text-secondary)">
+                                ${server.status === 'online' ? '在线' : server.status === 'offline' ? '离线' : '连接中...'}
+                            </span>
                         </div>
                     </div>
                 </div>
             `).join('');
         }
-        
-        // 选择服务器
-        function selectServer(id) {
-            document.querySelectorAll('.admin-item-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            document.getElementById(`server-card-${id}`).classList.add('active');
-            
-            currentServer = sampleServers.find(s => s.id === id);
-            renderServerDetail(currentServer);
+
+        function filterServers() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            filteredServers = sampleServers.filter(server => 
+                server.name.toLowerCase().includes(query) || 
+                server.description.toLowerCase().includes(query) ||
+                server.type.toLowerCase().includes(query)
+            );
+            renderServersList();
         }
-        
-        // 渲染服务器详情
-        function renderServerDetail(server) {
-            const container = document.getElementById('server-detail');
+
+        function selectServer(id) {
+            currentServer = sampleServers.find(s => s.id === id);
+            renderServersList();
+            renderServerDetail();
+        }
+
+        function renderServerDetail() {
+            const container = document.getElementById('detailPanel');
             container.innerHTML = `
-                <div class="admin-detail-header">
-                    <div class="admin-detail-title">${server.icon} ${server.name}</div>
-                    <div class="admin-detail-subtitle">${server.description}</div>
-                </div>
-                
-                <form class="admin-form" id="server-form">
+                <div class="detail-content">
+                    <div class="detail-header">
+                        <div class="detail-title-row">
+                            <div class="detail-icon">${currentServer.icon}</div>
+                            <div class="detail-title">
+                                <div class="detail-name">${currentServer.name}</div>
+                                <div class="detail-subtitle">${currentServer.description}</div>
+                            </div>
+                            <div class="detail-actions">
+                                ${currentServer.status === 'online' ? 
+                                    `<button class="action-btn" onclick="stopServer()">⏹ 停止</button>` :
+                                    `<button class="action-btn success" onclick="startServer()">▶ 启动</button>`
+                                }
+                                <button class="action-btn" onclick="testConnection()">
+                                    🔗 测试连接
+                                </button>
+                                <button class="action-btn primary" onclick="saveServer()">
+                                    💾 保存
+                                </button>
+                                <button class="action-btn danger" onclick="deleteServer()">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 基本信息 -->
                     <div class="form-section">
-                        <div class="form-section-title">
-                            <span>📋</span> 基本信息
+                        <div class="section-header">
+                            <div class="section-icon">📋</div>
+                            <div class="section-title">基本信息</div>
                         </div>
-                        <div class="form-row">
+                        <div class="form-grid">
                             <div class="form-group">
                                 <label class="form-label">名称 <span class="required">*</span></label>
-                                <input type="text" class="form-input" value="${server.name}" id="server-name">
+                                <input type="text" class="form-input" value="${currentServer.name}" id="serverName">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">图标</label>
-                                <input type="text" class="form-input" value="${server.icon}" id="server-icon">
+                                <input type="text" class="form-input" value="${currentServer.icon}" id="serverIcon">
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">描述</label>
-                            <input type="text" class="form-input" value="${server.description}" id="server-desc">
-                        </div>
-                        <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">类型</label>
-                                <select class="form-select" id="server-type">
-                                    <option value="stdio" ${server.type === 'stdio' ? 'selected' : ''}>STDIO</option>
-                                    <option value="sse" ${server.type === 'sse' ? 'selected' : ''}>SSE</option>
-                                    <option value="websocket" ${server.type === 'websocket' ? 'selected' : ''}>WebSocket</option>
+                                <select class="form-select" id="serverType">
+                                    <option value="stdio" ${currentServer.type === 'stdio' ? 'selected' : ''}>STDIO</option>
+                                    <option value="sse" ${currentServer.type === 'sse' ? 'selected' : ''}>SSE</option>
+                                    <option value="websocket" ${currentServer.type === 'websocket' ? 'selected' : ''}>WebSocket</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">状态</label>
                                 <div style="display: flex; align-items: center; gap: 12px; height: 42px;">
-                                    <div class="status-dot ${server.status}"></div>
-                                    <span>${server.status === 'online' ? '在线' : server.status === 'offline' ? '离线' : '连接中...'}</span>
+                                    <div class="status-dot ${currentServer.status}"></div>
+                                    <span>${currentServer.status === 'online' ? '在线' : currentServer.status === 'offline' ? '离线' : '连接中...'}</span>
                                 </div>
+                            </div>
+                            <div class="form-group full">
+                                <label class="form-label">描述</label>
+                                <input type="text" class="form-input" value="${currentServer.description}" id="serverDesc">
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- 命令配置 -->
                     <div class="form-section">
-                        <div class="form-section-title">
-                            <span>⚙️</span> 命令配置
+                        <div class="section-header">
+                            <div class="section-icon">⚙️</div>
+                            <div class="section-title">命令配置</div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">命令</label>
-                            <input type="text" class="form-input" value="${server.command}" id="server-command" placeholder="e.g., npx">
+                            <input type="text" class="form-input" value="${currentServer.command}" id="serverCommand" placeholder="e.g., npx">
                         </div>
                         <div class="form-group">
                             <label class="form-label">参数 (每行一个)</label>
-                            <textarea class="form-textarea" id="server-args" style="min-height: 100px;">${server.args.join('\\n')}</textarea>
+                            <textarea class="form-textarea" id="serverArgs" style="min-height: 100px;">${currentServer.args.join('\\n')}</textarea>
                         </div>
                     </div>
-                    
+
                     <!-- 环境变量 -->
                     <div class="form-section">
-                        <div class="form-section-title">
-                            <span>🔐</span> 环境变量
+                        <div class="section-header">
+                            <div class="section-icon">🔐</div>
+                            <div class="section-title">环境变量</div>
                         </div>
-                        <div class="params-editor" id="env-editor">
-                            ${Object.entries(server.env).map(([key, value]) => `
-                                <div class="param-row">
-                                    <input type="text" class="param-input" value="${key}" placeholder="变量名">
-                                    <input type="password" class="param-input" value="${value}" placeholder="值">
-                                    <button class="param-remove" onclick="removeEnv(this)">×</button>
+                        <div class="params-editor" id="envEditor">
+                            ${Object.entries(currentServer.env).map(([key, value], i) => `
+                                <div class="param-row" data-index="${i}">
+                                    <input type="text" class="param-input" value="${key}" placeholder="变量名" id="envKey${i}">
+                                    <input type="password" class="param-input" value="${value}" placeholder="值" id="envValue${i}">
+                                    <button class="param-remove" onclick="removeEnv(${i})">×</button>
                                 </div>
                             `).join('')}
-                            <button class="add-param-btn" type="button" onclick="addEnv()">
-                                <span>＋</span> 添加环境变量
-                            </button>
                         </div>
+                        <button class="add-param-btn" onclick="addEnv()">
+                            <span>+</span> 添加环境变量
+                        </button>
                     </div>
-                    
+
                     <!-- 可用工具 -->
                     <div class="form-section">
-                        <div class="form-section-title">
-                            <span>🔧</span> 可用工具 (${server.tools.length})
+                        <div class="section-header">
+                            <div class="section-icon">🔧</div>
+                            <div class="section-title">可用工具 (${currentServer.tools.length})</div>
                         </div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            ${server.tools.map(tool => `
-                                <div style="padding: 6px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">
+                        <div class="tools-grid">
+                            ${currentServer.tools.map(tool => `
+                                <div class="tool-badge">
+                                    <span>🛠️</span>
                                     ${tool}
                                 </div>
                             `).join('')}
                         </div>
                     </div>
-                    
-                    <!-- 保存和操作按钮 -->
-                    <div style="display: flex; gap: 12px; margin-top: 24px;">
-                        <button type="button" class="admin-btn primary" onclick="saveServer()">
-                            <span>💾</span> 保存配置
-                        </button>
-                        ${server.status === 'online' ? 
-                            `<button type="button" class="admin-btn" onclick="stopServer()"><span>⏹</span> 停止</button>` :
-                            `<button type="button" class="admin-btn" onclick="startServer()"><span>▶</span> 启动</button>`
-                        }
-                        <button type="button" class="admin-btn" onclick="testConnection()">
-                            <span>🔗</span> 测试连接
-                        </button>
-                        <button type="button" class="admin-btn" onclick="deleteServer()" style="margin-left: auto; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: transparent;">
-                            <span>🗑️</span> 删除
-                        </button>
-                    </div>
-                </form>
-                
-                <!-- 测试区 -->
-                <div class="test-section">
-                    <div class="test-header">
-                        <div class="test-title">
-                            <span>🧪</span> 工具测试
+
+                    <!-- 工具测试 -->
+                    <div class="test-section">
+                        <div class="test-header">
+                            <div class="test-icon">🧪</div>
+                            <div class="test-title">工具测试</div>
                         </div>
-                    </div>
-                    <div class="form-row" style="margin-bottom: 12px;">
-                        <div class="form-group">
-                            <label class="form-label">选择工具</label>
-                            <select class="form-select" id="test-tool">
-                                ${server.tools.map(t => `<option value="${t}">${t}</option>`).join('')}
-                            </select>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">选择工具</label>
+                                <select class="form-select" id="testTool">
+                                    ${currentServer.tools.map(tool => `<option value="${tool}">${tool}</option>`).join('')}
+                                </select>
+                            </div>
                         </div>
-                    </div>
-                    <div class="test-input-area">
-                        <input type="text" class="test-input" placeholder="输入参数 (JSON)" id="test-params" value='{}'>
-                        <button class="test-btn" onclick="runToolTest()">调用工具</button>
-                    </div>
-                    <div class="test-output" id="test-output">
+                        <div class="test-input-area">
+                            <input type="text" class="test-input" placeholder="输入参数 (JSON)" id="testParams" value='{}'>
+                            <button class="test-btn" onclick="runToolTest()">调用工具</button>
+                        </div>
+                        <div class="test-output" id="testOutput">
 // 工具调用结果将显示在这里...
+                        </div>
                     </div>
                 </div>
             `;
         }
-        
-        // 添加服务器
+
         function addServer() {
             const newServer = {
                 id: Date.now().toString(),
@@ -349,93 +1166,107 @@
                 createdAt: new Date().toISOString().split('T')[0]
             };
             sampleServers.unshift(newServer);
-            renderServersList(sampleServers);
+            filteredServers = [...sampleServers];
+            renderServersList();
             selectServer(newServer.id);
         }
-        
-        // 保存服务器
+
         function saveServer() {
             if (!currentServer) return;
+            currentServer.name = document.getElementById('serverName').value;
+            currentServer.icon = document.getElementById('serverIcon').value;
+            currentServer.description = document.getElementById('serverDesc').value;
+            currentServer.type = document.getElementById('serverType').value;
+            currentServer.command = document.getElementById('serverCommand').value;
+            currentServer.args = document.getElementById('serverArgs').value.split('\\n').filter(a => a.trim());
             
-            currentServer.name = document.getElementById('server-name').value;
-            currentServer.icon = document.getElementById('server-icon').value;
-            currentServer.description = document.getElementById('server-desc').value;
-            currentServer.type = document.getElementById('server-type').value;
-            currentServer.command = document.getElementById('server-command').value;
-            currentServer.args = document.getElementById('server-args').value.split('\\n');
+            // 保存环境变量
+            currentServer.env = {};
+            document.querySelectorAll('#envEditor .param-row').forEach(row => {
+                const keyInput = row.querySelector('input:first-child');
+                const valueInput = row.querySelector('input:nth-child(2)');
+                if (keyInput && valueInput && keyInput.value.trim()) {
+                    currentServer.env[keyInput.value.trim()] = valueInput.value;
+                }
+            });
             
-            renderServersList(sampleServers);
-            selectServer(currentServer.id);
+            renderServersList();
             alert('✅ 服务器配置已保存！');
         }
-        
-        // 启动服务器
+
         function startServer() {
             if (!currentServer) return;
-            
             currentServer.status = 'connecting';
-            renderServersList(sampleServers);
-            renderServerDetail(currentServer);
+            renderServersList();
+            renderServerDetail();
             
             setTimeout(() => {
                 currentServer.status = 'online';
-                renderServersList(sampleServers);
-                renderServerDetail(currentServer);
+                renderServersList();
+                renderServerDetail();
                 alert('✅ MCP 服务器已启动！');
             }, 1500);
         }
-        
-        // 停止服务器
+
         function stopServer() {
             if (!currentServer) return;
-            
             currentServer.status = 'offline';
-            renderServersList(sampleServers);
-            renderServerDetail(currentServer);
+            renderServersList();
+            renderServerDetail();
             alert('⏹ MCP 服务器已停止');
         }
-        
-        // 测试连接
+
         function testConnection() {
             if (!currentServer) return;
-            
-            const output = document.getElementById('test-output');
+            const output = document.getElementById('testOutput');
             output.textContent = `// 测试连接到 ${currentServer.name}...\n// 发送初始化请求...`;
             
             setTimeout(() => {
                 output.textContent += `\n// ✔️ 连接成功！\n// 发现 ${currentServer.tools.length} 个工具`;
             }, 1000);
         }
-        
-        // 删除服务器
+
         function deleteServer() {
             if (!currentServer) return;
             if (!confirm(`确定要删除 "${currentServer.name}" 吗？`)) return;
-            
             const index = sampleServers.findIndex(s => s.id === currentServer.id);
             if (index > -1) {
                 sampleServers.splice(index, 1);
             }
-            
+            filteredServers = [...sampleServers];
             currentServer = null;
-            renderServersList(sampleServers);
-            document.getElementById('server-detail').innerHTML = `
-                <div class="empty-state">
+            renderServersList();
+            document.getElementById('detailPanel').innerHTML = `
+                <div class="panel-empty">
                     <div class="empty-icon">🔌</div>
-                    <div class="empty-title">选择一个 MCP 服务器</div>
+                    <div class="empty-title">选择 MCP 服务器</div>
                     <div class="empty-desc">从左侧列表选择一个服务器进行配置，或添加新的 MCP 服务器</div>
-                    <button class="admin-btn primary" onclick="addServer()">
-                        <span>＋</span> 添加服务器
+                    <button class="action-btn primary" onclick="addServer()">
+                        <span>+</span> 添加服务器
                     </button>
                 </div>
             `;
         }
-        
-        // 测试工具调用
+
+        function addEnv() {
+            if (!currentServer) return;
+            currentServer.env['NEW_KEY'] = '';
+            renderServerDetail();
+        }
+
+        function removeEnv(index) {
+            if (!currentServer) return;
+            const keys = Object.keys(currentServer.env);
+            if (keys[index]) {
+                delete currentServer.env[keys[index]];
+                renderServerDetail();
+            }
+        }
+
         function runToolTest() {
-            const tool = document.getElementById('test-tool').value;
-            const params = document.getElementById('test-params').value;
-            const output = document.getElementById('test-output');
+            const tool = document.getElementById('testTool').value;
+            const params = document.getElementById('testParams').value;
+            const output = document.getElementById('testOutput');
             
             output.textContent = `// 调用工具: ${tool}\n// 参数: ${params}\n// 执行中...`;
             
@@ -443,41 +1274,8 @@
                 output.textContent += `\n\n✅ 调用成功！\n\n结果:\n{ "status": "ok", "data": "..." }`;
             }, 800);
         }
-        
-        // 环境变量操作
-        function addEnv() {
-            const editor = document.getElementById('env-editor');
-            const newRow = document.createElement('div');
-            newRow.className = 'param-row';
-            newRow.innerHTML = `
-                <input type="text" class="param-input" value="" placeholder="变量名">
-                <input type="password" class="param-input" value="" placeholder="值">
-                <button class="param-remove" onclick="removeEnv(this)">×</button>
-            `;
-            editor.insertBefore(newRow, editor.lastElementChild);
-        }
-        
-        function removeEnv(btn) {
-            btn.parentElement.remove();
-        }
-        
-        // 发现服务器
-        function discoverServers() {
-            alert('🔍 正在扫描本地 MCP 服务器...');
-            setTimeout(() => {
-                alert('✅ 发现 0 个新服务器');
-            }, 1000);
-        }
-        
-        // 查看日志
-        function showLogs() {
-            alert('📋 日志功能将在未来版本中提供！');
-        }
-        
-        // 返回
-        function goBack() {
-            window.location.href = '/';
-        }
+
+        init();
     </script>
 </body>
 </html>
