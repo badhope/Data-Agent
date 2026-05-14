@@ -43,11 +43,11 @@
                         <p>Model Context Protocol</p>
                     </div>
                 </div>
-                <div class="nav-item" onclick="openModal('tidy-cup-modal'); closeSidebar();">
-                    <span class="nav-icon">📊</span>
+                <div class="nav-item" onclick="openModal('tidy-cup-modal'); closeSidebar();" style="background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(168,85,247,0.2)); border: 1px solid rgba(59,130,246,0.3); border-left: 4px solid #3b82f6;">
+                    <span class="nav-icon">🏆</span>
                     <div class="nav-text">
-                        <h4>泰迪杯竞赛</h4>
-                        <p>财务数据分析系统</p>
+                        <h4 style="color: #f0f0f0;">海峡杯/泰迪杯竞赛</h4>
+                        <p style="color: #a0a0a0;">财务数据分析竞赛系统</p>
                     </div>
                 </div>
                 <div class="nav-divider"></div>
@@ -341,16 +341,19 @@
     </div>
 
     <div class="modal-overlay" id="tidy-cup-modal">
-        <div class="modal" style="max-width: 900px; width: 95%; max-height: 90vh;">
+        <div class="modal" style="max-width: 1000px; width: 95%; max-height: 92vh;">
             <div class="modal-header">
-                <div class="modal-title">📊 泰迪杯/海峡杯 - 财务数据分析系统</div>
+                <div class="modal-title">🏆 海峡杯/泰迪杯竞赛 - 财务数据分析系统</div>
                 <button class="modal-close" onclick="closeModal('tidy-cup-modal')">×</button>
             </div>
             <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
                 <div class="settings-tabs" style="margin-bottom: 20px;">
                     <div class="settings-tab active" onclick="showTidyTab('overview')">📋 概览</div>
-                    <div class="settings-tab" onclick="showTidyTab('analyze')">🔍 分析</div>
+                    <div class="settings-tab" onclick="showTidyTab('tasks')">🎯 竞赛任务</div>
                     <div class="settings-tab" onclick="showTidyTab('query')">💬 查询</div>
+                    <div class="settings-tab" onclick="showTidyTab('analyze')">📊 分析</div>
+                    <div class="settings-tab" onclick="showTidyTab('skills')">🤖 AI技能</div>
+                    <div class="settings-tab" onclick="showTidyTab('mcp')">🔌 MCP工具</div>
                     <div class="settings-tab" onclick="showTidyTab('upload')">📁 上传</div>
                     <div class="settings-tab" onclick="showTidyTab('datasource')">🗄️ 数据源</div>
                 </div>
@@ -470,6 +473,104 @@
                     </div>
                     <div style="margin-top:16px;">
                         <button class="btn btn-primary" style="width:100%;" onclick="loadTidyDemoData()">🎬 加载演示数据</button>
+                    </div>
+                </div>
+                
+                <!-- 竞赛任务面板 -->
+                <div class="settings-section" id="tidy-tasks">
+                    <h3 style="color:white; margin-bottom:16px;">🎯 海峡杯/泰迪杯竞赛任务</h3>
+                    <div style="display:grid; gap:12px;">
+                        <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; border:1px solid rgba(59,130,246,0.3);">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                                <h4 style="color:white; margin:0;">📄 任务1: PDF解析与数据提取</h4>
+                                <span style="background:rgba(59,130,246,0.2); color:#60a5fa; padding:4px 10px; border-radius:100px; font-size:12px;">已实现</span>
+                            </div>
+                            <p style="color:#94a3b8; margin:0 0 12px 0; font-size:13px;">从财务报告PDF中提取结构化数据，支持表格识别和智能解析</p>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-primary" style="font-size:13px;" onclick="showTidyTab('upload')">上传PDF</button>
+                                <button class="btn btn-secondary" style="font-size:13px;" onclick="document.getElementById('tidy-query-input').value='解析贵州茅台2023年财报'; executeTidyQuery();">测试解析</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; border:1px solid rgba(168,85,247,0.3);">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                                <h4 style="color:white; margin:0;">🔢 任务2: 自然语言转SQL查询</h4>
+                                <span style="background:rgba(168,85,247,0.2); color:#a78bfa; padding:4px 10px; border-radius:100px; font-size:12px;">已实现</span>
+                            </div>
+                            <p style="color:#94a3b8; margin:0 0 12px 0; font-size:13px;">支持自然语言查询财务数据，自动生成SQL并执行</p>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-primary" style="font-size:13px;" onclick="showTidyTab('query')">开始查询</button>
+                                <button class="btn btn-secondary" style="font-size:13px;" onclick="quickTidyQuery('贵州茅台2023年营收是多少')">示例查询</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; border:1px solid rgba(34,197,94,0.3);">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                                <h4 style="color:white; margin:0;">🧠 任务3: 检索增强生成与归因分析</h4>
+                                <span style="background:rgba(34,197,94,0.2); color:#4ade80; padding:4px 10px; border-radius:100px; font-size:12px;">已实现</span>
+                            </div>
+                            <p style="color:#94a3b8; margin:0 0 12px 0; font-size:13px;">基于知识库的智能问答，包含来源归因和解释</p>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-primary" style="font-size:13px;" onclick="showTidyTab('analyze')">开始分析</button>
+                                <button class="btn btn-secondary" style="font-size:13px;" onclick="quickTidyQuery('对比贵州茅台和平安银行的盈利能力')">示例分析</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI技能面板 -->
+                <div class="settings-section" id="tidy-skills">
+                    <h3 style="color:white; margin-bottom:16px;">🤖 AI技能中心</h3>
+                    <div style="margin-bottom:16px;">
+                        <h4 style="color:#94a3b8; margin:0 0 12px 0; font-size:14px;">AI一键生成技能</h4>
+                        <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px;">
+                            <div style="display:grid; grid-template-columns:1fr 120px; gap:10px; margin-bottom:12px;">
+                                <select id="skill-type-select" class="setting-input" style="margin:0;">
+                                    <option value="data_analysis">数据分析技能</option>
+                                    <option value="code_execution">代码执行技能</option>
+                                    <option value="document_processing">文档处理技能</option>
+                                    <option value="financial_analysis">财务分析技能</option>
+                                </select>
+                                <button class="btn btn-primary" onclick="generateSkillFromPanel()">✨ AI生成</button>
+                            </div>
+                            <input type="text" id="skill-desc-input" class="setting-input" placeholder="描述你要创建的技能，例如：分析公司财务报表并计算关键指标" style="margin-bottom:8px;">
+                            <div id="skill-gen-result" style="display:none; margin-top:12px; padding:12px; background: rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); border-radius:8px;">
+                                <p style="color:#4ade80; margin:0 0 8px 0;">✅ 技能生成成功！</p>
+                                <div id="skill-gen-content" style="color:#94a3b8; font-size:13px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h4 style="color:#94a3b8; margin:0 0 12px 0; font-size:14px;">内置技能</h4>
+                    <div id="tidy-skill-list" style="display:grid; gap:8px;"></div>
+                </div>
+                
+                <!-- MCP工具面板 -->
+                <div class="settings-section" id="tidy-mcp">
+                    <h3 style="color:white; margin-bottom:16px;">🔌 MCP工具服务</h3>
+                    <div style="background: rgba(30,41,59,0.8); padding:16px; border-radius:10px; margin-bottom:16px;">
+                        <h4 style="color:white; margin:0 0 12px 0;">📦 可用MCP工具</h4>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px;">
+                            <div style="padding:12px; background: rgba(0,0,0,0.2); border-radius:8px;">
+                                <div style="font-size:24px; margin-bottom:6px;">💾</div>
+                                <h5 style="color:white; margin:0 0 4px 0; font-size:14px;">财务数据查询</h5>
+                                <p style="color:#64748b; margin:0; font-size:12px;">查询公司财务报表数据</p>
+                            </div>
+                            <div style="padding:12px; background: rgba(0,0,0,0.2); border-radius:8px;">
+                                <div style="font-size:24px; margin-bottom:6px;">🤖</div>
+                                <h5 style="color:white; margin:0 0 4px 0; font-size:14px;">技能生成器</h5>
+                                <p style="color:#64748b; margin:0; font-size:12px;">AI一键生成自定义技能</p>
+                            </div>
+                            <div style="padding:12px; background: rgba(0,0,0,0.2); border-radius:8px;">
+                                <div style="font-size:24px; margin-bottom:6px;">📚</div>
+                                <h5 style="color:white; margin:0 0 4px 0; font-size:14px;">知识库资源</h5>
+                                <p style="color:#64748b; margin:0; font-size:12px;">访问公司财务知识库</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align:center;">
+                        <button class="btn btn-primary" onclick="startMcpServer()">🚀 启动MCP服务器</button>
+                        <div id="mcp-status" style="color:#94a3b8; margin-top:10px; font-size:13px;"></div>
                     </div>
                 </div>
             </div>
