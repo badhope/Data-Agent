@@ -42,7 +42,7 @@ def check_file_structure():
     print_section("1. 文件结构检查")
     
     checks = [
-        ("web_app_refactored.py", "主应用文件"),
+        ("web_app.py", "主应用文件"),
         ("web/__init__.py", "Web模块初始化"),
         ("web/models.py", "数据模型"),
         ("web/storage.py", "存储模块"),
@@ -298,7 +298,7 @@ def test_fastapi_app():
     print_section("9. FastAPI应用测试")
     
     try:
-        from web_app_refactored import app
+        from web_app import app
         print_pass("FastAPI应用 - 导入正常")
         
         routes = [route.path for route in app.routes]

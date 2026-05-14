@@ -21,7 +21,7 @@ async def test_1_file_structure():
     print("-" * 70)
     
     required_files = [
-        "web_app_refactored.py",
+        "web_app.py",
         "web/mcp_standard_server.py",
         "web/skill_manager.py",
         "web/tidycup/__init__.py",
@@ -223,7 +223,7 @@ async def main():
         print(" " * 15 + "所有测试通过！系统已就绪！")
         print("🎉" * 20)
         print("\n📋 下一步:")
-        print("1. 启动应用: cd OpenManus && python -m uvicorn web_app_refactored:app")
+        print("1. 启动应用: cd OpenManus && python -m uvicorn web_app:app")
         print("2. 打开浏览器访问 http://localhost:8000")
         print("3. 点击侧边栏'泰迪杯竞赛'开始体验功能！")
         return 0

@@ -28,7 +28,7 @@ except:
 
 # 直接导入我们的应用
 print("🚀 导入应用...")
-from web_app_refactored import app
+from web_app import app
 
 if __name__ == "__main__":
     # 尝试用uvicorn启动，如果没有就用内置服务器
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         print("="*60)
         print("cd /workspace/OpenManus")
         print("pip install uvicorn")
-        print("python -m uvicorn web_app_refactored:app --host 0.0.0.0 --port 8000")
+        print("python -m uvicorn web_app:app --host 0.0.0.0 --port 8000")
         print("="*60)
         
         # 或者我们尝试用另一种方式
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         import sys
         
         sys.path.insert(0, str(Path(__file__).parent))
-        from web_app_refactored import app
+        from web_app import app
         
         print("\n✅ 应用已加载！")
         print("请使用以下方式之一：")
@@ -70,5 +70,5 @@ if __name__ == "__main__":
         # 最小方案：显示提示
         print("\n📋 快速提示：")
         print("前端文件在：web/templates/ 和 web/static/")
-        print("后端API在：web_app_refactored.py")
+        print("后端API在：web_app.py")
         print("泰迪杯功能在：web/tidycup/")

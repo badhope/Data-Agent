@@ -98,11 +98,11 @@ async def main():
     print("-" * 50)
     try:
         # 尝试导入主应用
-        import web_app_refactored
-        print("✅ web_app_refactored.py 导入成功")
+        import web_app
+        print("✅ web_app.py 导入成功")
         
         # 检查 app 对象存在
-        if hasattr(web_app_refactored, 'app'):
+        if hasattr(web_app, 'app'):
             print("  ✓ FastAPI app 实例存在")
         
         results["主应用"] = True
