@@ -174,6 +174,16 @@ class WebAgent:
     async def run(self, message: str):
         """运行 Agent 的主循环"""
         try:
+            # 检查 API Key 是否配置
+            api_key = self.settings.get("llm", {}).get("api_key", "")
+            if not api_key:
+                await self.send_error(
+                    "请先配置 API Key 才能使用 AI 对话功能。\n\n"
+                    "点击左上角 ☰ → 设置 → 填入 API Key → 保存设置\n\n"
+                    "支持 OpenAI、Anthropic、阿里云通义千问 等多种模型。"
+                )
+                return
+
             # 添加用户消息到历史
             self.messages.append({"role": "user", "content": message})
 

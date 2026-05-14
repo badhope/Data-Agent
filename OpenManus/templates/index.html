@@ -99,80 +99,49 @@ pre:hover .code-copy-btn { opacity: 1; }
         <!-- ==================== 侧边栏 ==================== -->
         <div class="sidebar closed" id="sidebar">
             <div class="sidebar-header">
-                <h2>🤖 DataAgent</h2>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <h2 style="margin: 0;">DataAgent</h2>
+                    <button class="new-chat-btn-sidebar" onclick="createNewConversation(); closeSidebar();" style="width: auto; padding: 6px 12px; margin-bottom: 0;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                </div>
             </div>
             <div class="sidebar-nav">
-
-                <!-- ====== 第一区：工作区 ====== -->
-                <div class="nav-section-label">工作区</div>
-                <div class="nav-item active" onclick="showMainChat(this)">
-                    <span class="nav-icon">💬</span>
-                    <div class="nav-text">
-                        <h4>对话</h4>
-                        <p>开始智能对话</p>
-                    </div>
-                </div>
-                <button class="new-conversation-btn" onclick="createNewConversation(); closeSidebar();">+ 新建对话</button>
-                <div class="conversation-list" id="conversation-list">
+                <!-- 历史对话列表 -->
+                <div class="conversation-list" id="conversation-list" style="max-height: none; flex: 1; overflow-y: auto;">
                     <div style="color: #94a3b8; text-align: center; padding: 20px;">还没有对话记录</div>
                 </div>
 
-                <!-- ====== 第二区：工具箱 ====== -->
-                <div class="nav-section-label">工具箱</div>
+                <!-- 功能入口（简洁列表） -->
+                <div class="nav-divider"></div>
                 <div class="nav-item" onclick="openModal('knowledge-modal'); closeSidebar();">
                     <span class="nav-icon">📚</span>
-                    <div class="nav-text">
-                        <h4>知识库</h4>
-                        <p>文档管理与检索</p>
-                    </div>
+                    <div class="nav-text"><h4>知识库</h4></div>
                 </div>
                 <div class="nav-item" onclick="openModal('database-modal'); closeSidebar();">
                     <span class="nav-icon">🗄️</span>
-                    <div class="nav-text">
-                        <h4>数据库</h4>
-                        <p>数据管理与SQL查询</p>
-                    </div>
+                    <div class="nav-text"><h4>数据库</h4></div>
                 </div>
-
-                <!-- ====== 第三区：扩展工具 ====== -->
-                <div class="nav-section-label">扩展工具</div>
                 <div class="nav-item" onclick="openModal('prompt-modal'); closeSidebar();">
                     <span class="nav-icon">💡</span>
-                    <div class="nav-text">
-                        <h4>技能系统</h4>
-                        <p>自定义技能与提示词</p>
-                    </div>
+                    <div class="nav-text"><h4>技能系统</h4></div>
                 </div>
                 <div class="nav-item" onclick="openModal('mcp-modal'); closeSidebar();">
                     <span class="nav-icon">🔌</span>
-                    <div class="nav-text">
-                        <h4>MCP工具</h4>
-                        <p>Model Context Protocol</p>
-                    </div>
+                    <div class="nav-text"><h4>MCP工具</h4></div>
                 </div>
                 <div class="nav-item" onclick="openModal('nl2sql-modal'); closeSidebar();">
                     <span class="nav-icon">🧠</span>
-                    <div class="nav-text">
-                        <h4>NL2SQL</h4>
-                        <p>自然语言转SQL</p>
-                    </div>
-                </div>
-
-                <!-- ====== 第四区：系统 ====== -->
-                <div class="nav-section-label">系统</div>
-                <div class="nav-item" onclick="openModal('settings-modal'); closeSidebar();">
-                    <span class="nav-icon">⚙️</span>
-                    <div class="nav-text">
-                        <h4>设置</h4>
-                        <p>模型与系统配置</p>
-                    </div>
+                    <div class="nav-text"><h4>NL2SQL</h4></div>
                 </div>
                 <div class="nav-item" onclick="openModal('help-modal'); closeSidebar();">
                     <span class="nav-icon">❓</span>
-                    <div class="nav-text">
-                        <h4>使用说明</h4>
-                        <p>帮助文档</p>
-                    </div>
+                    <div class="nav-text"><h4>使用说明</h4></div>
+                </div>
+                <div class="nav-divider"></div>
+                <div class="nav-item" onclick="openModal('settings-modal'); closeSidebar();">
+                    <span class="nav-icon">⚙️</span>
+                    <div class="nav-text"><h4>设置</h4></div>
                 </div>
             </div>
         </div>
@@ -202,16 +171,26 @@ pre:hover .code-copy-btn { opacity: 1; }
 
                 <!-- 欢迎页面 -->
                 <div class="welcome-page" id="welcome-page">
-                    <div class="welcome-message">
-                        <div class="welcome-avatar">🤖</div>
-                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-                            <span class="status-dot" id="ws-status"></span>
-                            <span id="ws-status-text" style="font-size: 12px; color: #64748b;"></span>
-                        </div>
-                        <div class="welcome-bubble">
-                            <p>你好！我是 DataAgent 智能助手。</p>
-                            <p>我可以帮你进行<strong>代码编写</strong>、<strong>数据分析</strong>、<strong>图表生成</strong>、<strong>文档处理</strong>等工作。</p>
-                            <p>试试在下方输入你的需求，或点击快捷指令快速开始 👇</p>
+                    <div class="welcome-center">
+                        <div class="welcome-logo">DA</div>
+                        <h2 class="welcome-title">有什么可以帮忙的？</h2>
+                        <div class="suggestion-grid">
+                            <button class="suggestion-card" onclick="insertCommand('帮我分析数据'); sendMessage();">
+                                <div style="font-size: 20px; margin-bottom: 6px;">📊</div>
+                                <div>帮我分析数据</div>
+                            </button>
+                            <button class="suggestion-card" onclick="insertCommand('生成一个图表'); sendMessage();">
+                                <div style="font-size: 20px; margin-bottom: 6px;">📈</div>
+                                <div>生成一个图表</div>
+                            </button>
+                            <button class="suggestion-card" onclick="insertCommand('写一段 Python 代码'); sendMessage();">
+                                <div style="font-size: 20px; margin-bottom: 6px;">💻</div>
+                                <div>写一段 Python 代码</div>
+                            </button>
+                            <button class="suggestion-card" onclick="insertCommand('解析一个文档'); sendMessage();">
+                                <div style="font-size: 20px; margin-bottom: 6px;">📄</div>
+                                <div>解析一个文档</div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -219,36 +198,20 @@ pre:hover .code-copy-btn { opacity: 1; }
             </div>
 
             <!-- ====== 输入区域 ====== -->
-            <div class="input-area">
+            <div class="input-area" id="input-area">
                 <div class="input-container">
-                    <div class="input-top-row">
+                    <!-- 文件预览区域 -->
+                    <div id="file-preview-list" class="file-preview-list"></div>
+                    <div class="input-main-row">
                         <div class="input-tools-compact">
                             <button class="tool-btn-compact" onclick="document.getElementById('file-input').click()" title="上传文件">📎</button>
-                            <button class="tool-btn-compact" onclick="document.getElementById('pdf-input').click()" title="PDF解析">📕</button>
                             <button class="tool-btn-compact" id="web-search-btn" onclick="toggleWebSearch()" title="联网搜索">🔍</button>
-                            <button class="tool-btn-compact" onclick="openModal('knowledge-modal')" title="知识库">📚</button>
-                            <button class="tool-btn-compact" onclick="openModal('nl2sql-modal')" title="NL2SQL">🧠</button>
-                            <button class="tool-btn-compact" onclick="openModal('prompt-modal')" title="技能">💡</button>
-                            <button class="tool-btn-compact" onclick="openModal('mcp-modal')" title="工具">🔌</button>
                         </div>
-                        <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx" style="display: none;" onchange="handleFileUpload(event)">
-                        <input type="file" id="pdf-input" accept=".pdf" style="display: none;" onchange="handlePdfUpload(event)">
-                    </div>
-                    <div class="input-main-row">
-                        <textarea class="input-box" id="input-box" placeholder="输入消息..." rows="1" oninput="autoResize(this); updateCharCount()"></textarea>
+                        <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx,.json,.py,.js" style="display: none;" onchange="handleFileUpload(event)">
+                        <textarea class="input-box" id="input-box" placeholder="给 DataAgent 发送消息" rows="1" oninput="autoResize(this); updateCharCount()"></textarea>
                         <button class="send-btn" id="send-btn" onclick="sendMessage()">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         </button>
-                    </div>
-                    <div class="input-bottom-row">
-                        <div class="quick-commands">
-                            <button class="quick-btn" onclick="insertCommand('帮我解析这个PDF文件，提取关键信息')">📕 解析PDF</button>
-                            <button class="quick-btn" onclick="insertCommand('帮我提取这段文本中的待办事项')">✅ 提取待办</button>
-                            <button class="quick-btn" onclick="insertCommand('帮我生成这段文本的摘要')">📝 文本摘要</button>
-                            <button class="quick-btn" onclick="insertCommand('帮我把这份数据生成一个可视化图表')">📈 数据图表</button>
-                            <button class="quick-btn" onclick="insertCommand('帮我格式化这段文本，中英文之间加空格')">✨ 文本格式化</button>
-                        </div>
-                        <span class="char-count" id="char-count"></span>
                     </div>
                 </div>
             </div>

@@ -382,12 +382,63 @@ function retryLastMessage() {
 function sendMessage() {
     const inputBox = document.getElementById('input-box');
     const content = inputBox.value.trim();
-    if (!content) {
+
+    if (!content && pendingFiles.length === 0) {
         showToast('请输入消息内容', 'warning');
         inputBox.focus();
         return;
     }
+
+    // 如果有待发送文件，先处理文件再合并发送
+    if (pendingFiles.length > 0) {
+        sendPendingFilesWithText(content);
+        return;
+    }
+
     sendMessageWithText(content);
+}
+
+async function sendPendingFilesWithText(userText) {
+    const textFiles = [];
+    const binaryFiles = [];
+
+    for (const file of pendingFiles) {
+        if (getFileType(file.name) === 'text') {
+            textFiles.push(file);
+        } else {
+            binaryFiles.push(file);
+        }
+    }
+
+    let fileParts = [];
+
+    // 读取文本文件内容
+    for (const file of textFiles) {
+        try {
+            const content = await readTextFile(file);
+            fileParts.push(`[文件: ${file.name} (${formatFileSize(file.size)})]\n\`\`\`\n${content}\n\`\`\``);
+        } catch (err) {
+            fileParts.push(`[文件: ${file.name}] 读取失败: ${err.message}`);
+        }
+    }
+
+    // 二进制文件只显示信息
+    for (const file of binaryFiles) {
+        fileParts.push(`[文件: ${file.name} (${formatFileSize(file.size)}, 类型: ${file.type || '未知'})]`);
+    }
+
+    pendingFiles = [];
+    renderFilePreviewList();
+
+    // 合并文件内容和用户文本
+    let fullMessage;
+    if (userText) {
+        fullMessage = fileParts.join('\n\n') + '\n\n' + userText;
+    } else {
+        fullMessage = fileParts.join('\n\n');
+    }
+
+    sendMessageWithText(fullMessage);
 }
 
 function toggleWebSearch() {
@@ -418,26 +469,32 @@ function finishProcessing() {
 
 function clearChat() {
     const chatArea = document.getElementById('chat-area');
-    // Remove all children except welcome-page
-    const welcomePage = document.getElementById('welcome-page');
-    chatArea.innerHTML = '';
-    if (welcomePage) {
-        chatArea.appendChild(welcomePage);
-    } else {
-        // Recreate welcome page if it was destroyed
-        chatArea.innerHTML = `
-            <div class="welcome-page" id="welcome-page">
-                <div class="welcome-message">
-                    <div class="welcome-avatar">\ud83e\udd16</div>
-                    <div class="welcome-bubble">
-                        <p>你好！我是 DataAgent 智能助手。</p>
-                        <p>我可以帮你进行<strong>代码编写</strong>、<strong>数据分析</strong>、<strong>图表生成</strong>、<strong>文档处理</strong>等工作。</p>
-                        <p>试试在下方输入你的需求，或点击快捷指令快速开始 👇</p>
-                    </div>
+    chatArea.innerHTML = `
+        <div class="welcome-page" id="welcome-page">
+            <div class="welcome-center">
+                <div class="welcome-logo">DA</div>
+                <h2 class="welcome-title">有什么可以帮忙的？</h2>
+                <div class="suggestion-grid">
+                    <button class="suggestion-card" onclick="insertCommand('帮我分析数据'); sendMessage();">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📊</div>
+                        <div>帮我分析数据</div>
+                    </button>
+                    <button class="suggestion-card" onclick="insertCommand('生成一个图表'); sendMessage();">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📈</div>
+                        <div>生成一个图表</div>
+                    </button>
+                    <button class="suggestion-card" onclick="insertCommand('写一段 Python 代码'); sendMessage();">
+                        <div style="font-size: 20px; margin-bottom: 6px;">💻</div>
+                        <div>写一段 Python 代码</div>
+                    </button>
+                    <button class="suggestion-card" onclick="insertCommand('解析一个文档'); sendMessage();">
+                        <div style="font-size: 20px; margin-bottom: 6px;">📄</div>
+                        <div>解析一个文档</div>
+                    </button>
                 </div>
             </div>
-        `;
-    }
+        </div>
+    `;
     showWelcomePage();
 }
 
@@ -573,12 +630,150 @@ document.addEventListener('click', function(e) {
 
 // ==================== 拖拽上传 ====================
 
+// 存储待上传的文件列表
+let pendingFiles = [];
+
+// 文本文件扩展名
+const TEXT_EXTENSIONS = ['.txt', '.md', '.csv', '.json', '.py', '.js', '.ts', '.html', '.css', '.xml', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.log', '.sh', '.bat', '.sql', '.r', '.java', '.c', '.cpp', '.h', '.go', '.rs', '.rb', '.php', '.swift', '.kt'];
+
+// 二进制文件图标映射
+const FILE_ICONS = {
+    '.pdf': '📕',
+    '.docx': '📘',
+    '.doc': '📘',
+    '.xlsx': '📗',
+    '.xls': '📗',
+    '.pptx': '📙',
+    '.ppt': '📙',
+    '.txt': '📄',
+    '.md': '📝',
+    '.csv': '📊',
+    '.json': '🔧',
+    '.py': '🐍',
+    '.js': '⚡',
+    '.ts': '🔷',
+    '.html': '🌐',
+    '.css': '🎨',
+};
+
+function getFileIcon(filename) {
+    const ext = '.' + filename.split('.').pop().toLowerCase();
+    return FILE_ICONS[ext] || '📎';
+}
+
+function getFileType(filename) {
+    const ext = '.' + filename.split('.').pop().toLowerCase();
+    return TEXT_EXTENSIONS.includes(ext) ? 'text' : 'binary';
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderFilePreviewList() {
+    const container = document.getElementById('file-preview-list');
+    if (!container) return;
+
+    if (pendingFiles.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = pendingFiles.map((file, index) => `
+        <div class="file-preview-card" data-index="${index}">
+            <span class="file-icon">${getFileIcon(file.name)}</span>
+            <div class="file-info">
+                <div class="file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
+                <div class="file-size">${formatFileSize(file.size)} · ${getFileType(file.name) === 'text' ? '文本文件' : '二进制文件'}</div>
+            </div>
+            <button class="file-remove" onclick="removePendingFile(${index})" title="移除">&times;</button>
+        </div>
+    `).join('');
+}
+
+function removePendingFile(index) {
+    pendingFiles.splice(index, 1);
+    renderFilePreviewList();
+}
+
+function addFilesToPending(files) {
+    for (const file of files) {
+        pendingFiles.push(file);
+    }
+    renderFilePreviewList();
+}
+
+async function readTextFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(new Error('文件读取失败'));
+        // 限制读取大小为 500KB，超过则截断
+        if (file.size > 500 * 1024) {
+            reader.readAsText(file.slice(0, 500 * 1024));
+        } else {
+            reader.readAsText(file);
+        }
+    });
+}
+
+async function sendPendingFiles() {
+    if (pendingFiles.length === 0) return;
+
+    const textFiles = [];
+    const binaryFiles = [];
+
+    for (const file of pendingFiles) {
+        if (getFileType(file.name) === 'text') {
+            textFiles.push(file);
+        } else {
+            binaryFiles.push(file);
+        }
+    }
+
+    let messageParts = [];
+
+    // 读取文本文件内容
+    for (const file of textFiles) {
+        try {
+            const content = await readTextFile(file);
+            messageParts.push(`[文件: ${file.name} (${formatFileSize(file.size)})]\n\`\`\`\n${content}\n\`\`\``);
+        } catch (err) {
+            messageParts.push(`[文件: ${file.name}] 读取失败: ${err.message}`);
+        }
+    }
+
+    // 二进制文件只显示信息
+    for (const file of binaryFiles) {
+        messageParts.push(`[文件: ${file.name} (${formatFileSize(file.size)}, 类型: ${file.type || '未知'})]`);
+    }
+
+    const fullMessage = messageParts.join('\n\n');
+    pendingFiles = [];
+    renderFilePreviewList();
+
+    // 发送消息
+    sendMessageWithText(fullMessage);
+}
+
+function handleFileUpload(event) {
+    const files = event.target.files;
+    if (files.length > 0) {
+        addFilesToPending(files);
+    }
+    event.target.value = '';
+}
+
 (function initDragDrop() {
     const chatArea = document.getElementById('chat-area');
+    const inputArea = document.getElementById('input-area');
     if (!chatArea) return;
 
     let dragCounter = 0;
 
+    // 聊天区域拖拽
     chatArea.addEventListener('dragenter', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -608,15 +803,47 @@ document.addEventListener('click', function(e) {
 
         const files = e.dataTransfer.files;
         if (files.length > 0) {
-            // Open knowledge modal and trigger upload
-            openModal('knowledge-modal');
-            setTimeout(() => {
-                if (typeof uploadFiles === 'function') {
-                    uploadFiles(files);
-                }
-            }, 300);
+            addFilesToPending(files);
         }
     });
+
+    // 输入区域拖拽
+    if (inputArea) {
+        let inputDragCounter = 0;
+
+        inputArea.addEventListener('dragenter', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            inputDragCounter++;
+            inputArea.classList.add('drag-over');
+        });
+
+        inputArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            inputDragCounter--;
+            if (inputDragCounter === 0) {
+                inputArea.classList.remove('drag-over');
+            }
+        });
+
+        inputArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        inputArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            inputDragCounter = 0;
+            inputArea.classList.remove('drag-over');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                addFilesToPending(files);
+            }
+        });
+    }
 })();
 
 // ==================== 初始化 ====================

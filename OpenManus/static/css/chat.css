@@ -1,4 +1,4 @@
-.chat-area { flex: 1; overflow-y: auto; padding: 24px; }
+.chat-area { flex: 1; overflow-y: auto; padding: 24px; position: relative; }
 
 /* 企业级消息动画 */
 .message {
