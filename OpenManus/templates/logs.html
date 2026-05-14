@@ -1,0 +1,519 @@
+# 日志查看器页面
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataAgent - 日志查看器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .stat-value.error {
+            color: #ef4444;
+        }
+
+        .stat-value.warning {
+            color: #f59e0b;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        select, button {
+            padding: 12px 20px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            border: none;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .log-files {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .log-file {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .log-file:hover {
+            border-color: #60a5fa;
+            transform: translateY(-2px);
+        }
+
+        .log-file.active {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        .log-file h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .log-file .meta {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .log-content {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background: rgba(30, 41, 59, 0.5);
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .log-entry:hover {
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .log-time {
+            color: #64748b;
+            white-space: nowrap;
+            min-width: 140px;
+        }
+
+        .log-level {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .level-info {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+        }
+
+        .level-debug {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .level-warning {
+            background: rgba(251, 191, 36, 0.2);
+            color: #f59e0b;
+        }
+
+        .level-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .level-success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .log-message {
+            flex: 1;
+            color: #e2e8f0;
+            word-break: break-word;
+        }
+
+        .log-source {
+            color: #a78bfa;
+            font-size: 12px;
+            min-width: 80px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+
+        .back-btn:hover {
+            border-color: #60a5fa;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-btn">← 返回主页</a>
+
+        <div class="header">
+            <h1>📋 日志查看器</h1>
+            <div>
+                <button onclick="refreshLogs()">🔄 刷新</button>
+                <button onclick="exportLogs()">📥 导出</button>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-label">日志文件数</div>
+                <div class="stat-value" id="total-files">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">总大小</div>
+                <div class="stat-value" id="total-size">0 KB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">最近错误</div>
+                <div class="stat-value error" id="error-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">最后更新</div>
+                <div class="stat-value" id="last-updated">--</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="搜索日志内容..." onkeyup="handleSearch(event)">
+            </div>
+            <select id="level-filter">
+                <option value="">全部级别</option>
+                <option value="INFO">INFO</option>
+                <option value="DEBUG">DEBUG</option>
+                <option value="WARNING">WARNING</option>
+                <option value="ERROR">ERROR</option>
+                <option value="SUCCESS">SUCCESS</option>
+            </select>
+            <select id="type-filter">
+                <option value="">全部类型</option>
+                <option value="system">系统日志</option>
+                <option value="operation">操作日志</option>
+                <option value="error">错误日志</option>
+                <option value="access">访问日志</option>
+                <option value="agent">Agent日志</option>
+            </select>
+            <button onclick="applyFilters()">应用筛选</button>
+        </div>
+
+        <h2 style="margin: 20px 0; font-size: 1.2rem;">日志文件</h2>
+        <div class="log-files" id="log-files">
+            <div class="empty-state">
+                <div class="icon">📂</div>
+                <p>暂无日志文件</p>
+                <p style="font-size: 0.9rem; margin-top: 8px;">日志文件将在系统运行后自动生成</p>
+            </div>
+        </div>
+
+        <h2 style="margin: 20px 0; font-size: 1.2rem;" id="content-title">日志内容</h2>
+        <div class="log-content" id="log-content">
+            <div class="empty-state">
+                <div class="icon">📄</div>
+                <p>选择一个日志文件查看内容</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFile = null;
+
+        async function loadLogStats() {
+            try {
+                const response = await fetch('/api/logs/stats');
+                const stats = await response.json();
+                
+                document.getElementById('total-files').textContent = stats.total_files || 0;
+                document.getElementById('total-size').textContent = formatSize(stats.total_size || 0);
+                document.getElementById('error-count').textContent = stats.recent_errors || 0;
+                document.getElementById('last-updated').textContent = stats.last_updated ? 
+                    new Date(stats.last_updated).toLocaleString('zh-CN') : '--';
+            } catch (error) {
+                console.error('加载日志统计失败:', error);
+            }
+        }
+
+        async function loadLogFiles() {
+            try {
+                const response = await fetch('/api/logs/files');
+                const files = await response.json();
+                
+                const container = document.getElementById('log-files');
+                
+                if (files.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">📂</div>
+                            <p>暂无日志文件</p>
+                            <p style="font-size: 0.9rem; margin-top: 8px;">日志文件将在系统运行后自动生成</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = files.map(file => `
+                    <div class="log-file ${currentFile === file.name ? 'active' : ''}" 
+                         onclick="selectFile('${file.name}')">
+                        <h3>📄 ${file.name}</h3>
+                        <div class="meta">
+                            <div>类型: ${file.type}</div>
+                            <div>大小: ${formatSize(file.size)}</div>
+                            <div>修改: ${new Date(file.modified).toLocaleString('zh-CN')}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载日志文件列表失败:', error);
+            }
+        }
+
+        async function selectFile(filename) {
+            currentFile = filename;
+            await loadLogFiles();
+            
+            try {
+                const response = await fetch(`/api/logs/content?filename=${encodeURIComponent(filename)}&lines=100`);
+                const entries = await response.json();
+                
+                displayLogEntries(entries);
+            } catch (error) {
+                console.error('加载日志内容失败:', error);
+            }
+        }
+
+        function displayLogEntries(entries) {
+            const container = document.getElementById('log-content');
+            
+            if (entries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📄</div>
+                        <p>日志文件为空</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = entries.map(entry => `
+                <div class="log-entry">
+                    <span class="log-time">${entry.time}</span>
+                    <span class="log-level level-${entry.level.toLowerCase()}">${entry.level}</span>
+                    <span class="log-source">${entry.source}</span>
+                    <span class="log-message">${escapeHtml(entry.message)}</span>
+                </div>
+            `).join('');
+        }
+
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                applyFilters();
+            }
+        }
+
+        async function applyFilters() {
+            const keyword = document.getElementById('search-input').value;
+            const level = document.getElementById('level-filter').value;
+            const type = document.getElementById('type-filter').value;
+            
+            if (!keyword && !level && !type) {
+                if (currentFile) {
+                    await selectFile(currentFile);
+                }
+                return;
+            }
+            
+            try {
+                const params = new URLSearchParams();
+                if (keyword) params.append('keyword', keyword);
+                if (level) params.append('level', level);
+                if (type) params.append('type', type);
+                
+                const response = await fetch(`/api/logs/search?${params}`);
+                const results = await response.json();
+                
+                displayLogEntries(results);
+            } catch (error) {
+                console.error('搜索失败:', error);
+            }
+        }
+
+        async function refreshLogs() {
+            await loadLogStats();
+            await loadLogFiles();
+            if (currentFile) {
+                await selectFile(currentFile);
+            }
+        }
+
+        function exportLogs() {
+            const content = document.getElementById('log-content').textContent;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `logs_export_${Date.now()}.txt`;
+            a.click();
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 初始加载
+        loadLogStats();
+        loadLogFiles();
+
+        // 每30秒自动刷新
+        setInterval(refreshLogs, 30000);
+    </script>
+</body>
+</html>
