@@ -10,6 +10,7 @@ workspace/
 
 # API Key config
 config/web_config.json
+config/config.toml
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
