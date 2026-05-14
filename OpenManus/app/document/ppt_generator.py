@@ -247,6 +247,8 @@ class PPTGenerator:
         import io
         buffer = io.BytesIO()
         try:
+            # 确保所有文本都是字符串类型
+            self._sanitize_text()
             self.presentation.save(buffer)
             buffer.seek(0)
             return buffer.getvalue()
@@ -254,6 +256,23 @@ class PPTGenerator:
             import logging
             logging.error(f"PPT get_bytes error: {e}")
             return b""
+
+    def _sanitize_text(self):
+        """清理所有幻灯片中的文本，确保编码正确"""
+        if not self.presentation:
+            return
+        
+        for slide in self.presentation.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text_frame"):
+                    for paragraph in shape.text_frame.paragraphs:
+                        for run in paragraph.runs:
+                            if run.text:
+                                # 确保文本是字符串
+                                run.text = str(run.text)
+                elif hasattr(shape, "text"):
+                    if shape.text:
+                        shape.text = str(shape.text)
 
     def get_slide_count(self) -> int:
         """获取幻灯片数量"""

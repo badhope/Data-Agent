@@ -209,11 +209,14 @@ async def generate_ppt(request: PPTContentRequest):
             template=request.template
         )
 
+        # 使用英文文件名避免编码问题
+        safe_filename = "presentation.pptx"
+        
         return StreamingResponse(
             iter([ppt_bytes]),
             media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             headers={
-                "Content-Disposition": f"attachment; filename={request.title}.pptx"
+                "Content-Disposition": f"attachment; filename={safe_filename}"
             }
         )
     except Exception as e:

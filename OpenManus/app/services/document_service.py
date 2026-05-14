@@ -78,12 +78,35 @@ class DocumentService:
         author: str = "DataAgent"
     ) -> str:
         """生成工作报告"""
+        # 转换参数格式：task -> title, description, 状态映射
+        status_mapping = {
+            '已完成': 'completed',
+            '进行中': 'in_progress',
+            '计划中': 'planned',
+            'completed': 'completed',
+            'in_progress': 'in_progress',
+            'planned': 'planned'
+        }
+        
+        converted_items = []
+        for item in work_items:
+            raw_status = item.get('status', 'completed')
+            converted_item = {
+                'title': item.get('task', item.get('title', '未命名任务')),
+                'description': item.get('description', item.get('task', '')),
+                'status': status_mapping.get(raw_status, 'completed'),
+                'category': item.get('category', 'general'),
+                'hours_spent': item.get('hours_spent'),
+                'tags': item.get('tags', [])
+            }
+            converted_items.append(converted_item)
+
         if report_type == "weekly":
-            return generate_weekly_report(work_items, author)
+            return generate_weekly_report(converted_items, author)
         elif report_type == "daily":
-            return generate_daily_report(work_items, author)
+            return generate_daily_report(converted_items, author)
         else:
-            return generate_weekly_report(work_items, author)
+            return generate_weekly_report(converted_items, author)
 
     async def extract_todos(self, text: str) -> Dict:
         """提取待办事项"""

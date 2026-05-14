@@ -5,9 +5,9 @@ class ToolError(Exception):
         self.message = message
 
 
-class DATA-AIError(Exception):
-    """Base exception for all DATA-AI errors"""
+class DataAIError(Exception):
+    """Base exception for all DataAI errors"""
 
 
-class TokenLimitExceeded(DATA-AIError):
+class TokenLimitExceeded(DataAIError):
     """Exception raised when the token limit is exceeded"""
