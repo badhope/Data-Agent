@@ -4,330 +4,415 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DATA-AI - 设置</title>
-    <link rel="stylesheet" href="/static/css/admin-unified.css">
     <style>
-        .settings-container {
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            color: #1f2937;
+            min-height: 100vh;
+        }
+        .container {
             display: flex;
-            height: 100vh;
+            min-height: 100vh;
         }
-        
-        .settings-nav {
-            width: 240px;
-            background: var(--bg-primary);
-            border-right: 1px solid var(--border);
-            padding: 24px 0;
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            flex-shrink: 0;
         }
-        
-        .settings-nav-item {
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .logo {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 24px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .back-btn {
+            margin-top: 12px;
+            padding: 10px 16px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             cursor: pointer;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
+            font-size: 14px;
+            width: 100%;
+            text-align: left;
         }
-        
-        .settings-nav-item:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
+        .back-btn:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
         }
-        
-        .settings-nav-item.active {
+        .nav {
+            padding: 12px;
+        }
+        .nav-group-title {
+            font-size: 12px;
+            color: #6b7280;
+            padding: 12px 8px 8px;
+            text-transform: uppercase;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            color: #4b5563;
+        }
+        .nav-item:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+        .nav-item.active {
             background: rgba(59, 130, 246, 0.1);
-            color: var(--primary);
-            border-left-color: var(--primary);
+            color: #3b82f6;
         }
-        
-        .settings-main {
+        .main {
             flex: 1;
             padding: 24px;
             overflow-y: auto;
         }
-        
-        .settings-section {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            margin-bottom: 20px;
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 24px;
         }
-        
-        .settings-section-title {
+        .section {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .section-title {
             font-size: 16px;
             font-weight: 600;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
         .provider-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 16px;
         }
-        
         .provider-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             padding: 16px;
             cursor: pointer;
             transition: all 0.2s;
         }
-        
         .provider-card:hover {
-            border-color: var(--primary);
+            border-color: #3b82f6;
             transform: translateY(-2px);
         }
-        
         .provider-card.configured {
-            border-color: var(--success);
+            border-color: #22c55e;
             background: rgba(34, 197, 94, 0.05);
         }
-        
         .provider-header {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 12px;
         }
-        
         .provider-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 22px;
         }
-        
         .provider-name {
             font-size: 15px;
             font-weight: 600;
         }
-        
         .provider-status {
             font-size: 12px;
-            color: var(--text-secondary);
+            color: #6b7280;
         }
-        
         .provider-models {
             font-size: 13px;
-            color: var(--text-muted);
+            color: #9ca3af;
         }
-        
-        .model-list {
-            max-height: 200px;
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
             overflow-y: auto;
+            padding: 24px;
         }
-        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .doc-link {
+            margin-left: auto;
+            color: #3b82f6;
+            text-decoration: none;
+        }
         .model-item {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 8px 12px;
-            background: var(--bg-primary);
-            border-radius: 6px;
-            margin-bottom: 6px;
+            align-items: center;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 8px;
         }
-        
         .model-item.default {
-            border: 1px solid var(--primary);
+            border: 1px solid #3b82f6;
         }
-        
-        .model-badge {
+        .model-name {
+            font-weight: 500;
+        }
+        .model-info {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .badge {
             font-size: 11px;
-            padding: 2px 6px;
-            background: var(--primary);
+            padding: 2px 8px;
+            background: #3b82f6;
             color: white;
             border-radius: 4px;
+        }
+        .hidden {
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: fixed;
+                transform: translateX(-100%);
+                z-index: 100;
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="settings-container">
-        <div class="settings-nav">
-            <div style="padding: 0 24px 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🤖</div>
-                    <span style="font-size: 18px; font-weight: 700;">DATA-AI</span>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">🤖</div>
+                    <span class="logo-text">DATA-AI</span>
                 </div>
+                <button class="back-btn" onclick="window.location.href='/'">← 返回主页</button>
             </div>
-            
-            <a href="/" style="text-decoration: none;">
-                <div class="settings-nav-item">
-                    <span>🏠</span>
-                    <span>返回主页</span>
+            <div class="nav">
+                <div class="nav-group-title">模型配置</div>
+                <div class="nav-item active" onclick="showPage('providers')">
+                    <span>🔌</span>
+                    <span>模型提供商</span>
                 </div>
-            </a>
-            
-            <div style="padding: 16px 24px 8px; font-size: 12px; color: var(--text-muted); text-transform: uppercase;">模型配置</div>
-            
-            <div class="settings-nav-item active" onclick="showSection('providers')">
-                <span>🔌</span>
-                <span>模型提供商</span>
-            </div>
-            
-            <div class="settings-nav-item" onclick="showSection('configured')">
-                <span>✅</span>
-                <span>已配置模型</span>
-            </div>
-            
-            <div style="padding: 16px 24px 8px; font-size: 12px; color: var(--text-muted); text-transform: uppercase;">通用设置</div>
-            
-            <div class="settings-nav-item" onclick="showSection('general')">
-                <span>⚙️</span>
-                <span>通用设置</span>
-            </div>
-            
-            <div class="settings-nav-item" onclick="showSection('appearance')">
-                <span>🎨</span>
-                <span>外观</span>
+                <div class="nav-item" onclick="showPage('configured')">
+                    <span>✅</span>
+                    <span>已配置模型</span>
+                </div>
+                <div class="nav-group-title">通用设置</div>
+                <div class="nav-item" onclick="showPage('general')">
+                    <span>⚙️</span>
+                    <span>通用设置</span>
+                </div>
+                <div class="nav-item" onclick="showPage('appearance')">
+                    <span>🎨</span>
+                    <span>外观</span>
+                </div>
             </div>
         </div>
-        
-        <div class="settings-main">
-            <div id="section-providers">
-                <h2 style="font-size: 20px; margin-bottom: 20px;">🔌 模型提供商</h2>
+        <div class="main">
+            <div id="page-providers">
+                <h1 class="page-title">🔌 模型提供商</h1>
                 
-                <div class="settings-section">
-                    <div class="settings-section-title">
-                        <span>🇨🇳</span>
-                        <span>国内厂商</span>
-                    </div>
+                <div class="section">
+                    <div class="section-title">🇨🇳 国内厂商</div>
                     <div class="provider-grid" id="domestic-providers"></div>
                 </div>
                 
-                <div class="settings-section">
-                    <div class="settings-section-title">
-                        <span>🌍</span>
-                        <span>国外厂商</span>
-                    </div>
+                <div class="section">
+                    <div class="section-title">🌍 国外厂商</div>
                     <div class="provider-grid" id="international-providers"></div>
                 </div>
                 
-                <div class="settings-section">
-                    <div class="settings-section-title">
-                        <span>🏠</span>
-                        <span>本地模型</span>
-                    </div>
+                <div class="section">
+                    <div class="section-title">🏠 本地模型</div>
                     <div class="provider-grid" id="local-providers"></div>
                 </div>
             </div>
             
-            <div id="section-configured" style="display: none;">
-                <h2 style="font-size: 20px; margin-bottom: 20px;">✅ 已配置模型</h2>
+            <div id="page-configured" class="hidden">
+                <h1 class="page-title">✅ 已配置模型</h1>
                 <div id="configured-models"></div>
             </div>
             
-            <div id="section-general" style="display: none;">
-                <h2 style="font-size: 20px; margin-bottom: 20px;">⚙️ 通用设置</h2>
-                <div class="settings-section">
-                    <div class="settings-section">
-                        <div class="settings-section-title">💬 对话设置</div>
-                        <div class="form-group">
-                            <label class="form-label">默认模型</label>
-                            <select class="form-select" id="default-model">
-                                <option value="">请先配置模型</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Temperature</label>
-                            <input type="range" class="form-input" id="default-temperature" min="0" max="2" step="0.1" value="0.7">
-                            <span id="temp-value">0.7</span>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">最大回复长度</label>
-                            <input type="number" class="form-input" value="4096">
-                        </div>
+            <div id="page-general" class="hidden">
+                <h1 class="page-title">⚙️ 通用设置</h1>
+                <div class="section">
+                    <div class="form-group">
+                        <label class="form-label">默认模型</label>
+                        <select class="form-select" id="default-model">
+                            <option value="">请先配置模型</option>
+                        </select>
                     </div>
                 </div>
             </div>
             
-            <div id="section-appearance" style="display: none;">
-                <h2 style="font-size: 20px; margin-bottom: 20px;">🎨 外观设置</h2>
-                <div class="settings-section">
-                    <div class="form-group">
-                        <label class="form-label">主题</label>
-                        <div style="display: flex; gap: 12px;">
-                            <div class="provider-card configured" onclick="setTheme('light')" style="cursor: pointer; flex: 1; text-align: center;">
-                                <div style="font-size: 24px; margin-bottom: 8px;">☀️</div>
-                                <div>浅色</div>
-                            </div>
-                            <div class="provider-card" onclick="setTheme('dark')" style="cursor: pointer; flex: 1; text-align: center;">
-                                <div style="font-size: 24px; margin-bottom: 8px;">🌙</div>
-                                <div>深色</div>
-                            </div>
-                        </div>
-                    </div>
+            <div id="page-appearance" class="hidden">
+                <h1 class="page-title">🎨 外观设置</h1>
+                <div class="section">
+                    <p>暂未实现</p>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- 配置模态框 -->
-    <div id="config-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: var(--bg-primary); border-radius: 16px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div class="modal" id="config-modal">
+        <div class="modal-content">
+            <div class="modal-header">
                 <h3 id="modal-title">配置模型</h3>
-                <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+                <button class="close-btn" onclick="closeModal()">×</button>
             </div>
-            
             <div id="modal-content"></div>
         </div>
     </div>
     
     <script>
-        // 提供商数据
         const providers = {
             domestic: [
-                { id: 'baidu_wenxin', name: '百度文心一言', icon: '🌐', models: ['ernie-4.0-8k', 'ernie-3.5-8k', 'ernie-speed-8k', 'ernie-lite-8k'], doc: 'https://cloud.baidu.com/doc/WENXINWORKSHOP/s/hf1uw2kav' },
-                { id: 'aliyun_qwen', name: '阿里云通义千问', icon: '☁️', models: ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-long'], doc: 'https://help.aliyun.com/zh/dashscope/' },
-                { id: 'tencent_hunyuan', name: '腾讯混元', icon: '🐧', models: ['hunyuan', 'hunyuan-pro', 'hunyuan-standard', 'hunyuan-lite'], doc: 'https://cloud.tencent.com/document/product/1729' },
-                { id: 'bytedance_doubao', name: '字节豆包', icon: '🎵', models: ['doubao-pro-32k', 'doubao-pro-128k', 'doubao-lite-32k'], doc: 'https://www.volcengine.com/docs/82379/1399008' },
-                { id: 'zhipu_glm', name: '智谱 GLM', icon: '🧠', models: ['glm-4-plus', 'glm-4', 'glm-4-flash', 'glm-3-turbo'], doc: 'https://open.bigmodel.cn/doc/api' },
-                { id: 'moonshot_kimi', name: '月之暗面 Kimi', icon: '🌙', models: ['moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k'], doc: 'https://platform.moonshot.cn/docs' },
-                { id: 'iflytek_spark', name: '讯飞星火', icon: '✨', models: ['Spark4.0 Ultra', 'Spark4.0', 'Spark3.5 Ultra'], doc: 'https://www.xfyun.cn/doc/tts/online_quickstart/API.html' },
-                { id: 'deepseek', name: '深度求索 DeepSeek', icon: '🔍', models: ['deepseek-chat', 'deepseek-coder', 'deepseek-chat-v2'], doc: 'https://platform.deepseek.com/docs' },
+                { id: 'baidu_wenxin', name: '百度文心一言', icon: '🌐', models: ['ernie-4.0-8k', 'ernie-3.5-8k', 'ernie-speed-8k'], doc: 'https://cloud.baidu.com/doc/WENXINWORKSHOP/s/hf1uw2kav' },
+                { id: 'aliyun_qwen', name: '阿里云通义千问', icon: '☁️', models: ['qwen-max', 'qwen-plus', 'qwen-turbo'], doc: 'https://help.aliyun.com/zh/dashscope/' },
+                { id: 'tencent_hunyuan', name: '腾讯混元', icon: '🐧', models: ['hunyuan', 'hunyuan-pro', 'hunyuan-standard'], doc: 'https://cloud.tencent.com/document/product/1729' },
+                { id: 'bytedance_doubao', name: '字节豆包', icon: '🎵', models: ['doubao-pro-32k', 'doubao-lite-32k'], doc: 'https://www.volcengine.com/docs/82379/1399008' },
+                { id: 'zhipu_glm', name: '智谱 GLM', icon: '🧠', models: ['glm-4-plus', 'glm-4', 'glm-3-turbo'], doc: 'https://open.bigmodel.cn/doc/api' },
+                { id: 'moonshot_kimi', name: '月之暗面 Kimi', icon: '🌙', models: ['moonshot-v1-128k', 'moonshot-v1-32k'], doc: 'https://platform.moonshot.cn/docs' },
+                { id: 'deepseek', name: '深度求索 DeepSeek', icon: '🔍', models: ['deepseek-chat', 'deepseek-coder'], doc: 'https://platform.deepseek.com/docs' },
             ],
             international: [
-                { id: 'openai', name: 'OpenAI', icon: '🤖', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'], doc: 'https://platform.openai.com/docs' },
-                { id: 'anthropic', name: 'Anthropic Claude', icon: '🧬', models: ['claude-3-5-sonnet-20241022', 'claude-3-5-sonnet-latest', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229'], doc: 'https://docs.anthropic.com/claude/reference' },
-                { id: 'google_gemini', name: 'Google Gemini', icon: '💎', models: ['gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'], doc: 'https://ai.google.dev/docs' },
-                { id: 'cohere', name: 'Cohere', icon: '🌊', models: ['command-r-plus', 'command-r', 'command', 'command-light'], doc: 'https://docs.cohere.com/docs' },
-                { id: 'mistral', name: 'Mistral AI', icon: '🌬️', models: ['mistral-large-latest', 'mistral-small-latest', 'mistral-nemo', 'mixtral-8x22b-instruct'], doc: 'https://docs.mistral.ai/' },
+                { id: 'openai', name: 'OpenAI', icon: '🤖', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'], doc: 'https://platform.openai.com/docs' },
+                { id: 'anthropic', name: 'Anthropic Claude', icon: '🧬', models: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229'], doc: 'https://docs.anthropic.com/claude/reference' },
+                { id: 'google_gemini', name: 'Google Gemini', icon: '💎', models: ['gemini-2.0-flash-exp', 'gemini-1.5-pro'], doc: 'https://ai.google.dev/docs' },
             ],
             local: [
-                { id: 'ollama', name: 'Ollama 本地模型', icon: '🏠', models: ['llama3.1:8b', 'llama3.1:70b', 'qwen2.5:7b', 'qwen2.5:14b', 'deepseek-coder-v2:16b', 'codellama:7b', 'mistral:7b', 'gemma2:9b'], doc: 'https://github.com/ollama/ollama' },
+                { id: 'ollama', name: 'Ollama 本地模型', icon: '🏠', models: ['llama3.1:8b', 'qwen2.5:7b', 'deepseek-coder-v2:16b'], doc: 'https://github.com/ollama/ollama' },
             ]
         };
         
-        // 已配置模型
         let configuredModels = JSON.parse(localStorage.getItem('configuredModels') || '[]');
         
-        // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            renderProviders();
+            renderAllProviders();
             renderConfiguredModels();
         });
         
-        // 渲染提供商
-        function renderProviders() {
-            const domestic = document.getElementById('domestic-providers');
-            const international = document.getElementById('international-providers');
-            const local = document.getElementById('local-providers');
-            
-            domestic.innerHTML = providers.domestic.map(p => createProviderCard(p)).join('');
-            international.innerHTML = providers.international.map(p => createProviderCard(p)).join('');
-            local.innerHTML = providers.local.map(p => createProviderCard(p)).join('');
+        function renderAllProviders() {
+            document.getElementById('domestic-providers').innerHTML = 
+                providers.domestic.map(p => createCard(p)).join('');
+            document.getElementById('international-providers').innerHTML = 
+                providers.international.map(p => createCard(p)).join('');
+            document.getElementById('local-providers').innerHTML = 
+                providers.local.map(p => createCard(p)).join('');
         }
         
-        function createProviderCard(provider) {
+        function createCard(provider) {
             const isConfigured = configuredModels.some(m => m.provider === provider.id);
             return `
                 <div class="provider-card ${isConfigured ? 'configured' : ''}" onclick="openConfig('${provider.id}')">
@@ -338,39 +423,33 @@
                             <div class="provider-status">${isConfigured ? '✅ 已配置' : '未配置'}</div>
                         </div>
                     </div>
-                    <div class="provider-models">${provider.models.length} 个模型可用</div>
+                    <div class="provider-models">${provider.models.length} 个模型</div>
                 </div>
             `;
         }
         
-        // 渲染已配置模型
         function renderConfiguredModels() {
             const container = document.getElementById('configured-models');
             if (configuredModels.length === 0) {
                 container.innerHTML = `
-                    <div class="settings-section">
-                        <div class="empty-state">
-                            <div class="empty-icon">🔌</div>
-                            <div class="empty-title">暂无配置</div>
-                            <div class="empty-desc">从上方选择一个提供商进行配置</div>
-                        </div>
+                    <div class="section">
+                        <p style="text-align: center; color: #6b7280;">暂无配置</p>
                     </div>
                 `;
                 return;
             }
-            
             container.innerHTML = `
-                <div class="settings-section">
+                <div class="section">
                     ${configuredModels.map(m => `
-                        <div class="model-item ${m.isDefault ? 'default' : ''}" style="margin-bottom: 12px;">
+                        <div class="model-item ${m.isDefault ? 'default' : ''}">
                             <div>
-                                <div style="font-weight: 600;">${m.name}</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">${m.provider} · ${m.model}</div>
+                                <div class="model-name">${m.name}</div>
+                                <div class="model-info">${m.provider} · ${m.model}</div>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                ${m.isDefault ? '<span class="model-badge">默认</span>' : ''}
+                            <div style="display: flex; gap: 8px;">
+                                ${m.isDefault ? '<span class="badge">默认</span>' : ''}
                                 <button class="btn" onclick="setDefault('${m.id}')">设为默认</button>
-                                <button class="btn" onclick="removeModel('${m.id}')" style="color: var(--danger);">删除</button>
+                                <button class="btn" onclick="removeModel('${m.id}')" style="color: #ef4444;">删除</button>
                             </div>
                         </div>
                     `).join('')}
@@ -378,49 +457,30 @@
             `;
         }
         
-        // 打开配置
+        function showPage(page) {
+            document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`page-${page}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.target.closest('.nav-item')?.classList.add('active');
+        }
+        
         function openConfig(providerId) {
-            const provider = [...providers.domestic, ...providers.international, ...providers.local].find(p => p.id === providerId);
+            const all = [...providers.domestic, ...providers.international, ...providers.local];
+            const provider = all.find(p => p.id === providerId);
             if (!provider) return;
             
             document.getElementById('modal-title').textContent = `配置 ${provider.name}`;
             
-            let extraFields = '';
-            if (providerId === 'baidu_wenxin') {
-                extraFields = `
-                    <div class="form-group">
-                        <label class="form-label">API Key</label>
-                        <input type="password" class="form-input" id="api-key" placeholder="输入 API Key">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Secret Key</label>
-                        <input type="password" class="form-input" id="secret-key" placeholder="输入 Secret Key">
-                    </div>
-                `;
-            } else if (providerId === 'ollama') {
-                extraFields = `
+            let extra = '';
+            if (providerId === 'ollama') {
+                extra = `
                     <div class="form-group">
                         <label class="form-label">Ollama 地址</label>
                         <input type="text" class="form-input" id="base-url" value="http://localhost:11434/v1">
                     </div>
                 `;
-            } else if (providerId === 'iflytek_spark') {
-                extraFields = `
-                    <div class="form-group">
-                        <label class="form-label">APP ID</label>
-                        <input type="text" class="form-input" id="app-id" placeholder="输入 APP ID">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">API Key</label>
-                        <input type="password" class="form-input" id="api-key" placeholder="输入 API Key">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">API Secret</label>
-                        <input type="password" class="form-input" id="api-secret" placeholder="输入 API Secret">
-                    </div>
-                `;
             } else {
-                extraFields = `
+                extra = `
                     <div class="form-group">
                         <label class="form-label">API Key</label>
                         <input type="password" class="form-input" id="api-key" placeholder="输入 API Key">
@@ -435,54 +495,42 @@
             document.getElementById('modal-content').innerHTML = `
                 <div class="form-group">
                     <label class="form-label">配置名称</label>
-                    <input type="text" class="form-input" id="config-name" value="${provider.name}" placeholder="给这个配置起个名字">
+                    <input type="text" class="form-input" id="config-name" value="${provider.name}">
                 </div>
-                
                 <div class="form-group">
                     <label class="form-label">选择模型</label>
                     <select class="form-select" id="selected-model">
                         ${provider.models.map(m => `<option value="${m}">${m}</option>`).join('')}
                     </select>
                 </div>
-                
-                ${extraFields}
-                
+                ${extra}
                 <div class="form-group">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                         <input type="checkbox" id="is-default">
                         <span>设为默认模型</span>
                     </label>
                 </div>
-                
-                <div style="margin-top: 20px; display: flex; gap: 12px;">
+                <div class="btn-row">
                     <button class="btn btn-primary" onclick="saveConfig('${providerId}')">💾 保存</button>
                     <button class="btn" onclick="closeModal()">取消</button>
-                    <a href="${provider.doc}" target="_blank" class="btn" style="margin-left: auto;">📖 查看文档</a>
+                    <a href="${provider.doc}" target="_blank" class="doc-link">📖 查看文档</a>
                 </div>
             `;
-            
-            document.getElementById('config-modal').style.display = 'flex';
+            document.getElementById('config-modal').classList.add('show');
         }
         
-        // 保存配置
         function saveConfig(providerId) {
-            const name = document.getElementById('config-name').value;
-            const model = document.getElementById('selected-model').value;
-            const apiKey = document.getElementById('api-key')?.value || '';
-            const baseUrl = document.getElementById('base-url')?.value || '';
-            const isDefault = document.getElementById('is-default')?.checked || false;
-            
             const newModel = {
                 id: Date.now().toString(),
-                name: name,
+                name: document.getElementById('config-name').value,
                 provider: providerId,
-                model: model,
-                apiKey: apiKey,
-                baseUrl: baseUrl,
-                isDefault: isDefault
+                model: document.getElementById('selected-model').value,
+                apiKey: document.getElementById('api-key')?.value || '',
+                baseUrl: document.getElementById('base-url')?.value || '',
+                isDefault: document.getElementById('is-default')?.checked || false
             };
             
-            if (isDefault) {
+            if (newModel.isDefault) {
                 configuredModels.forEach(m => m.isDefault = false);
             }
             
@@ -490,47 +538,33 @@
             localStorage.setItem('configuredModels', JSON.stringify(configuredModels));
             
             closeModal();
-            renderProviders();
+            renderAllProviders();
             renderConfiguredModels();
-            
             alert('✅ 配置已保存！');
         }
         
-        // 关闭模态框
         function closeModal() {
-            document.getElementById('config-modal').style.display = 'none';
+            document.getElementById('config-modal').classList.remove('show');
         }
         
-        // 设置默认
         function setDefault(id) {
             configuredModels.forEach(m => m.isDefault = m.id === id);
             localStorage.setItem('configuredModels', JSON.stringify(configuredModels));
             renderConfiguredModels();
+            renderAllProviders();
         }
         
-        // 删除模型
         function removeModel(id) {
             if (!confirm('确定要删除这个配置吗？')) return;
             configuredModels = configuredModels.filter(m => m.id !== id);
             localStorage.setItem('configuredModels', JSON.stringify(configuredModels));
-            renderProviders();
+            renderAllProviders();
             renderConfiguredModels();
         }
         
-        // 显示区块
-        function showSection(section) {
-            document.querySelectorAll('[id^="section-"]').forEach(el => el.style.display = 'none');
-            document.getElementById(`section-${section}`).style.display = 'block';
-            
-            document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
-            event.target.closest('.settings-nav-item')?.classList.add('active');
-        }
-        
-        // 主题切换
-        function setTheme(theme) {
-            document.body.classList.toggle('dark', theme === 'dark');
-            localStorage.setItem('theme', theme);
-        }
+        document.getElementById('config-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'config-modal') closeModal();
+        });
     </script>
 </body>
 </html>
