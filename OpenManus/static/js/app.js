@@ -1170,8 +1170,8 @@ async function generateWeeklyReport() {
     }
 }
 
-// 快速润色 - 输入框右侧按钮调用
-async function quickPolish() {
+// 快速润色 - 输入框右侧按钮调用（弹出风格选择面板）
+function quickPolish() {
     const inputBox = document.getElementById('input-box');
     const text = inputBox.value.trim();
 
@@ -1180,7 +1180,91 @@ async function quickPolish() {
         return;
     }
 
-    showToast('正在润色文本...', 'info');
+    // 移除已有的风格选择面板
+    const existingPanel = document.getElementById('polish-style-panel');
+    if (existingPanel) {
+        existingPanel.remove();
+        return;
+    }
+
+    // 创建风格选择面板
+    const panel = document.createElement('div');
+    panel.id = 'polish-style-panel';
+    panel.style.cssText = `
+        position: absolute;
+        bottom: 100%;
+        right: 0;
+        margin-bottom: 8px;
+        background: #1e293b;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 8px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        z-index: 1000;
+        min-width: 180px;
+    `;
+
+    const styles = [
+        { key: 'academic', label: '学术', icon: '\uD83D\uDCDA', desc: '严谨学术风格' },
+        { key: 'formal', label: '正式', icon: '\uD83D\uDCBC', desc: '商务正式风格' },
+        { key: 'concise', label: '简洁', icon: '\u2702\uFE0F', desc: '精炼简洁风格' },
+        { key: 'casual', label: '轻松', icon: '\u2615', desc: '自然轻松风格' }
+    ];
+
+    panel.innerHTML = `
+        <div style="color: #94a3b8; font-size: 11px; padding: 4px 8px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px;">选择润色风格</div>
+        ${styles.map(s => `
+            <button onclick="executePolish('${s.key}')" style="
+                display: flex; align-items: center; gap: 10px; width: 100%;
+                padding: 8px 10px; background: none; border: none; border-radius: 8px;
+                color: #e2e8f0; cursor: pointer; font-size: 13px; text-align: left;
+                transition: background 0.15s;
+            " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='none'">
+                <span style="font-size: 16px; width: 24px; text-align: center;">${s.icon}</span>
+                <div>
+                    <div style="font-weight: 500; line-height: 1.2;">${s.label}</div>
+                    <div style="font-size: 11px; color: #64748b; line-height: 1.2;">${s.desc}</div>
+                </div>
+            </button>
+        `).join('')}
+    `;
+
+    // 定位到润色按钮附近
+    const polishBtn = document.querySelector('.polish-btn');
+    const inputArea = document.getElementById('input-area');
+    if (polishBtn && inputArea) {
+        inputArea.style.position = 'relative';
+        inputArea.appendChild(panel);
+    }
+
+    // 点击其他区域关闭面板
+    setTimeout(() => {
+        document.addEventListener('click', function closePanel(e) {
+            if (!panel.contains(e.target) && !polishBtn.contains(e.target)) {
+                panel.remove();
+                document.removeEventListener('click', closePanel);
+            }
+        });
+    }, 10);
+}
+
+// 执行润色（指定风格）
+async function executePolish(style) {
+    // 移除风格选择面板
+    const panel = document.getElementById('polish-style-panel');
+    if (panel) panel.remove();
+
+    const inputBox = document.getElementById('input-box');
+    const text = inputBox.value.trim();
+
+    const styleLabels = {
+        'academic': '学术',
+        'formal': '正式',
+        'concise': '简洁',
+        'casual': '轻松'
+    };
+
+    showToast(`正在以「${styleLabels[style] || style}」风格润色文本...`, 'info');
 
     try {
         const response = await fetch('/documents/polish', {
@@ -1188,7 +1272,7 @@ async function quickPolish() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: text,
-                style: 'academic',
+                style: style,
                 language: 'auto'
             })
         });
@@ -1209,7 +1293,7 @@ async function quickPolish() {
         autoResize(inputBox);
         updateCharCount();
 
-        showToast('文本润色完成', 'success');
+        showToast(`文本润色完成（${styleLabels[style] || style}风格）`, 'success');
     } catch (error) {
         console.error('文本润色错误:', error);
         showToast('文本润色失败: ' + error.message, 'error');
