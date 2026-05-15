@@ -1,0 +1,49 @@
+@import './variables.css';
+@import './base.css';
+@import './layout.css';
+@import './chat.css';
+@import './thinking.css';
+@import './input.css';
+@import './modal.css';
+
+.app-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrapper {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 100;
+        transform: translateX(-100%);
+        transition: var(--transition);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar.closed {
+        width: var(--sidebar-width);
+    }
+}
+
+@media (max-width: 480px) {
+    .suggestion-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .message-content {
+        max-width: 85%;
+    }
+}

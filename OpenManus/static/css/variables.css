@@ -1,82 +1,49 @@
-/* ==================== 企业级设计系统 ==================== */
 :root {
-    /* 主色调 */
-    --bg-primary: #0a0f1c;
-    --bg-secondary: #111827;
-    --bg-tertiary: #1f2937;
-    --bg-elevated: #374151;
-
-    /* 强调色 */
-    --accent-primary: #3b82f6;
-    --accent-secondary: #60a5fa;
-    --accent-success: #10b981;
-    --accent-warning: #f59e0b;
-    --accent-error: #ef4444;
-
-    /* 文字色 */
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --text-tertiary: #9ca3af;
-    --text-muted: #6b7280;
-
-    /* 边框和分隔 */
-    --border-subtle: rgba(255,255,255,0.1);
-    --border-default: rgba(255,255,255,0.2);
-
-    /* 阴影 */
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
-    --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
-    --shadow-glow: 0 0 20px rgba(59,130,246,0.3);
-
-    /* 动画 */
-    --transition-fast: 150ms ease;
-    --transition-normal: 250ms ease;
-    --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --secondary: #6b7280;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #06b6d4;
+    
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-hover: #475569;
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    
+    --border: rgba(255, 255, 255, 0.1);
+    --border-hover: rgba(255, 255, 255, 0.2);
+    
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+    
+    --transition: all 0.2s ease;
+    
+    --sidebar-width: 280px;
+    --header-height: 60px;
 }
 
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-@keyframes messageSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.98);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
-@keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes thinkingPulse {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-    }
-    50% {
-        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
-    }
-}
-
-@keyframes typingDot {
-    0%, 80%, 100% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-    40% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-@keyframes rippleEffect {
-    to {
-        transform: scale(4);
-        opacity: 0;
-    }
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
 }

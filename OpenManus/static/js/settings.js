@@ -132,8 +132,8 @@ function resetSettings() {
     document.getElementById('setting-provider').value = 'aliyun';
     document.getElementById('setting-model').value = 'qwen-plus-latest';
     document.getElementById('setting-base-url').value = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-    document.getElementById('setting-api-key').value = '';
-    document.getElementById('setting-max-tokens').value = '4096';
+    document.getElementById('setting-api-key').value = 'sk-eae25c29cf9c4607b7241c979e15876d';
+    document.getElementById('setting-max-tokens').value = '8192';
     document.getElementById('setting-temperature').value = '0.7';
     document.getElementById('setting-context-rounds').value = '10';
     document.getElementById('setting-system-prompt').value = '';

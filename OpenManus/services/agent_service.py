@@ -126,6 +126,16 @@ class WebAgent:
                 output = result["stdout"]
                 if result["stderr"]:
                     output += f"\n[警告] {result['stderr']}"
+                
+                images = result.get("images", [])
+                if images:
+                    await self.websocket.send_json({
+                        "type": "code_result",
+                        "content": f"执行成功。输出:\n{output}" if output else "执行成功，无输出。",
+                        "images": images
+                    })
+                    return ""
+                
                 return f"执行成功。输出:\n{output}" if output else "执行成功，无输出。"
             else:
                 return f"执行失败: {result.get('error', '未知错误')}"
@@ -385,7 +395,9 @@ class WebAgent:
 
 
 # 保持向后兼容的函数接口
-async def run_universal_agent(websocket: WebSocket, message: str, options: dict = None):
+async def run_universal_agent(websocket: WebSocket, message: str, settings: dict = None, options: dict = None):
     """运行通用 Agent（增强版 ReAct 模式）"""
-    agent = WebAgent(websocket, current_settings.model_dump())
+    if settings is None:
+        settings = current_settings.model_dump()
+    agent = WebAgent(websocket, settings)
     await agent.run(message)

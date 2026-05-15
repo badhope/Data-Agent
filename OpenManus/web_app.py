@@ -18,6 +18,9 @@ from fastapi.staticfiles import StaticFiles
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
+# 导入润色处理函数
+from services.polish_service import handle_polish_request
+
 # 初始化数据库
 from database import init_all
 init_all()
@@ -52,9 +55,35 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
+            message_type = data.get("type", "message")
             message = data.get("content", "")
             options = data.get("options", {})
             files = data.get("files", [])
+            client_settings = data.get("settings", {})
+
+            # 构建配置对象
+            settings = {
+                "llm": {
+                    "provider": client_settings.get("provider", "aliyun"),
+                    "api_key": client_settings.get("apiKey", client_settings.get("api_key", "sk-eae25c29cf9c4607b7241c979e15876d")),
+                    "base_url": client_settings.get("apiUrl", client_settings.get("api_url", "https://dashscope.aliyuncs.com/compatible-mode/v1")),
+                    "model": client_settings.get("model", "qwen-plus-latest"),
+                    "temperature": client_settings.get("temperature", 0.7),
+                    "max_tokens": client_settings.get("maxTokens", client_settings.get("max_tokens", 8192)),
+                    "top_p": 0.9
+                },
+                "sandbox": {
+                    "enabled": True,
+                    "timeout": 60
+                }
+            }
+
+            # 处理润色请求
+            if message_type == "polish":
+                text = data.get("content", "")
+                style = data.get("style", "academic")
+                await handle_polish_request(text, style, websocket, settings)
+                continue
 
             # 输入验证
             validation = validate_message(message)
@@ -73,13 +102,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     })
 
             # 意图识别：检查是否匹配特定功能
-            intent_result = await route_intent(message, files, websocket)
+            intent_result = await route_intent(message, files, websocket, settings)
             if intent_result:
                 # 已由意图路由处理，跳过通用Agent
                 continue
 
             # 通用Agent处理
-            await run_universal_agent(websocket, message, options=options)
+            await run_universal_agent(websocket, message, settings=settings, options=options)
     except WebSocketDisconnect:
         pass
     except Exception as e:
@@ -121,6 +150,48 @@ app.include_router(logs_router)
 async def health_check():
     return {"status": "ok", "service": "DataAgent"}
 
+@app.post("/api/test-connection")
+async def test_connection(request: dict):
+    """测试LLM连接"""
+    from openai import AsyncOpenAI
+    try:
+        client = AsyncOpenAI(
+            api_key=request.get("apiKey", request.get("api_key", "")),
+            base_url=request.get("apiUrl", request.get("api_url", ""))
+        )
+        await client.chat.completions.create(
+            model=request.get("model", "qwen-plus-latest"),
+            messages=[{"role": "user", "content": "Hello"}],
+            max_tokens=10
+        )
+        return {"success": True, "message": "连接成功"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/install-package")
+async def install_package(request: dict):
+    """安装Python包"""
+    import subprocess
+    package = request.get("package", "")
+    if not package:
+        return {"success": False, "error": "请提供包名"}
+
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", package],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        if result.returncode == 0:
+            return {"success": True, "message": f"{package} 安装成功"}
+        else:
+            return {"success": False, "error": result.stderr}
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "安装超时"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 # 首页路由 - 聊天界面
 @app.get("/")
 async def get():
@@ -156,5 +227,12 @@ async def mcp():
 
 if __name__ == "__main__":
     import uvicorn
+    import argparse
+
+    parser = argparse.ArgumentParser(description="DataAgent Web Interface")
+    parser.add_argument("--port", type=int, default=8000, help="Port to run the server on")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to bind to")
+    args = parser.parse_args()
+
     logger.info("Starting DataAgent Web Interface...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=args.host, port=args.port)

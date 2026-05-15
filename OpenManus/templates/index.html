@@ -2,1058 +2,656 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>DataAgent - 万能智能助手</title>
-    <!-- Code highlighting -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <!-- Markdown rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataAgent - 智能数据助手</title>
     <link rel="stylesheet" href="/static/css/variables.css">
-    <link rel="stylesheet" href="/static/css/base.css">
-    <link rel="stylesheet" href="/static/css/layout.css">
-    <link rel="stylesheet" href="/static/css/chat.css">
-    <link rel="stylesheet" href="/static/css/thinking.css">
-    <link rel="stylesheet" href="/static/css/input.css">
-    <link rel="stylesheet" href="/static/css/modal.css">
-    <link rel="stylesheet" href="/static/css/components.css">
-    <link rel="stylesheet" href="/static/css/conversations.css">
-    <link rel="stylesheet" href="/static/css/responsive.css">
-    <link rel="stylesheet" href="/static/css/welcome.css">
+    <link rel="stylesheet" href="/static/css/modern.css">
     <style>
-.code-copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: rgba(71, 85, 105, 0.6);
-    color: #94a3b8;
-    border: none;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s, background 0.2s;
-}
-pre:hover .code-copy-btn { opacity: 1; }
-.code-copy-btn:hover { background: rgba(71, 85, 105, 0.9); color: #e2e8f0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+            background: var(--bg-primary); 
+            color: var(--text-primary); 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+        #root { display: flex; height: 100%; }
 
-/* 移动端额外优化 */
-@media screen and (max-width: 768px) {
-    /* 禁用文本缩放 */
-    body {
-        -webkit-text-size-adjust: 100%;
-        text-size-adjust: 100%;
-    }
-    
-    /* 优化滚动性能 */
-    .chat-area, .modal-body, .sidebar {
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-    }
-    
-    /* 固定输入框在可视区域 */
-    .input-area {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 1000;
-    }
-    
-    /* 键盘弹出时的处理 */
-    body.keyboard-open .input-area {
-        position: absolute;
-    }
-}
+        /* Sidebar */
+        .sidebar { 
+            width: 280px; 
+            background: var(--bg-secondary); 
+            border-right: 1px solid var(--border); 
+            display: flex; 
+            flex-direction: column; 
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .sidebar.closed { width: 0; overflow: hidden; }
+        
+        .sidebar-header { 
+            padding: 20px; 
+            border-bottom: 1px solid var(--border); 
+            background: linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
+        }
+        
+        .logo { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .logo-icon { 
+            width: 44px; 
+            height: 44px; 
+            background: linear-gradient(135deg, var(--primary), var(--accent)); 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 20px; 
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            transition: transform 0.3s ease;
+        }
+        .logo:hover .logo-icon { transform: scale(1.05); }
+        .logo-text { font-size: 19px; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 12px; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; padding: 8px 12px; letter-spacing: 0.5px; }
+        
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            padding: 12px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            color: var(--text-secondary); 
+            border: none; 
+            background: none; 
+            width: 100%; 
+            text-align: left; 
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: var(--primary);
+            transition: height 0.2s ease;
+        }
+        .nav-item:hover { 
+            background: var(--bg-tertiary); 
+            color: var(--text-primary);
+        }
+        .nav-item:hover::before { height: 60%; }
+        .nav-item.active { 
+            background: rgba(59, 130, 246, 0.15); 
+            color: var(--primary);
+        }
+        .nav-item.active::before { height: 60%; }
+        
+        .nav-icon { font-size: 17px; }
+        .nav-text { font-size: 14px; font-weight: 500; }
 
-/* 小屏幕优化 */
-@media screen and (max-width: 480px) {
-    /* 更紧凑的头部 */
-    .header {
-        min-height: 44px;
-    }
-    
-    /* 更大的触摸区域 */
-    .nav-item, .conversation-item {
-        min-height: 44px;
-    }
-    
-    /* 优化代码块显示 */
-    pre code {
-        font-size: 12px;
-        line-height: 1.4;
-    }
-}
-</style>
+        .sidebar-footer { 
+            padding: 16px; 
+            border-top: 1px solid var(--border);
+            background: linear-gradient(0deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
+        }
+        
+        .ws-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; }
+        .status-dot.connected { 
+            background: #10b981; 
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+            animation: pulse 2s ease-in-out infinite; 
+        }
+        .status-dot.disconnected { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+
+        @keyframes pulse { 
+            0%, 100% { opacity: 1; transform: scale(1); } 
+            50% { opacity: 0.6; transform: scale(1.1); } 
+        }
+
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .header { 
+            height: 64px; 
+            background: var(--bg-secondary); 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            align-items: center; 
+            padding: 0 20px; 
+            gap: 12px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .header-menu-btn { 
+            width: 36px; 
+            height: 36px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: 10px; 
+            background: var(--bg-tertiary); 
+            font-size: 18px; 
+            cursor: pointer; 
+            border: none; 
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+        .header-menu-btn:hover { background: var(--bg-hover); transform: scale(1.02); }
+        
+        .header-title { flex: 1; }
+        .header-title h1 { font-size: 16px; font-weight: 600; }
+        .header-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        
+        .header-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+        .header-actions { display: flex; gap: 8px; }
+        
+        .action-btn { 
+            padding: 9px 16px; 
+            background: var(--bg-tertiary); 
+            border-radius: 10px; 
+            font-size: 13px; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            cursor: pointer; 
+            border: none; 
+            color: var(--text-primary); 
+            transition: all 0.2s ease;
+        }
+        .action-btn:hover { 
+            background: var(--bg-hover); 
+            transform: translateY(-1px);
+        }
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+        }
+        .action-btn.primary:hover {
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Chat Area */
+        .chat-area { flex: 1; overflow-y: auto; padding: 20px; background: var(--bg-primary); }
+        .chat-container { max-width: 900px; margin: 0 auto; }
+        
+        .message { 
+            display: flex; 
+            gap: 12px; 
+            margin-bottom: 20px;
+            animation: slide-in-right 0.3s ease-out;
+        }
+        .message.assistant { flex-direction: row-reverse; }
+        
+        .avatar { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .avatar.user { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .avatar.assistant { background: linear-gradient(135deg, var(--primary), var(--accent)); }
+        
+        .message-content { 
+            max-width: 70%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            line-height: 1.6;
+        }
+        .message.user .message-content { 
+            background: var(--bg-tertiary); 
+            border-radius: 16px 16px 4px 16px;
+        }
+        .message.assistant .message-content { 
+            background: var(--bg-secondary); 
+            border: 1px solid var(--border);
+            border-radius: 16px 16px 16px 4px;
+        }
+        
+        .message-text { font-size: 15px; color: var(--text-primary); }
+        .message-time { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+        
+        /* Thinking Container */
+        #thinking-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            animation: fade-in 0.3s ease-out;
+        }
+        
+        .thinking-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
+            border-radius: 12px;
+            padding: 16px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease-out;
+        }
+        .thinking-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .thinking-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .thinking-icon { font-size: 20px; }
+        .thinking-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+        
+        .thinking-content {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+        }
+        
+        .thinking-progress {
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .thinking-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s ease-out;
+        }
+        
+        .thinking-progress-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: right;
+            margin-bottom: 12px;
+        }
+        
+        .thinking-status {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .thinking-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: thinking-pulse 1.4s ease-in-out infinite;
+        }
+        .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes thinking-pulse {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Input Area */
+        .input-area { 
+            padding: 16px 20px; 
+            background: var(--bg-secondary); 
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .input-container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            display: flex; 
+            align-items: flex-end; 
+            gap: 10px;
+        }
+        
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        
+        #user-input {
+            width: 100%;
+            padding: 14px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-size: 15px;
+            resize: none;
+            min-height: 48px;
+            max-height: 200px;
+            overflow-y: auto;
+            transition: all 0.2s ease;
+        }
+        #user-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        #user-input::placeholder { color: var(--text-muted); }
+        
+        .input-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .input-btn {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            font-size: 18px;
+        }
+        .input-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            transform: scale(1.05);
+        }
+        .input-btn.send {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+        }
+        .input-btn.send:hover {
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            transform: scale(1.05);
+        }
+        .input-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Voice Input */
+        .voice-recording {
+            animation: pulse 1.5s ease-in-out infinite;
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+        }
+        
+        /* Welcome Page */
+        .welcome-page { flex: 1; display: flex; align-items: center; justify-content: center; }
+        .welcome-center { text-align: center; max-width: 600px; animation: fade-in 0.5s ease-out; }
+        
+        .welcome-logo { 
+            width: 100px; 
+            height: 100px; 
+            background: linear-gradient(135deg, var(--primary), var(--accent)); 
+            border-radius: 24px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 44px; 
+            font-weight: bold; 
+            margin: 0 auto 32px;
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+            transition: transform 0.3s ease;
+        }
+        .welcome-center:hover .welcome-logo { transform: scale(1.05); }
+        
+        .welcome-title { 
+            font-size: 32px; 
+            font-weight: 700; 
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .welcome-subtitle { 
+            color: var(--text-muted); 
+            font-size: 16px; 
+            margin-bottom: 40px; 
+            line-height: 1.6;
+        }
+        
+        .suggestion-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 16px; 
+        }
+        
+        .suggestion-card {
+            padding: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+        .suggestion-card:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        }
+        
+        .suggestion-icon { font-size: 20px; margin-bottom: 12px; }
+        .suggestion-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+        .suggestion-desc { font-size: 12px; color: var(--text-muted); }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .tooltip.show { opacity: 1; visibility: visible; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: 0; top: 0; height: 100%; z-index: 100; }
+            .sidebar.closed { transform: translateX(-100%); width: 280px; }
+            .sidebar-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 99;
+                display: none;
+            }
+            .sidebar-overlay.show { display: block; }
+            
+            .message-content { max-width: 85%; }
+            .suggestion-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-    <!-- 侧边栏遮罩层 -->
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
-    <div class="app-container">
-        <!-- ==================== 侧边栏 ==================== -->
-        <div class="sidebar" id="sidebar">
+    <div id="root">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <h2 style="margin: 0;">DataAgent</h2>
-                    <button class="new-chat-btn-sidebar" onclick="createNewConversation(); closeSidebar();" style="width: auto; padding: 6px 12px; margin-bottom: 0;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <div class="logo" onclick="location.href='/'">
+                    <div class="logo-icon">DA</div>
+                    <span class="logo-text">DataAgent</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">核心功能</div>
+                    <button class="nav-item active" id="nav-chat">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-text">对话</span>
+                    </button>
+                    <button class="nav-item" id="nav-knowledge">
+                        <span class="nav-icon">📚</span>
+                        <span class="nav-text">知识库</span>
+                    </button>
+                    <button class="nav-item" id="nav-skills">
+                        <span class="nav-icon">⚡</span>
+                        <span class="nav-text">技能管理</span>
+                    </button>
+                    <button class="nav-item" id="nav-prompts">
+                        <span class="nav-icon">📝</span>
+                        <span class="nav-text">提示词管理</span>
                     </button>
                 </div>
-            </div>
-            <div class="sidebar-nav">
-                <!-- 历史对话列表 -->
-                <div class="conversation-list" id="conversation-list" style="max-height: none; flex: 1; overflow-y: auto;">
-                    <div style="color: #94a3b8; text-align: center; padding: 20px;">还没有对话记录</div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">连接</div>
+                    <button class="nav-item" id="nav-mcp">
+                        <span class="nav-icon">🔌</span>
+                        <span class="nav-text">MCP管理</span>
+                    </button>
                 </div>
-
-                <!-- 功能入口（简洁列表） -->
-                <div class="nav-divider"></div>
-                <div class="nav-item" onclick="openModal('knowledge-modal'); closeSidebar();">
-                    <span class="nav-icon">📚</span>
-                    <div class="nav-text"><h4>知识库</h4></div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">设置</div>
+                    <button class="nav-item" id="nav-settings">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-text">设置</span>
+                    </button>
                 </div>
-                <div class="nav-item" onclick="openModal('database-modal'); closeSidebar();">
-                    <span class="nav-icon">🗄️</span>
-                    <div class="nav-text"><h4>数据库</h4></div>
-                </div>
-                <div class="nav-item" onclick="openModal('prompt-modal'); closeSidebar();">
-                    <span class="nav-icon">💡</span>
-                    <div class="nav-text"><h4>技能系统</h4></div>
-                </div>
-                <div class="nav-item" onclick="openModal('mcp-modal'); closeSidebar();">
-                    <span class="nav-icon">🔌</span>
-                    <div class="nav-text"><h4>MCP工具</h4></div>
-                </div>
-                <div class="nav-item" onclick="openModal('nl2sql-modal'); closeSidebar();">
-                    <span class="nav-icon">🧠</span>
-                    <div class="nav-text"><h4>NL2SQL</h4></div>
-                </div>
-                <div class="nav-item" onclick="openModal('help-modal'); closeSidebar();">
-                    <span class="nav-icon">❓</span>
-                    <div class="nav-text"><h4>使用说明</h4></div>
-                </div>
-                <div class="nav-divider"></div>
-                <div class="nav-item" onclick="openModal('settings-modal'); closeSidebar();">
-                    <span class="nav-icon">⚙️</span>
-                    <div class="nav-text"><h4>设置</h4></div>
-                </div>
-                <div class="nav-item" onclick="window.location.href='/api/logs/';">
-                    <span class="nav-icon">📋</span>
-                    <div class="nav-text"><h4>日志查看</h4></div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="ws-status">
+                    <span class="status-dot" id="ws-status"></span>
+                    <span id="ws-text">连接中...</span>
                 </div>
             </div>
-        </div>
-
-        <!-- ==================== 主内容区 ==================== -->
-        <div class="main-content">
-
-            <!-- ====== 顶部导航栏 ====== -->
-            <div class="header">
-                <div class="header-left">
-                    <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(71,85,105,0.3);border:none;color:#94a3b8;font-size:20px;cursor:pointer;padding:0;border-radius:8px;flex-shrink:0;">☰</button>
-                    <h1>DataAgent</h1>
-                    <span class="header-status">
-                        <span class="status-dot" id="header-ws-status"></span>
-                        <span id="header-ws-status-text" style="font-size: 11px; color: #64748b; margin-left: 4px;"></span>
-                    </span>
+        </aside>
+        
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <button class="header-menu-btn" id="sidebar-toggle">☰</button>
+                <div class="header-title">
+                    <h1>智能助手</h1>
+                    <div class="header-subtitle">基于AI的智能数据助手</div>
+                </div>
+                <div class="header-status">
+                    <span class="status-dot connected"></span>
+                    <span>在线</span>
                 </div>
                 <div class="header-actions">
-                    <button class="btn-icon" onclick="clearChat()" title="清空对话">🗑️</button>
-                    <button class="btn-icon" onclick="openModal('help-modal')" title="帮助">📖</button>
-                    <button class="btn-icon" onclick="openModal('settings-modal')" title="设置">⚙️</button>
+                    <button class="action-btn" id="clear-chat">🗑️ 清空</button>
+                    <button class="action-btn primary" id="new-chat">+ 新对话</button>
                 </div>
-            </div>
-
-            <!-- ====== 聊天区域 ====== -->
-            <div class="chat-area" id="chat-area">
-
-                <!-- 欢迎页面 -->
-                <div class="welcome-page" id="welcome-page">
-                    <div class="welcome-center">
-                        <div class="welcome-logo">DA</div>
-                        <h2 class="welcome-title">有什么可以帮忙的？</h2>
-                        <p class="welcome-subtitle">选择下方功能卡片，或直接输入你的需求</p>
-                        <div class="suggestion-grid">
-                            <button class="suggestion-card" onclick="sendSuggestion('请帮我润色以下文本，使其更加学术规范：\n\n[请在此粘贴你的文本]')">
-                                <div class="suggestion-icon">✨</div>
-                                <div class="suggestion-title">语言润色</div>
-                                <div class="suggestion-desc">中英文学术润色，支持多种风格</div>
-                            </button>
-                            <button class="suggestion-card" onclick="sendSuggestion('请帮我生成一份PPT，主题是：[请填写主题]')">
-                                <div class="suggestion-icon">📊</div>
-                                <div class="suggestion-title">PPT生成</div>
-                                <div class="suggestion-desc">一键生成演示文稿并下载</div>
-                            </button>
-                            <button class="suggestion-card" onclick="sendSuggestion('请帮我提取以下文本中的待办事项：\n\n[请在此粘贴文本]')">
-                                <div class="suggestion-icon">✅</div>
-                                <div class="suggestion-title">待办提取</div>
-                                <div class="suggestion-desc">从文档中智能提取行动项</div>
-                            </button>
-                            <button class="suggestion-card" onclick="sendSuggestion('请帮我生成会议纪要：\n\n[请在此粘贴会议记录]')">
-                                <div class="suggestion-icon">📝</div>
-                                <div class="suggestion-title">会议纪要</div>
-                                <div class="suggestion-desc">从会议记录生成结构化纪要</div>
-                            </button>
-                            <button class="suggestion-card" onclick="sendSuggestion('请帮我生成周报：\n\n本周完成了：[填写工作内容]')">
-                                <div class="suggestion-icon">📋</div>
-                                <div class="suggestion-title">周报生成</div>
-                                <div class="suggestion-desc">智能扩写实习周报</div>
-                            </button>
-                            <button class="suggestion-card" onclick="sendSuggestion('请帮我总结以下文献的核心观点：\n\n[请上传PDF或粘贴文献内容]')">
-                                <div class="suggestion-icon">📄</div>
-                                <div class="suggestion-title">文献摘要</div>
-                                <div class="suggestion-desc">上传PDF自动提取核心观点</div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- ====== 输入区域 ====== -->
-            <div class="input-area" id="input-area">
-                <div class="input-container">
-                    <!-- 文件预览区域 -->
-                    <div id="file-preview-list" class="file-preview-list"></div>
-                    <div class="input-main-row">
-                        <div class="input-tools-compact">
-                            <button class="tool-btn-compact" onclick="document.getElementById('file-input').click()" title="上传文件">📎</button>
-                            <button class="tool-btn-compact" id="web-search-btn" onclick="toggleWebSearch()" title="联网搜索">🔍</button>
-                        </div>
-                        <input type="file" id="file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx,.json,.py,.js" style="display: none;" onchange="handleFileUpload(event)">
-                        <textarea class="input-box" id="input-box" placeholder="给 DataAgent 发送消息" rows="1" oninput="autoResize(this); updateCharCount()"></textarea>
-                        <button class="tool-btn-compact polish-btn" onclick="quickPolish()" title="语言润色">✨</button>
-                        <button class="send-btn" id="send-btn" onclick="sendMessage()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 设置弹窗 ==================== -->
-    <div class="modal-overlay" id="settings-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">⚙️ 设置</div>
-                <button class="modal-close" onclick="closeModal('settings-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showSettingsTab('model', this)">🤖 模型</div>
-                    <div class="settings-tab" onclick="showSettingsTab('conversation', this)">💬 对话</div>
-                    <div class="settings-tab" onclick="showSettingsTab('display', this)">🖥️ 显示</div>
-                    <div class="settings-tab" onclick="showSettingsTab('sandbox', this)">🏖️ 沙箱</div>
-                    <div class="settings-tab" onclick="showSettingsTab('agent', this)">🧠 智能体</div>
-                    <div class="settings-tab" onclick="showSettingsTab('langsmith', this)">🦜 LangSmith</div>
-                </div>
-
-                <!-- 模型配置 -->
-                <div class="settings-section active" id="settings-model">
-                    <h3>模型配置</h3>
-                    <div class="setting-row">
-                        <span class="setting-label">模型提供商</span>
-                        <select class="setting-select" id="setting-provider">
-                            <option value="aliyun">阿里云 - 通义千问</option>
-                            <option value="openai">OpenAI - GPT</option>
-                            <option value="anthropic">Anthropic - Claude</option>
-                            <option value="deepseek">DeepSeek</option>
-                        </select>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">模型名称</span>
-                        <select class="setting-select" id="setting-model">
-                            <option value="qwen-plus-latest">qwen-plus-latest</option>
-                            <option value="qwen-max">qwen-max</option>
-                            <option value="gpt-4o">gpt-4o</option>
-                        </select>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">API Base URL</span>
-                        <input type="text" class="setting-input" id="setting-base-url" value="https://dashscope.aliyuncs.com/compatible-mode/v1">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">API Key</span>
-                        <input type="password" class="setting-input" id="setting-api-key" placeholder="sk-...">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">最大 Token</span>
-                        <input type="number" class="setting-input" id="setting-max-tokens" value="4096">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">温度系数</span>
-                        <input type="number" step="0.1" class="setting-input" id="setting-temperature" value="0.7">
-                    </div>
-                </div>
-
-                <!-- 对话设置 -->
-                <div class="settings-section" id="settings-conversation">
-                    <h3>对话设置</h3>
-                    <div class="setting-row">
-                        <span class="setting-label">上下文轮数</span>
-                        <input type="number" class="setting-input" id="setting-context-rounds" value="10" min="1" max="50">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">系统提示词</span>
-                        <textarea class="setting-input" id="setting-system-prompt" placeholder="自定义系统提示词..." rows="4"></textarea>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">流式输出</span>
-                        <div class="setting-switch on" id="setting-stream-enabled" onclick="toggleSwitch(this)"></div>
-                    </div>
-                </div>
-
-                <!-- 显示设置 -->
-                <div class="settings-section" id="settings-display">
-                    <h3>显示设置</h3>
-                    <div class="setting-row">
-                        <span class="setting-label">字体大小</span>
-                        <select class="setting-select" id="setting-font-size">
-                            <option value="small">小</option>
-                            <option value="medium" selected>中</option>
-                            <option value="large">大</option>
-                        </select>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">显示思考过程</span>
-                        <div class="setting-switch on" id="setting-show-thinking" onclick="toggleSwitch(this)"></div>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">代码高亮</span>
-                        <div class="setting-switch on" id="setting-code-highlight" onclick="toggleSwitch(this)"></div>
-                    </div>
-                </div>
-
-                <!-- 沙箱环境 -->
-                <div class="settings-section" id="settings-sandbox">
-                    <h3>沙箱环境</h3>
-                    <div class="setting-row">
-                        <span class="setting-label">启用沙箱</span>
-                        <div class="setting-switch on" id="setting-sandbox-enabled" onclick="toggleSwitch(this)"></div>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">执行超时 (秒)</span>
-                        <input type="number" class="setting-input" id="setting-sandbox-timeout" value="60">
-                    </div>
-                </div>
-
-                <!-- 智能体配置 -->
-                <div class="settings-section" id="settings-agent">
-                    <h3>智能体配置</h3>
-                    <div class="setting-row">
-                        <span class="setting-label">知识库启用</span>
-                        <div class="setting-switch on" id="setting-kb-enabled" onclick="toggleSwitch(this)"></div>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">最大步数</span>
-                        <input type="number" class="setting-input" id="setting-max-steps" value="5">
-                    </div>
-                </div>
-
-                <!-- LangSmith 调试 -->
-                <div class="settings-section" id="settings-langsmith">
-                    <h3>🦜 LangSmith 调试</h3>
-                    <div class="setting-row">
-                        <span class="setting-label">启用LangSmith</span>
-                        <div class="setting-switch" id="setting-langsmith-enabled" onclick="toggleSwitch(this)"></div>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">LangSmith API Key</span>
-                        <input type="password" class="setting-input" id="setting-langsmith-api-key" placeholder="lsv2_...">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">项目名称</span>
-                        <input type="text" class="setting-input" id="setting-langsmith-project" value="dataagent">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">端点</span>
-                        <input type="text" class="setting-input" id="setting-langsmith-endpoint" value="https://api.smith.langchain.com">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="resetSettings()">重置默认</button>
-                <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 知识库弹窗 ==================== -->
-    <div class="modal-overlay" id="knowledge-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">📚 知识库</div>
-                <button class="modal-close" onclick="closeModal('knowledge-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showKbTab('list', this)">知识库列表</div>
-                    <div class="settings-tab" onclick="showKbTab('create', this)">创建知识库</div>
-                    <div class="settings-tab" onclick="showKbTab('search', this)">🔍 搜索</div>
-                </div>
-                <div class="settings-section active" id="kb-list">
-                    <div class="kb-grid" id="kb-grid"></div>
-                </div>
-                <div class="settings-section" id="kb-create">
-                    <div class="setting-row">
-                        <span class="setting-label">知识库名称</span>
-                        <input type="text" class="setting-input" id="kb-name" placeholder="例如：产品文档库">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">描述</span>
-                        <textarea class="setting-input" id="kb-desc" placeholder="简短描述该知识库的用途" rows="3"></textarea>
-                    </div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="createKnowledgeBase()">创建知识库</button>
-                </div>
-                <!-- 搜索标签页 -->
-                <div class="settings-section" id="kb-search">
-                    <div class="setting-row">
-                        <span class="setting-label">搜索关键词</span>
-                        <input type="text" class="setting-input" id="kb-search-input" placeholder="输入关键词搜索知识库...">
-                    </div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="searchKnowledgeBase()">搜索</button>
-                    <div class="kb-search-results" id="kb-search-results" style="margin-top: 16px;"></div>
-                </div>
-                <div class="file-upload-area" onclick="document.getElementById('kb-file-input').click()" style="margin-top: 20px;">
-                    <div style="font-size: 32px; margin-bottom: 12px;">📁</div>
-                    <h4>上传文档</h4>
-                    <p>支持 .pdf, .txt, .md, .docx, .csv 等格式</p>
-                    <input type="file" id="kb-file-input" multiple accept=".pdf,.txt,.md,.docx,.csv,.xlsx,.xls,.ppt,.pptx" style="display: none;" onchange="handleKbFileUpload(event)">
-                </div>
-                <div id="upload-progress" style="display: none; margin-top: 16px;">
-                    <div style="background: rgba(255,255,255,0.1); border-radius: 8px; height: 8px; overflow: hidden;">
-                        <div id="upload-progress-bar" style="background: linear-gradient(90deg, #3b82f6, #2563eb); height: 100%; width: 0%; transition: width 0.3s;"></div>
-                    </div>
-                    <p id="upload-status" style="color: #94a3b8; margin-top: 8px; font-size: 13px;">准备上传...</p>
-                </div>
-                <div id="upload-error" style="display: none; margin-top: 16px; padding: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px;">
-                    <p style="color: #f87171; margin: 0;">❌ <span id="upload-error-message"></span></p>
-                </div>
-                <div class="processing-rules">
-                    <h4 style="color: white; margin-bottom: 12px;">数据清洗规则</h4>
-                    <div class="rule-item">
-                        <span>移除多余空格和换行</span>
-                        <div class="setting-switch on" onclick="toggleSwitch(this)"></div>
-                    </div>
-                    <div class="rule-item">
-                        <span>移除URL和邮箱</span>
-                        <div class="setting-switch" onclick="toggleSwitch(this)"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 技能系统弹窗 ==================== -->
-    <div class="modal-overlay" id="prompt-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">💡 技能系统</div>
-                <button class="modal-close" onclick="closeModal('prompt-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showSkillTab('list', this)">技能列表</div>
-                    <div class="settings-tab" onclick="showSkillTab('create', this)">创建技能</div>
-                    <div class="settings-tab" onclick="showSkillTab('templates', this)">📋 模板</div>
-                </div>
-                <div class="settings-section active" id="skill-list">
-                    <div class="skill-list" id="skill-list-content"></div>
-                </div>
-                <div class="settings-section" id="skill-create">
-                    <div class="setting-row">
-                        <span class="setting-label">技能用途</span>
-                        <input type="text" class="setting-input" id="skill-purpose" placeholder="描述你想要这个技能做什么，例如：代码审查、数据分析等">
-                    </div>
-                    <button class="btn btn-secondary" style="width: 100%; margin-bottom: 16px;" onclick="aiGenerateSkill()">🤖 AI辅助生成</button>
-                    <div class="setting-row">
-                        <span class="setting-label">技能名称</span>
-                        <input type="text" class="setting-input" id="skill-name" placeholder="例如：代码审查专家">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">图标</span>
-                        <input type="text" class="setting-input" id="skill-icon" value="⚡" style="max-width: 80px;">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">描述</span>
-                        <textarea class="setting-input" id="skill-desc" placeholder="描述技能的功能" rows="3"></textarea>
-                    </div>
-                    <div id="ai-generating" style="display: none; margin: 12px 0; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
-                        <p style="color: #60a5fa; margin: 0;">⏳ AI正在生成，请稍候...</p>
-                    </div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="createSkill()">创建技能</button>
-                </div>
-                <!-- 模板标签页 -->
-                <div class="settings-section" id="skill-templates">
-                    <div class="template-grid" id="skill-template-grid">
-                        <div class="template-card" onclick="applySkillTemplate('code-review')">
-                            <div class="template-icon">🔍</div>
-                            <h4>代码审查</h4>
-                            <p>自动审查代码质量、安全性和最佳实践</p>
-                        </div>
-                        <div class="template-card" onclick="applySkillTemplate('data-analyst')">
-                            <div class="template-icon">📊</div>
-                            <h4>数据分析师</h4>
-                            <p>数据清洗、统计分析和可视化报告</p>
-                        </div>
-                        <div class="template-card" onclick="applySkillTemplate('translator')">
-                            <div class="template-icon">🌐</div>
-                            <h4>翻译助手</h4>
-                            <p>多语言翻译与本地化支持</p>
-                        </div>
-                        <div class="template-card" onclick="applySkillTemplate('writer')">
-                            <div class="template-icon">✍️</div>
-                            <h4>文案撰写</h4>
-                            <p>营销文案、技术文档和创意写作</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== MCP工具弹窗 ==================== -->
-    <div class="modal-overlay" id="mcp-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">🔌 MCP工具服务</div>
-                <button class="modal-close" onclick="closeModal('mcp-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showMcpTab('servers', this)">🖥️ 服务</div>
-                    <div class="settings-tab" onclick="showMcpTab('resources', this)">📦 资源</div>
-                </div>
-                <!-- 服务列表 -->
-                <div class="settings-section active" id="mcp-servers">
-                    <div class="mcp-list" id="mcp-list-content"></div>
-
-                    <div style="margin-top: 20px;">
-                        <h4 style="color: white; margin-bottom: 12px;">📦 快速添加MCP服务器</h4>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-                            <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('filesystem')">📁 文件系统</button>
-                            <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('github')">🐙 GitHub</button>
-                            <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('notion')">📓 Notion</button>
-                            <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('brave')">🔍 Brave搜索</button>
-                            <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('sqlite')">🗄️ SQLite</button>
-                            <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('postgres')">🐘 PostgreSQL</button>
-                            <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('slack')">💬 Slack</button>
-                            <button class="btn btn-secondary" style="font-size: 13px; padding: 8px;" onclick="quickAddMcp('gmail')">📧 Gmail</button>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 20px;">
-                        <h4 style="color: white; margin-bottom: 12px;">⚙️ 自定义MCP服务器</h4>
-                        <div class="setting-row">
-                            <span class="setting-label">名称</span>
-                            <input type="text" class="setting-input" id="mcp-name" placeholder="例如：本地文件系统">
-                        </div>
-                        <div class="setting-row">
-                            <span class="setting-label">类型</span>
-                            <select class="setting-select" id="mcp-type">
-                                <option value="stdio">stdio</option>
-                                <option value="sse">sse</option>
-                            </select>
-                        </div>
-                        <div class="setting-row">
-                            <span class="setting-label">命令</span>
-                            <input type="text" class="setting-input" id="mcp-command" placeholder="例如：npx">
-                        </div>
-                        <button class="btn btn-primary" style="width: 100%;" onclick="createMcpServer()">添加服务器</button>
-                    </div>
-                </div>
-                <!-- 资源标签页 -->
-                <div class="settings-section" id="mcp-resources">
-                    <div class="mcp-resources-list" id="mcp-resources-content">
-                        <div style="color: #94a3b8; text-align: center; padding: 40px 20px;">
-                            <div style="font-size: 48px; margin-bottom: 12px;">📦</div>
-                            <p>暂无可用资源</p>
-                            <p style="font-size: 13px; margin-top: 8px;">连接MCP服务器后，资源将自动显示在此处</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 数据库管理弹窗 ==================== -->
-    <div class="modal-overlay" id="database-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">🗄️ 数据库管理</div>
-                <button class="modal-close" onclick="closeModal('database-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-tabs">
-                    <div class="settings-tab active" onclick="showDbTab('list', this)">数据库列表</div>
-                    <div class="settings-tab" onclick="showDbTab('query', this)">SQL查询</div>
-                    <div class="settings-tab" onclick="showDbTab('create', this)">创建数据库</div>
-                </div>
-                <!-- 数据库列表 -->
-                <div class="settings-section active" id="db-list">
-                    <div class="db-list" id="db-list-content">
-                        <div style="color: #94a3b8; text-align: center; padding: 40px 20px;">
-                            <div style="font-size: 48px; margin-bottom: 12px;">🗄️</div>
-                            <p>暂无数据库</p>
-                            <p style="font-size: 13px; margin-top: 8px;">点击"创建数据库"标签页添加新数据库</p>
-                        </div>
-                    </div>
-                </div>
-                <!-- SQL查询 -->
-                <div class="settings-section" id="db-query">
-                    <div class="setting-row">
-                        <span class="setting-label">选择数据库</span>
-                        <select class="setting-select" id="db-query-target">
-                            <option value="">-- 请选择数据库 --</option>
-                        </select>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">SQL 语句</span>
-                        <textarea class="setting-input" id="db-sql-input" placeholder="输入 SQL 查询语句，例如：SELECT * FROM users LIMIT 10;" rows="5" style="font-family: monospace;"></textarea>
-                    </div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="executeDbQuery()">执行查询</button>
-                    <div class="db-query-results" id="db-query-results" style="margin-top: 16px;">
-                        <!-- 查询结果将显示在此处 -->
-                    </div>
-                </div>
-                <!-- 创建数据库 -->
-                <div class="settings-section" id="db-create">
-                    <div class="setting-row">
-                        <span class="setting-label">数据库名称</span>
-                        <input type="text" class="setting-input" id="db-create-name" placeholder="例如：my_database">
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">数据库类型</span>
-                        <select class="setting-select" id="db-create-type">
-                            <option value="sqlite">SQLite</option>
-                            <option value="postgres">PostgreSQL</option>
-                            <option value="mysql">MySQL</option>
-                        </select>
-                    </div>
-                    <div class="setting-row">
-                        <span class="setting-label">描述</span>
-                        <textarea class="setting-input" id="db-create-desc" placeholder="简短描述该数据库的用途" rows="3"></textarea>
-                    </div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="createDatabase()">创建数据库</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== NL2SQL弹窗 ==================== -->
-    <div class="modal-overlay" id="nl2sql-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">🧠 NL2SQL - 自然语言转SQL</div>
-                <button class="modal-close" onclick="closeModal('nl2sql-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <!-- 自然语言输入 -->
-                <div class="nl2sql-section">
-                    <h4 style="color: white; margin-bottom: 12px;">📝 输入自然语言</h4>
-                    <textarea class="setting-input" id="nl2sql-input" placeholder="用自然语言描述你的数据查询需求，例如：查询最近30天销售额最高的前10个产品" rows="3"></textarea>
-                    <div class="setting-row" style="margin-top: 12px;">
-                        <span class="setting-label">目标数据库</span>
-                        <select class="setting-select" id="nl2sql-db-target">
-                            <option value="">-- 请选择数据库 --</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="generateSQL()">生成 SQL</button>
-                </div>
-
-                <!-- 意图分析 -->
-                <div class="nl2sql-section" id="nl2sql-intent" style="display: none; margin-top: 20px;">
-                    <h4 style="color: white; margin-bottom: 12px;">🎯 意图分析</h4>
-                    <div class="intent-analysis" id="nl2sql-intent-content">
-                        <div class="intent-tag">查询类型：<span id="intent-type">--</span></div>
-                        <div class="intent-tag">涉及表：<span id="intent-tables">--</span></div>
-                        <div class="intent-tag">关键字段：<span id="intent-fields">--</span></div>
-                    </div>
-                </div>
-
-                <!-- 生成的SQL -->
-                <div class="nl2sql-section" id="nl2sql-generated" style="display: none; margin-top: 20px;">
-                    <h4 style="color: white; margin-bottom: 12px;">⚙️ 生成的 SQL</h4>
-                    <div class="sql-display">
-                        <pre id="nl2sql-sql-output" style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; overflow-x: auto; color: #a5f3fc; font-family: monospace; font-size: 14px; margin: 0;"></pre>
-                    </div>
-                    <div style="display: flex; gap: 8px; margin-top: 12px;">
-                        <button class="btn btn-primary" style="flex: 1;" onclick="executeNL2SQL()">执行查询</button>
-                        <button class="btn btn-secondary" style="flex: 1;" onclick="copyNL2SQL()">复制 SQL</button>
-                    </div>
-                </div>
-
-                <!-- 查询结果 -->
-                <div class="nl2sql-section" id="nl2sql-results" style="display: none; margin-top: 20px;">
-                    <h4 style="color: white; margin-bottom: 12px;">📊 查询结果</h4>
-                    <div class="results-table-wrapper" id="nl2sql-results-content">
-                        <!-- 结果表格将显示在此处 -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 帮助弹窗（手风琴样式） ==================== -->
-    <div class="modal-overlay" id="help-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">❓ 使用说明</div>
-                <button class="modal-close" onclick="closeModal('help-modal')">← 返回</button>
-            </div>
-            <div class="modal-body help-content">
-                <!-- 手风琴式帮助内容 -->
-                <div class="accordion">
-                    <!-- 快速开始 -->
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <span class="accordion-icon">🚀</span>
-                            <span>快速开始</span>
-                            <span class="accordion-arrow">▶</span>
-                        </div>
-                        <div class="accordion-body">
-                            <p>DataAgent 是一个完整的智能助手系统，包含以下核心功能：</p>
-                            <ul>
-                                <li><strong>万能对话</strong> - 支持自然语言对话，自动识别意图</li>
-                                <li><strong>代码执行</strong> - 自动生成并执行 Python 代码</li>
-                                <li><strong>图表生成</strong> - 支持 matplotlib 等可视化库</li>
-                                <li><strong>知识库管理</strong> - 上传文档，智能检索</li>
-                                <li><strong>技能系统</strong> - 自定义提示词和技能</li>
-                                <li><strong>MCP工具</strong> - 支持 Model Context Protocol</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- 使用示例 -->
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <span class="accordion-icon">💡</span>
-                            <span>使用示例</span>
-                            <span class="accordion-arrow">▶</span>
-                        </div>
-                        <div class="accordion-body">
-                            <pre><code>生成一个正弦函数的折线图
-分析这些数据：[1,2,3,4,5]
-帮我写一个斐波那契数列
-解释这个Python代码</code></pre>
-                        </div>
-                    </div>
-
-                    <!-- 知识库说明 -->
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <span class="accordion-icon">📚</span>
-                            <span>知识库说明</span>
-                            <span class="accordion-arrow">▶</span>
-                        </div>
-                        <div class="accordion-body">
-                            <p>1. 创建知识库 → 2. 上传文档 → 3. 配置清洗规则 → 4. 提问时自动检索</p>
-                        </div>
-                    </div>
-
-                    <!-- 技能系统 -->
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <span class="accordion-icon">⚡</span>
-                            <span>技能系统</span>
-                            <span class="accordion-arrow">▶</span>
-                        </div>
-                        <div class="accordion-body">
-                            <p>技能是预定义的提示词模板，可以自定义参数和功能。参考规范：<code>config/schema/skill_schema.json</code></p>
-                        </div>
-                    </div>
-
-                    <!-- MCP协议 -->
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <span class="accordion-icon">🔌</span>
-                            <span>MCP协议</span>
-                            <span class="accordion-arrow">▶</span>
-                        </div>
-                        <div class="accordion-body">
-                            <p>MCP (Model Context Protocol) 允许连接外部工具和数据源。配置文件：<code>config/mcp.json</code></p>
-                        </div>
-                    </div>
-
-                    <!-- 规范文档 -->
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <span class="accordion-icon">📋</span>
-                            <span>规范文档</span>
-                            <span class="accordion-arrow">▶</span>
-                        </div>
-                        <div class="accordion-body">
-                            <p>所有系统规范定义在 <code>config/schema/</code> 目录下：</p>
-                            <ul>
-                                <li><code>knowledge_base_schema.json</code> - 知识库系统规范</li>
-                                <li><code>skill_schema.json</code> - 技能系统规范</li>
-                                <li><code>mcp_schema.json</code> - MCP工具规范</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- 快捷键 -->
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <span class="accordion-icon">⌨️</span>
-                            <span>快捷键</span>
-                            <span class="accordion-arrow">▶</span>
-                        </div>
-                        <div class="accordion-body">
-                            <ul>
-                                <li><kbd>Enter</kbd> - 发送消息</li>
-                                <li><kbd>Shift+Enter</kbd> - 换行</li>
-                                <li><kbd>Ctrl+Enter</kbd> - 强制发送</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 文献摘要模态框 ==================== -->
-    <div class="modal-overlay" id="literature-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">📄 文献摘要</div>
-                <button class="modal-close" onclick="closeModal('literature-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <p style="color: #94a3b8; margin-bottom: 16px;">上传PDF文件，自动提取核心观点、研究方法和结论</p>
-                <div class="file-upload-area" onclick="document.getElementById('literature-file-input').click()">
-                    <div style="font-size: 32px; margin-bottom: 12px;">📁</div>
-                    <h4>点击上传PDF文献</h4>
-                    <p>支持学术论文、研究报告等PDF文档</p>
-                    <input type="file" id="literature-file-input" accept=".pdf" style="display: none;" onchange="generateLiteratureSummary(event)">
-                </div>
-                <div id="literature-result" style="margin-top: 16px; display: none;">
-                    <h4 style="color: white; margin-bottom: 12px;">📋 摘要结果</h4>
-                    <div class="result-content" id="literature-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 会议纪要模态框 ==================== -->
-    <div class="modal-overlay" id="meeting-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">📝 会议纪要</div>
-                <button class="modal-close" onclick="closeModal('meeting-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <p style="color: #94a3b8; margin-bottom: 16px;">从会议记录生成结构化纪要，自动提取议题、决议和待办</p>
-                <div class="setting-row">
-                    <span class="setting-label">会议记录</span>
-                    <textarea class="setting-input" id="meeting-input" placeholder="粘贴会议记录内容..." rows="6"></textarea>
-                </div>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="generateMeetingMinutes()">生成会议纪要</button>
-                <div id="meeting-result" style="margin-top: 16px; display: none;">
-                    <h4 style="color: white; margin-bottom: 12px;">📋 会议纪要</h4>
-                    <div class="result-content" id="meeting-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== PPT生成模态框 ==================== -->
-    <div class="modal-overlay" id="ppt-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">📊 PPT生成</div>
-                <button class="modal-close" onclick="closeModal('ppt-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <p style="color: #94a3b8; margin-bottom: 16px;">一键生成演示文稿大纲和内容</p>
-                <div class="setting-row">
-                    <span class="setting-label">PPT主题</span>
-                    <input type="text" class="setting-input" id="ppt-topic" placeholder="例如：人工智能在医疗领域的应用">
-                </div>
-                <div class="setting-row">
-                    <span class="setting-label">模板风格</span>
-                    <select class="setting-select" id="ppt-template">
-                        <option value="academic">学术报告</option>
-                        <option value="business" selected>商业报告</option>
-                        <option value="meeting">会议纪要</option>
-                        <option value="proposal">项目提案</option>
-                        <option value="weekly_report">周报</option>
-                    </select>
-                </div>
-                <div class="setting-row">
-                    <span class="setting-label">页数</span>
-                    <select class="setting-select" id="ppt-pages">
-                        <option value="5">5页</option>
-                        <option value="10" selected>10页</option>
-                        <option value="15">15页</option>
-                        <option value="20">20页</option>
-                    </select>
-                </div>
-                <div class="setting-row">
-                    <span class="setting-label">补充内容（可选）</span>
-                    <textarea class="setting-input" id="ppt-content" placeholder="添加详细内容或要点..." rows="4"></textarea>
-                </div>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="generatePPT()">生成并下载PPT</button>
-                <div id="ppt-result" style="margin-top: 16px; display: none;">
-                    <h4 style="color: white; margin-bottom: 12px;">📋 PPT大纲</h4>
-                    <div class="result-content" id="ppt-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 周报生成模态框 ==================== -->
-    <div class="modal-overlay" id="weekly-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">📋 周报生成</div>
-                <button class="modal-close" onclick="closeModal('weekly-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <p style="color: #94a3b8; margin-bottom: 16px;">智能扩写实习周报，将简单记录转化为专业报告</p>
-                <div class="setting-row">
-                    <span class="setting-label">本周工作内容</span>
-                    <textarea class="setting-input" id="weekly-work" placeholder="列出本周完成的主要工作..." rows="4"></textarea>
-                </div>
-                <div class="setting-row">
-                    <span class="setting-label">遇到的问题</span>
-                    <textarea class="setting-input" id="weekly-problems" placeholder="描述本周遇到的问题及解决方案..." rows="3"></textarea>
-                </div>
-                <div class="setting-row">
-                    <span class="setting-label">下周计划</span>
-                    <textarea class="setting-input" id="weekly-plan" placeholder="列出下周工作计划..." rows="3"></textarea>
-                </div>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="generateWeeklyReport()">生成周报</button>
-                <div id="weekly-result" style="margin-top: 16px; display: none;">
-                    <h4 style="color: white; margin-bottom: 12px;">📋 周报内容</h4>
-                    <div class="result-content" id="weekly-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 语言润色模态框 ==================== -->
-    <div class="modal-overlay" id="polish-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">✨ 语言润色</div>
-                <button class="modal-close" onclick="closeModal('polish-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <p style="color: #94a3b8; margin-bottom: 16px;">中英文学术润色，提升表达专业性</p>
-                <div class="setting-row">
-                    <span class="setting-label">润色类型</span>
-                    <select class="setting-select" id="polish-type">
-                        <option value="academic">学术风格</option>
-                        <option value="business">商务风格</option>
-                        <option value="casual">简洁风格</option>
-                    </select>
-                </div>
-                <div class="setting-row">
-                    <span class="setting-label">原文</span>
-                    <textarea class="setting-input" id="polish-input" placeholder="粘贴需要润色的文本..." rows="6"></textarea>
-                </div>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="polishText()">润色文本</button>
-                <div id="polish-result" style="margin-top: 16px; display: none;">
-                    <h4 style="color: white; margin-bottom: 12px;">✨ 润色结果</h4>
-                    <div class="result-content" id="polish-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
-                    <button class="btn btn-secondary" style="width: 100%; margin-top: 12px;" onclick="copyPolishResult()">复制结果</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== 待办提取模态框 ==================== -->
-    <div class="modal-overlay" id="todo-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">✅ 待办提取</div>
-                <button class="modal-close" onclick="closeModal('todo-modal')">← 返回</button>
-            </div>
-            <div class="modal-body">
-                <p style="color: #94a3b8; margin-bottom: 16px;">从文档、会议记录或聊天记录中提取行动项</p>
-                <div class="setting-row">
-                    <span class="setting-label">输入内容</span>
-                    <textarea class="setting-input" id="todo-input" placeholder="粘贴需要提取待办的文本内容..." rows="6"></textarea>
-                </div>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="extractTodos()">提取待办</button>
-                <div id="todo-result" style="margin-top: 16px; display: none;">
-                    <h4 style="color: white; margin-bottom: 12px;">✅ 待办事项</h4>
-                    <div class="result-content" id="todo-result-content" style="background: rgba(71, 85, 105, 0.2); padding: 16px; border-radius: 8px; color: #e2e8f0; line-height: 1.6;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== JavaScript ==================== -->
-    <script src="/static/js/utils.js"></script>
-    <script src="/static/js/settings.js"></script>
-    <script src="/static/js/knowledge.js"></script>
-    <script src="/static/js/skills.js"></script>
-    <script src="/static/js/mcp.js"></script>
-    <script src="/static/js/databases.js"></script>
-    <script src="/static/js/nl2sql.js"></script>
-    <script src="/static/js/conversations.js"></script>
-    <script src="/static/js/app.js?v=4"></script>
-    <script src="/static/js/ui.js"></script>
-
-    <!-- 内联辅助脚本 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            updateCharCount();
+            </header>
             
-            // 移动端优化
-            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-                document.body.classList.add('touch-device');
-            }
+            <!-- Welcome Page -->
+            <div class="welcome-page" id="welcome-page">
+                <div class="welcome-center">
+                    <div class="welcome-logo">DA</div>
+                    <h1 class="welcome-title">DataAgent</h1>
+                    <p class="welcome-subtitle">智能数据助手，助力您的工作与学习。支持文档处理、智能问答、多语言翻译等功能。</p>
+                    <div class="suggestion-grid">
+                        <div class="suggestion-card" onclick="sendMessage('帮我生成一份会议纪要')">
+                            <div class="suggestion-icon">📋</div>
+                            <div class="suggestion-title">会议纪要</div>
+                            <div class="suggestion-desc">根据会议记录生成结构化纪要</div>
+                        </div>
+                        <div class="suggestion-card" onclick="sendMessage('总结一下这篇文章的要点')">
+                            <div class="suggestion-icon">📝</div>
+                            <div class="suggestion-title">文献摘要</div>
+                            <div class="suggestion-desc">提取文章核心内容</div>
+                        </div>
+                        <div class="suggestion-card" onclick="sendMessage('把这段话翻译成英文')">
+                            <div class="suggestion-icon">🌐</div>
+                            <div class="suggestion-title">多语言翻译</div>
+                            <div class="suggestion-desc">支持多种语言互译</div>
+                        </div>
+                        <div class="suggestion-card" onclick="sendMessage('帮我生成一份商业PPT')">
+                            <div class="suggestion-icon">📊</div>
+                            <div class="suggestion-title">PPT生成</div>
+                            <div class="suggestion-desc">快速创建演示文稿</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
-            // 处理键盘弹出时的视口变化
-            const viewport = document.querySelector('meta[name=viewport]');
-            let initialHeight = window.innerHeight;
-            
-            window.addEventListener('resize', function() {
-                const currentHeight = window.innerHeight;
-                const heightDiff = initialHeight - currentHeight;
+            <!-- Chat Area -->
+            <div class="chat-area" id="chat-area" style="display: none;">
+                <div class="chat-container" id="chat-container">
+                    <!-- Messages will be added here -->
+                </div>
                 
-                // 如果高度减少超过 150px，认为是键盘弹出
-                if (heightDiff > 150) {
-                    document.body.classList.add('keyboard-open');
-                    // 滚动到输入框
-                    const inputBox = document.querySelector('.input-box');
-                    if (inputBox && document.activeElement === inputBox) {
-                        setTimeout(() => {
-                            inputBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }, 100);
-                    }
-                } else {
-                    document.body.classList.remove('keyboard-open');
-                }
-            });
+                <!-- Thinking Container -->
+                <div id="thinking-container" class="hidden" style="display: none;">
+                    <div class="thinking-card">
+                        <div class="thinking-header">
+                            <span class="thinking-icon">🔄</span>
+                            <span class="thinking-title">处理中...</span>
+                        </div>
+                        <div class="thinking-content">正在分析您的请求...</div>
+                        <div class="thinking-progress">
+                            <div class="thinking-progress-fill"></div>
+                        </div>
+                        <div class="thinking-progress-text">0%</div>
+                        <div class="thinking-status">
+                            <span class="thinking-dot"></span>
+                            <span class="thinking-dot"></span>
+                            <span class="thinking-dot"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
-            // 防止双击缩放
-            let lastTouchEnd = 0;
-            document.addEventListener('touchend', function(e) {
-                const now = Date.now();
-                if (now - lastTouchEnd <= 300) {
-                    e.preventDefault();
-                }
-                lastTouchEnd = now;
-            }, { passive: false });
-            
-            // iOS 底部安全区域处理
-            const setSafeArea = () => {
-                const safeAreaBottom = getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom') || '0px';
-                document.documentElement.style.setProperty('--safe-area-inset-bottom', safeAreaBottom);
-            };
-            setSafeArea();
-        });
-    </script>
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="user-input" 
+                            placeholder="输入您的消息..." 
+                            rows="1"
+                            onkeydown="handleKeyDown(event)"
+                        ></textarea>
+                    </div>
+                    <div class="input-actions">
+                        <button class="input-btn" id="voice-btn" title="语音输入">🎤</button>
+                        <button class="input-btn" id="upload-btn" title="上传文件">📁</button>
+                        <button class="input-btn send" id="send-btn" title="发送">➤</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/voice_input.js"></script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

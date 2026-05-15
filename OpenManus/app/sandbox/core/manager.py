@@ -1,14 +1,51 @@
 import asyncio
 import uuid
 from contextlib import asynccontextmanager
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, List, Any
 
 import docker
 from docker.errors import APIError, ImageNotFound
+from docker.models.images import Image
 
 from app.config import SandboxSettings
 from app.logger import logger
 from app.sandbox.core.sandbox import DockerSandbox
+
+
+class SandboxEnvironment:
+    """Represents a sandbox environment/image."""
+
+    def __init__(self, image: Image):
+        self.id = image.id
+        self.name = image.tags[0] if image.tags else image.id[:12]
+        self.tags = image.tags
+        self.size = image.attrs.get('Size', 0)
+        self.created_at = image.attrs.get('Created', '')
+        self.virtual_size = image.attrs.get('VirtualSize', 0)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'id': self.id,
+            'name': self.name,
+            'tags': self.tags,
+            'size': self.size,
+            'size_human': self._format_size(self.size),
+            'created_at': self.created_at,
+            'virtual_size': self.virtual_size,
+            'virtual_size_human': self._format_size(self.virtual_size),
+        }
+
+    @staticmethod
+    def _format_size(bytes_size: int) -> str:
+        """Format bytes to human readable string."""
+        if bytes_size < 1024:
+            return f"{bytes_size} B"
+        elif bytes_size < 1024 * 1024:
+            return f"{bytes_size / 1024:.2f} KB"
+        elif bytes_size < 1024 * 1024 * 1024:
+            return f"{bytes_size / (1024 * 1024):.2f} MB"
+        else:
+            return f"{bytes_size / (1024 * 1024 * 1024):.2f} GB"
 
 
 class SandboxManager:
@@ -25,6 +62,100 @@ class SandboxManager:
         _sandboxes: Active sandbox instance mapping.
         _last_used: Last used time record for sandboxes.
     """
+
+    # Available environment images
+    AVAILABLE_ENVIRONMENTS = [
+        {
+            'id': 'python',
+            'name': 'Python',
+            'description': 'Python 3.12 development environment',
+            'image': 'python:3.12-slim',
+            'category': 'development',
+            'size': '~200MB',
+            'popular': True,
+        },
+        {
+            'id': 'python-full',
+            'name': 'Python Full',
+            'description': 'Python 3.12 with scientific packages',
+            'image': 'python:3.12',
+            'category': 'development',
+            'size': '~900MB',
+            'popular': True,
+        },
+        {
+            'id': 'node',
+            'name': 'Node.js',
+            'description': 'Node.js 20 runtime environment',
+            'image': 'node:20-slim',
+            'category': 'development',
+            'size': '~400MB',
+            'popular': True,
+        },
+        {
+            'id': 'java',
+            'name': 'Java',
+            'description': 'OpenJDK 21 environment',
+            'image': 'openjdk:21-slim',
+            'category': 'development',
+            'size': '~700MB',
+            'popular': False,
+        },
+        {
+            'id': 'go',
+            'name': 'Go',
+            'description': 'Go 1.22 environment',
+            'image': 'golang:1.22-slim',
+            'category': 'development',
+            'size': '~500MB',
+            'popular': False,
+        },
+        {
+            'id': 'rust',
+            'name': 'Rust',
+            'description': 'Rust development environment',
+            'image': 'rust:slim',
+            'category': 'development',
+            'size': '~1.5GB',
+            'popular': False,
+        },
+        {
+            'id': 'ubuntu',
+            'name': 'Ubuntu',
+            'description': 'Ubuntu 22.04 base environment',
+            'image': 'ubuntu:22.04',
+            'category': 'base',
+            'size': '~70MB',
+            'popular': False,
+        },
+        {
+            'id': 'alpine',
+            'name': 'Alpine',
+            'description': 'Alpine Linux lightweight environment',
+            'image': 'alpine:latest',
+            'category': 'base',
+            'size': '~5MB',
+            'popular': False,
+        },
+        {
+            'id': 'postgres',
+            'name': 'PostgreSQL',
+            'description': 'PostgreSQL 16 database',
+            'image': 'postgres:16',
+            'category': 'database',
+            'size': '~300MB',
+            'popular': False,
+        },
+        {
+            'id': 'redis',
+            'name': 'Redis',
+            'description': 'Redis 7 cache database',
+            'image': 'redis:7-alpine',
+            'category': 'database',
+            'size': '~40MB',
+            'popular': False,
+        },
+    ]
 
     def __init__(
         self,
@@ -58,6 +189,10 @@ class SandboxManager:
         # Cleanup task
         self._cleanup_task: Optional[asyncio.Task] = None
         self._is_shutting_down = False
+
+        # Download progress tracking
+        self._download_progress: Dict[str, float] = {}
+        self._download_tasks: Dict[str, asyncio.Task] = {}
 
         # Start automatic cleanup
         self.start_cleanup_task()
@@ -311,3 +446,224 @@ class SandboxManager:
             "cleanup_interval": self.cleanup_interval,
             "is_shutting_down": self._is_shutting_down,
         }
+
+    # ==================== Environment Management ====================
+
+    def get_downloaded_environments(self) -> List[Dict[str, Any]]:
+        """Gets list of downloaded Docker images.
+
+        Returns:
+            List[Dict]: List of downloaded environment images.
+        """
+        try:
+            images = self._client.images.list()
+            environments = []
+            for image in images:
+                env = SandboxEnvironment(image)
+                env_dict = env.to_dict()
+                environments.append(env_dict)
+            return environments
+        except Exception as e:
+            logger.error(f"Failed to get downloaded environments: {e}")
+            return []
+
+    def get_available_environments(self) -> List[Dict[str, Any]]:
+        """Gets list of available environments that can be downloaded.
+
+        Returns:
+            List[Dict]: List of available environments with download status.
+        """
+        downloaded_images = self._get_downloaded_image_names()
+        available = []
+        
+        for env in self.AVAILABLE_ENVIRONMENTS:
+            is_downloaded = any(
+                env['image'] in img_name for img_name in downloaded_images
+            )
+            available.append({
+                **env,
+                'is_downloaded': is_downloaded,
+            })
+        
+        return available
+
+    def _get_downloaded_image_names(self) -> Set[str]:
+        """Gets set of downloaded image names/tags."""
+        image_names = set()
+        try:
+            images = self._client.images.list()
+            for image in images:
+                for tag in image.tags:
+                    image_names.add(tag)
+        except Exception as e:
+            logger.error(f"Failed to get downloaded image names: {e}")
+        return image_names
+
+    async def download_environment(self, environment_id: str) -> Dict[str, Any]:
+        """Downloads an environment image.
+
+        Args:
+            environment_id: ID of the environment to download.
+
+        Returns:
+            Dict: Download result with status.
+        """
+        # Find environment configuration
+        env_config = None
+        for env in self.AVAILABLE_ENVIRONMENTS:
+            if env['id'] == environment_id:
+                env_config = env
+                break
+
+        if not env_config:
+            return {
+                'success': False,
+                'message': f"Environment {environment_id} not found",
+            }
+
+        image_name = env_config['image']
+
+        # Check if already downloading
+        if image_name in self._download_tasks:
+            return {
+                'success': False,
+                'message': f"Environment {env_config['name']} is already downloading",
+            }
+
+        # Start download task
+        self._download_progress[image_name] = 0.0
+        
+        async def download_task():
+            try:
+                logger.info(f"Starting download of {image_name}")
+                
+                def progress_callback(chunk_size, total_size):
+                    if total_size > 0:
+                        self._download_progress[image_name] = (chunk_size / total_size) * 100
+                
+                await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: self._client.images.pull(image_name, stream=True, decode=True)
+                )
+                
+                # Simulate progress since docker SDK doesn't provide direct progress
+                for i in range(0, 101, 10):
+                    await asyncio.sleep(0.5)
+                    self._download_progress[image_name] = i
+                
+                self._download_progress[image_name] = 100.0
+                logger.info(f"Download completed for {image_name}")
+                
+            except Exception as e:
+                logger.error(f"Failed to download {image_name}: {e}")
+                self._download_progress[image_name] = -1.0
+            finally:
+                self._download_tasks.pop(image_name, None)
+
+        self._download_tasks[image_name] = asyncio.create_task(download_task())
+        
+        return {
+            'success': True,
+            'message': f"Started downloading {env_config['name']}",
+            'environment_id': environment_id,
+            'image': image_name,
+        }
+
+    def get_download_progress(self, environment_id: str = None) -> Dict[str, Any]:
+        """Gets download progress for environments.
+
+        Args:
+            environment_id: Optional environment ID to filter progress.
+
+        Returns:
+            Dict: Download progress information.
+        """
+        if environment_id:
+            # Find image name for this environment
+            image_name = None
+            for env in self.AVAILABLE_ENVIRONMENTS:
+                if env['id'] == environment_id:
+                    image_name = env['image']
+                    break
+            
+            if image_name:
+                progress = self._download_progress.get(image_name, 0.0)
+                is_downloading = image_name in self._download_tasks
+                return {
+                    'environment_id': environment_id,
+                    'image': image_name,
+                    'progress': progress,
+                    'is_downloading': is_downloading,
+                    'status': self._get_progress_status(progress),
+                }
+            return {}
+        
+        # Return progress for all downloading environments
+        progress_info = {}
+        for image_name, progress in self._download_progress.items():
+            if progress >= 0 and progress < 100:
+                # Find environment info
+                env_info = None
+                for env in self.AVAILABLE_ENVIRONMENTS:
+                    if env['image'] == image_name:
+                        env_info = env
+                        break
+                
+                progress_info[image_name] = {
+                    'image': image_name,
+                    'environment_id': env_info['id'] if env_info else image_name,
+                    'name': env_info['name'] if env_info else image_name,
+                    'progress': progress,
+                    'is_downloading': image_name in self._download_tasks,
+                    'status': self._get_progress_status(progress),
+                }
+        
+        return progress_info
+
+    def _get_progress_status(self, progress: float) -> str:
+        """Gets status string for progress value."""
+        if progress < 0:
+            return 'failed'
+        elif progress == 0:
+            return 'pending'
+        elif progress < 100:
+            return 'downloading'
+        else:
+            return 'completed'
+
+    async def delete_environment(self, image_id: str) -> Dict[str, Any]:
+        """Deletes a downloaded environment image.
+
+        Args:
+            image_id: Image ID or tag to delete.
+
+        Returns:
+            Dict: Delete result.
+        """
+        try:
+            self._client.images.remove(image_id, force=True)
+            # Remove from progress tracking if exists
+            for key in list(self._download_progress.keys()):
+                if image_id in key:
+                    self._download_progress.pop(key, None)
+            return {
+                'success': True,
+                'message': f"Environment {image_id} deleted successfully",
+            }
+        except Exception as e:
+            logger.error(f"Failed to delete environment {image_id}: {e}")
+            return {
+                'success': False,
+                'message': str(e),
+            }
+
+    def get_environment_categories(self) -> List[str]:
+        """Gets unique environment categories.
+
+        Returns:
+            List[str]: List of categories.
+        """
+        categories = set()
+        for env in self.AVAILABLE_ENVIRONMENTS:
+            categories.add(env['category'])
+        return sorted(list(categories))

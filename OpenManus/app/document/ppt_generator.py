@@ -83,11 +83,19 @@ class PPTGenerator:
     def add_two_column_slide(self, title: str, left_content: List[str],
                             right_content: List[str]):
         """添加双栏内容页"""
-        slide_layout = self.presentation.slide_layouts[6]
+        slide_layout = self.presentation.slide_layouts[5]
         slide = self.presentation.slides.add_slide(slide_layout)
 
         title_shape = slide.shapes.title
-        title_shape.text = title
+        if title_shape:
+            title_shape.text = title
+        else:
+            title_box = slide.shapes.add_textbox(Inches(1), Inches(0.5),
+                                              Inches(8), Inches(1))
+            title_frame = title_box.text_frame
+            title_frame.text = title
+            title_frame.paragraphs[0].font.size = Pt(32)
+            title_frame.paragraphs[0].font.bold = True
 
         left_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.5),
                                           Inches(4.25), Inches(5))
@@ -205,6 +213,78 @@ class PPTGenerator:
         self.current_slide = slide
         return slide
 
+    def add_chart_slide(self, title: str, data: List[List], chart_type: str = "bar"):
+        """
+        添加图表页
+        
+        Args:
+            title: 图表标题
+            data: 图表数据，格式为 [[标签1, 值1], [标签2, 值2], ...]
+            chart_type: 图表类型，支持 bar（柱状图）、line（折线图）、pie（饼图）
+        
+        Returns:
+            创建的幻灯片对象
+        """
+        slide_layout = self.presentation.slide_layouts[5]
+        slide = self.presentation.slides.add_slide(slide_layout)
+        
+        # 设置标题
+        title_shape = slide.shapes.title
+        if title_shape:
+            title_shape.text = title
+        else:
+            title_box = slide.shapes.add_textbox(Inches(1), Inches(0.5), Inches(8), Inches(1))
+            title_frame = title_box.text_frame
+            title_frame.text = title
+            title_frame.paragraphs[0].font.size = Pt(32)
+            title_frame.paragraphs[0].font.bold = True
+        
+        # 创建图表
+        from pptx.chart.data import CategoryChartData
+        from pptx.enum.chart import XL_CHART_TYPE
+        
+        chart_data = CategoryChartData()
+        
+        # 提取数据
+        if len(data) > 0 and isinstance(data[0], list):
+            headers = data[0]
+            chart_data.categories = headers[1:] if len(headers) > 1 else [str(i) for i in range(len(data)-1)]
+            
+            # 添加数据系列
+            for row in data[1:]:
+                if len(row) > 0:
+                    name = row[0]
+                    values = row[1:]
+                    chart_data.add_series(name, values)
+        else:
+            # 简单格式：[[标签, 值], ...]
+            chart_data.categories = [str(row[0]) for row in data]
+            chart_data.add_series(title, [row[1] for row in data])
+        
+        # 设置图表位置和大小
+        x, y, cx, cy = Inches(1), Inches(1.5), Inches(8), Inches(5)
+        
+        # 创建图表
+        if chart_type.lower() == "line":
+            chart = slide.shapes.add_chart(
+                XL_CHART_TYPE.LINE, x, y, cx, cy, chart_data
+            ).chart
+        elif chart_type.lower() == "pie":
+            chart = slide.shapes.add_chart(
+                XL_CHART_TYPE.PIE, x, y, cx, cy, chart_data
+            ).chart
+        else:
+            # 默认柱状图
+            chart = slide.shapes.add_chart(
+                XL_CHART_TYPE.COLUMN_CLUSTERED, x, y, cx, cy, chart_data
+            ).chart
+        
+        # 设置图表标题
+        chart.chart_title.text_frame.text = title
+        
+        self.current_slide = slide
+        return slide
+
     def set_slide_background(self, color: tuple = (255, 255, 255)):
         """设置幻灯片背景颜色"""
         if self.current_slide:
@@ -238,6 +318,37 @@ class PPTGenerator:
                 logging.error(f"PPT save error: {e}")
                 return b''
         return b''
+
+    def save_to_buffer(self) -> bytes:
+        """保存演示文稿到内存缓冲区（别名方法）"""
+        return self.save_to_bytes()
+
+    def save_to_file(self, file_path: str) -> bool:
+        """
+        保存演示文稿到文件
+        
+        Args:
+            file_path: 输出文件路径
+            
+        Returns:
+            是否保存成功
+        """
+        try:
+            # 确保目录存在
+            import os
+            dir_path = os.path.dirname(file_path)
+            if dir_path:
+                os.makedirs(dir_path, exist_ok=True)
+            
+            # 保存文件
+            with open(file_path, 'wb') as f:
+                f.write(self.save_to_bytes())
+            
+            return True
+        except Exception as e:
+            import logging
+            logging.error(f"Save to file error: {e}")
+            return False
 
     def get_bytes(self) -> bytes:
         """获取二进制内容"""
@@ -370,3 +481,116 @@ class PPTTemplate:
                 generator.add_content_slide(section_title, section_content)
 
         return generator.get_bytes()
+
+    @classmethod
+    def generate(cls, template_id: str, data: Dict[str, any]) -> Dict[str, any]:
+        """
+        使用模板生成PPT并保存到文件
+        
+        Args:
+            template_id: 模板ID (business, academic, meeting, proposal, weekly_report)
+            data: 包含PPT内容的数据字典
+            
+        Returns:
+            包含生成结果的字典
+        """
+        try:
+            template = cls.get_template(template_id)
+            generator = PPTGenerator()
+            
+            # 创建演示文稿
+            title = data.get("title", "演示文稿")
+            generator.create_presentation(title)
+            
+            # 添加标题页
+            subtitle = data.get("subtitle", "")
+            generator.add_title_slide(title, subtitle)
+            
+            # 根据模板类型添加内容页
+            if template_id == "business":
+                # 商业报告模板
+                if "overview" in data:
+                    generator.add_content_slide("概述", data["overview"])
+                if "data" in data:
+                    generator.add_chart_slide("数据分析", data["data"], chart_type="bar")
+                if "conclusion" in data:
+                    generator.add_content_slide("结论建议", data["conclusion"])
+                    
+            elif template_id == "academic":
+                # 学术报告模板
+                if "background" in data:
+                    generator.add_content_slide("研究背景", data["background"])
+                if "method" in data:
+                    generator.add_content_slide("研究方法", data["method"])
+                if "results" in data:
+                    generator.add_content_slide("研究结果", data["results"])
+                if "discussion" in data:
+                    generator.add_content_slide("讨论", data["discussion"])
+                if "conclusion" in data:
+                    generator.add_content_slide("结论", data["conclusion"])
+                    
+            elif template_id == "meeting":
+                # 会议纪要模板
+                if "agenda" in data:
+                    generator.add_content_slide("议程", data["agenda"])
+                if "discussion" in data:
+                    generator.add_content_slide("讨论要点", data["discussion"])
+                if "action" in data:
+                    generator.add_content_slide("行动计划", data["action"])
+                    
+            elif template_id == "proposal":
+                # 项目提案模板
+                if "overview" in data:
+                    generator.add_content_slide("项目概述", data["overview"])
+                if "goals" in data:
+                    generator.add_content_slide("目标", data["goals"])
+                if "plan" in data:
+                    generator.add_content_slide("方案", data["plan"])
+                if "timeline" in data:
+                    generator.add_content_slide("时间表", data["timeline"])
+                if "budget" in data:
+                    generator.add_content_slide("预算", data["budget"])
+                    
+            elif template_id == "weekly_report":
+                # 周报模板
+                if "summary" in data:
+                    generator.add_content_slide("本周总结", data["summary"])
+                if "completed" in data:
+                    generator.add_content_slide("本周完成", data["completed"])
+                if "progress" in data:
+                    generator.add_content_slide("本周进展", data["progress"])
+                if "next_week" in data:
+                    generator.add_content_slide("下周计划", data["next_week"])
+                if "issues" in data:
+                    generator.add_content_slide("问题与建议", data["issues"])
+            
+            # 通用内容添加
+            if "contents" in data:
+                for item in data["contents"]:
+                    if isinstance(item, dict) and "title" in item and "content" in item:
+                        generator.add_content_slide(item["title"], item["content"])
+            
+            # 生成输出路径
+            import os
+            output_dir = "output"
+            os.makedirs(output_dir, exist_ok=True)
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = os.path.join(output_dir, f"{template_id}_report_{timestamp}.pptx")
+            
+            # 保存文件
+            generator.save_to_file(output_path)
+            
+            return {
+                "success": True,
+                "message": "PPT生成成功",
+                "output_path": output_path,
+                "template": template_id,
+                "title": title
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }

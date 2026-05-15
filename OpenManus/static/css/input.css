@@ -1,26 +1,173 @@
-/* ==================== 输入区域（基础样式，由 welcome.css 覆盖细节） ==================== */
-
-/* 涟漪效果 */
-.ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(0);
-    animation: rippleEffect 0.6s linear;
-    pointer-events: none;
+.input-area {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    padding: 16px;
 }
 
-/* 快捷键提示 */
-.input-hint {
+.file-preview-list {
+    margin-bottom: 12px;
+}
+
+.file-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+}
+
+.file-preview-card:last-child {
+    margin-bottom: 0;
+}
+
+.file-icon {
+    font-size: 20px;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-size {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.file-remove {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--bg-hover);
+    font-size: 16px;
+    color: var(--text-muted);
+}
+
+.input-tools {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.tool-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary);
+    font-size: 16px;
+    transition: var(--transition);
+}
+
+.tool-btn:hover {
+    background: var(--bg-hover);
+}
+
+.tool-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.tool-btn.polish-btn {
+    position: relative;
+}
+
+.polish-style-panel {
     position: absolute;
-    bottom: -24px;
+    bottom: 100%;
     right: 0;
+    margin-bottom: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    min-width: 180px;
+}
+
+.input-row {
+    display: flex;
+    gap: 12px;
+}
+
+.input-box {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+    font-size: 14px;
+    resize: none;
+    min-height: 44px;
+    max-height: 150px;
+}
+
+.input-box:focus {
+    border-color: var(--primary);
+}
+
+.input-box::placeholder {
+    color: var(--text-muted);
+}
+
+.input-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.char-count {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.send-btn {
+    width: 44px;
+    height: 44px;
+    background: var(--primary);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: var(--transition);
+}
+
+.send-btn:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.input-hints {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
     font-size: 12px;
     color: var(--text-muted);
-    opacity: 0;
-    transition: var(--transition-fast);
 }
 
-.input-box:focus + .input-hint {
-    opacity: 1;
+.input-area.drag-over {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
 }

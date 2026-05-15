@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DATA-AI - 设置</title>
+    <title>DataAgent - 设置</title>
+    <link rel="stylesheet" href="/static/css/variables.css">
+    <link rel="stylesheet" href="/static/css/modern.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f9fafb;
-            color: #1f2937;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
         }
         .container {
@@ -17,109 +19,138 @@
             min-height: 100vh;
         }
         .sidebar {
-            width: 260px;
-            background: white;
-            border-right: 1px solid #e5e7eb;
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
         }
         .sidebar-header {
             padding: 20px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
         }
         .logo {
             display: flex;
             align-items: center;
             gap: 12px;
+            cursor: pointer;
         }
         .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
         }
         .logo-text {
-            font-size: 18px;
+            font-size: 19px;
             font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         .back-btn {
-            margin-top: 12px;
-            padding: 10px 16px;
-            background: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
             width: 100%;
             text-align: left;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .back-btn:hover {
-            border-color: #3b82f6;
-            color: #3b82f6;
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
         }
         .nav {
+            flex: 1;
             padding: 12px;
+            overflow-y: auto;
         }
         .nav-group-title {
-            font-size: 12px;
-            color: #6b7280;
+            font-size: 11px;
+            color: var(--text-muted);
             padding: 12px 8px 8px;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .nav-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 12px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 10px;
             cursor: pointer;
             margin-bottom: 4px;
-            color: #4b5563;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: var(--primary);
+            transition: height 0.2s ease;
         }
         .nav-item:hover {
-            background: #f3f4f6;
-            color: #111827;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
+        .nav-item:hover::before { height: 60%; }
         .nav-item.active {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
         }
-        .main {
+        .nav-item.active::before { height: 60%; }
+        .nav-icon { font-size: 16px; }
+        .nav-text { font-size: 14px; font-weight: 500; }
+
+        .main-content {
             flex: 1;
-            padding: 24px;
             overflow-y: auto;
+            padding: 32px;
         }
-        .back-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
-            background: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-bottom: 20px;
-            color: #4b5563;
-        }
-        .back-button:hover {
-            border-color: #3b82f6;
-            color: #3b82f6;
+        .page-header {
+            margin-bottom: 32px;
         }
         .page-title {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 700;
-            margin-bottom: 24px;
+            margin-bottom: 8px;
         }
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
         .section {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
+            max-width: 900px;
+            margin-bottom: 32px;
         }
         .section-title {
             font-size: 16px;
@@ -129,462 +160,669 @@
             align-items: center;
             gap: 8px;
         }
-        .provider-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.2s ease;
         }
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        .form-description {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .form-control::placeholder { color: var(--text-muted); }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        .btn-danger:hover {
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
         .provider-card {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
             padding: 16px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
+            margin-bottom: 12px;
         }
         .provider-card:hover {
-            border-color: #3b82f6;
-            transform: translateY(-2px);
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
         }
-        .provider-card.configured {
-            border-color: #22c55e;
-            background: rgba(34, 197, 94, 0.05);
+        .provider-card.active {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
         }
         .provider-header {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 12px;
-        }
-        .provider-icon {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-        }
-        .provider-name {
-            font-size: 15px;
-            font-weight: 600;
-        }
-        .provider-status {
-            font-size: 12px;
-            color: #6b7280;
-        }
-        .provider-models {
-            font-size: 13px;
-            color: #9ca3af;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal.show {
-            display: flex;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 24px;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .modal-title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .form-group {
-            margin-bottom: 16px;
-        }
-        .form-label {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            display: block;
-        }
-        .form-input, .form-select {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 14px;
-            background: white;
-        }
-        .form-input:focus, .form-select:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-        .btn {
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border: 1px solid #e5e7eb;
-            background: white;
-        }
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .doc-link {
-            margin-left: auto;
-            color: #3b82f6;
-            text-decoration: none;
-        }
-        .model-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #f9fafb;
-            border-radius: 8px;
             margin-bottom: 8px;
         }
-        .model-item.default {
-            border: 1px solid #3b82f6;
+        .provider-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-hover);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
         }
-        .model-name {
-            font-weight: 500;
+        .provider-info {
+            flex: 1;
+        }
+        .provider-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .provider-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .config-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .test-result {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            animation: fade-in 0.3s ease-out;
+        }
+        .test-result.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .test-result.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .test-result.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .model-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .model-item:hover {
+            background: var(--bg-tertiary);
+        }
+        .model-item.selected {
+            background: rgba(59, 130, 246, 0.15);
+        }
+        .model-radio {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .model-item.selected .model-radio {
+            border-color: var(--primary);
+        }
+        .model-radio::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .model-item.selected .model-radio::after {
+            opacity: 1;
         }
         .model-info {
+            flex: 1;
+        }
+        .model-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .model-desc {
             font-size: 12px;
-            color: #6b7280;
+            color: var(--text-muted);
         }
-        .badge {
-            font-size: 11px;
-            padding: 2px 8px;
-            background: #3b82f6;
-            color: white;
-            border-radius: 4px;
+
+        .custom-model-input {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-primary);
+            width: 100%;
+            transition: all 0.2s ease;
         }
-        .hidden {
-            display: none;
+        .custom-model-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            border-style: solid;
         }
+
+        .api-key-input {
+            font-family: monospace;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        .slider::before {
+            position: absolute;
+            content: '';
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        input:checked + .slider {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+        }
+        input:checked + .slider::before {
+            transform: translateX(20px);
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .toggle-row:last-child {
+            border-bottom: none;
+        }
+        .toggle-label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .toggle-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .footer-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         @media (max-width: 768px) {
             .sidebar {
-                width: 100%;
                 position: fixed;
-                transform: translateX(-100%);
+                left: 0;
+                top: 0;
+                height: 100%;
                 z-index: 100;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
             }
-            .sidebar.show {
+            .sidebar.open {
                 transform: translateX(0);
+            }
+            .main-content {
+                padding: 20px;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div class="logo">
-                    <div class="logo-icon">🤖</div>
-                    <span class="logo-text">DATA-AI</span>
+                <div class="logo" onclick="location.href='/'">
+                    <div class="logo-icon">DA</div>
+                    <span class="logo-text">DataAgent</span>
                 </div>
-                <button class="back-btn" onclick="window.location.href='/'">← 返回主页</button>
+                <button class="back-btn" onclick="location.href='/'">
+                    ← 返回主界面
+                </button>
             </div>
-            <div class="nav">
-                <div class="nav-group-title">模型配置</div>
-                <div class="nav-item active" onclick="showPage('providers')">
-                    <span>🔌</span>
-                    <span>模型提供商</span>
-                </div>
-                <div class="nav-item" onclick="showPage('configured')">
-                    <span>✅</span>
-                    <span>已配置模型</span>
-                </div>
-                <div class="nav-group-title">通用设置</div>
-                <div class="nav-item" onclick="showPage('general')">
-                    <span>⚙️</span>
-                    <span>通用设置</span>
-                </div>
-                <div class="nav-item" onclick="showPage('appearance')">
-                    <span>🎨</span>
-                    <span>外观</span>
-                </div>
+
+            <nav class="nav">
+                <div class="nav-group-title">设置</div>
+                <button class="nav-item active" id="nav-models">
+                    <span class="nav-icon">🤖</span>
+                    <span class="nav-text">模型设置</span>
+                </button>
+                <button class="nav-item" id="nav-api">
+                    <span class="nav-icon">🔑</span>
+                    <span class="nav-text">API密钥</span>
+                </button>
+                <button class="nav-item" id="nav-appearance">
+                    <span class="nav-icon">🎨</span>
+                    <span class="nav-text">外观主题</span>
+                </button>
+                <button class="nav-item" id="nav-data">
+                    <span class="nav-icon">💾</span>
+                    <span class="nav-text">数据管理</span>
+                </button>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">模型设置</h1>
+                <p class="page-subtitle">配置AI模型提供商和API密钥</p>
             </div>
-        </div>
-        <div class="main">
-            <button class="back-button" onclick="window.location.href='/'">
-                <span>←</span> 返回主页
-            </button>
-            
-            <div id="page-providers">
-                <h1 class="page-title">🔌 模型提供商</h1>
-                
-                <div class="section">
-                    <div class="section-title">🇨🇳 国内厂商</div>
-                    <div class="provider-grid" id="domestic-providers"></div>
-                </div>
-                
-                <div class="section">
-                    <div class="section-title">🌍 国外厂商</div>
-                    <div class="provider-grid" id="international-providers"></div>
-                </div>
-                
-                <div class="section">
-                    <div class="section-title">🏠 本地模型</div>
-                    <div class="provider-grid" id="local-providers"></div>
-                </div>
-            </div>
-            
-            <div id="page-configured" class="hidden">
-                <h1 class="page-title">✅ 已配置模型</h1>
-                <div id="configured-models"></div>
-            </div>
-            
-            <div id="page-general" class="hidden">
-                <h1 class="page-title">⚙️ 通用设置</h1>
-                <div class="section">
-                    <div class="form-group">
-                        <label class="form-label">默认模型</label>
-                        <select class="form-select" id="default-model">
-                            <option value="">请先配置模型</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="page-appearance" class="hidden">
-                <h1 class="page-title">🎨 外观设置</h1>
-                <div class="section">
-                    <p>暂未实现</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="modal" id="config-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">配置模型</h3>
-                <button class="close-btn" onclick="closeModal()">×</button>
-            </div>
-            <div id="modal-content"></div>
-        </div>
-    </div>
-    
-    <script>
-        const providers = {
-            domestic: [
-                { id: 'baidu_wenxin', name: '百度文心一言', icon: '🌐', models: ['ernie-4.0-8k', 'ernie-3.5-8k', 'ernie-speed-8k'], doc: 'https://cloud.baidu.com/doc/WENXINWORKSHOP/s/hf1uw2kav' },
-                { id: 'aliyun_qwen', name: '阿里云通义千问', icon: '☁️', models: ['qwen-max', 'qwen-plus', 'qwen-turbo'], doc: 'https://help.aliyun.com/zh/dashscope/' },
-                { id: 'tencent_hunyuan', name: '腾讯混元', icon: '🐧', models: ['hunyuan', 'hunyuan-pro', 'hunyuan-standard'], doc: 'https://cloud.tencent.com/document/product/1729' },
-                { id: 'bytedance_doubao', name: '字节豆包', icon: '🎵', models: ['doubao-pro-32k', 'doubao-lite-32k'], doc: 'https://www.volcengine.com/docs/82379/1399008' },
-                { id: 'zhipu_glm', name: '智谱 GLM', icon: '🧠', models: ['glm-4-plus', 'glm-4', 'glm-3-turbo'], doc: 'https://open.bigmodel.cn/doc/api' },
-                { id: 'moonshot_kimi', name: '月之暗面 Kimi', icon: '🌙', models: ['moonshot-v1-128k', 'moonshot-v1-32k'], doc: 'https://platform.moonshot.cn/docs' },
-                { id: 'deepseek', name: '深度求索 DeepSeek', icon: '🔍', models: ['deepseek-chat', 'deepseek-coder'], doc: 'https://platform.deepseek.com/docs' },
-            ],
-            international: [
-                { id: 'openai', name: 'OpenAI', icon: '🤖', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'], doc: 'https://platform.openai.com/docs' },
-                { id: 'anthropic', name: 'Anthropic Claude', icon: '🧬', models: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229'], doc: 'https://docs.anthropic.com/claude/reference' },
-                { id: 'google_gemini', name: 'Google Gemini', icon: '💎', models: ['gemini-2.0-flash-exp', 'gemini-1.5-pro'], doc: 'https://ai.google.dev/docs' },
-            ],
-            local: [
-                { id: 'ollama', name: 'Ollama 本地模型', icon: '🏠', models: ['llama3.1:8b', 'qwen2.5:7b', 'deepseek-coder-v2:16b'], doc: 'https://github.com/ollama/ollama' },
-            ]
-        };
-        
-        let configuredModels = JSON.parse(localStorage.getItem('configuredModels') || '[]');
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            renderAllProviders();
-            renderConfiguredModels();
-        });
-        
-        function renderAllProviders() {
-            document.getElementById('domestic-providers').innerHTML = 
-                providers.domestic.map(p => createCard(p)).join('');
-            document.getElementById('international-providers').innerHTML = 
-                providers.international.map(p => createCard(p)).join('');
-            document.getElementById('local-providers').innerHTML = 
-                providers.local.map(p => createCard(p)).join('');
-        }
-        
-        function createCard(provider) {
-            const isConfigured = configuredModels.some(m => m.provider === provider.id);
-            return `
-                <div class="provider-card ${isConfigured ? 'configured' : ''}" onclick="openConfig('${provider.id}')">
-                    <div class="provider-header">
-                        <div class="provider-icon">${provider.icon}</div>
-                        <div>
-                            <div class="provider-name">${provider.name}</div>
-                            <div class="provider-status">${isConfigured ? '✅ 已配置' : '未配置'}</div>
-                        </div>
-                    </div>
-                    <div class="provider-models">${provider.models.length} 个模型</div>
-                </div>
-            `;
-        }
-        
-        function renderConfiguredModels() {
-            const container = document.getElementById('configured-models');
-            if (configuredModels.length === 0) {
-                container.innerHTML = `
-                    <div class="section">
-                        <p style="text-align: center; color: #6b7280;">暂无配置</p>
-                    </div>
-                `;
-                return;
-            }
-            container.innerHTML = `
-                <div class="section">
-                    ${configuredModels.map(m => `
-                        <div class="model-item ${m.isDefault ? 'default' : ''}">
-                            <div>
-                                <div class="model-name">${m.name}</div>
-                                <div class="model-info">${m.provider} · ${m.model}</div>
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                ${m.isDefault ? '<span class="badge">默认</span>' : ''}
-                                <button class="btn" onclick="setDefault('${m.id}')">设为默认</button>
-                                <button class="btn" onclick="removeModel('${m.id}')" style="color: #ef4444;">删除</button>
+
+            <div class="section">
+                <h2 class="section-title">📦 选择模型提供商</h2>
+
+                <div id="providers-container">
+                    <!-- Providers will be loaded dynamically -->
+                    <div class="provider-card active" onclick="selectProvider('openai')">
+                        <div class="provider-header">
+                            <div class="provider-icon">🤖</div>
+                            <div class="provider-info">
+                                <div class="provider-name">OpenAI</div>
+                                <div class="provider-desc">GPT-4o, GPT-4 Turbo, GPT-3.5 Turbo</div>
                             </div>
                         </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-        
-        function showPage(page) {
-            document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`page-${page}`).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            event.target.closest('.nav-item')?.classList.add('active');
-        }
-        
-        function openConfig(providerId) {
-            const all = [...providers.domestic, ...providers.international, ...providers.local];
-            const provider = all.find(p => p.id === providerId);
-            if (!provider) return;
-            
-            document.getElementById('modal-title').textContent = `配置 ${provider.name}`;
-            
-            let extra = '';
-            if (providerId === 'ollama') {
-                extra = `
-                    <div class="form-group">
-                        <label class="form-label">Ollama 地址</label>
-                        <input type="text" class="form-input" id="base-url" value="http://localhost:11434/v1">
                     </div>
-                `;
-            } else {
-                extra = `
+
+                    <div class="provider-card" onclick="selectProvider('anthropic')">
+                        <div class="provider-header">
+                            <div class="provider-icon">🦾</div>
+                            <div class="provider-info">
+                                <div class="provider-name">Anthropic</div>
+                                <div class="provider-desc">Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="provider-card" onclick="selectProvider('google')">
+                        <div class="provider-header">
+                            <div class="provider-icon">🔷</div>
+                            <div class="provider-info">
+                                <div class="provider-name">Google Gemini</div>
+                                <div class="provider-desc">Gemini 1.5 Pro, Gemini 1.5 Flash</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="provider-card" onclick="selectProvider('aliyun')">
+                        <div class="provider-header">
+                            <div class="provider-icon">☁️</div>
+                            <div class="provider-info">
+                                <div class="provider-name">阿里云通义千问</div>
+                                <div class="provider-desc">Qwen-7B, Qwen-14B, Qwen-Max</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="provider-card" onclick="selectProvider('deepseek')">
+                        <div class="provider-header">
+                            <div class="provider-icon">🔮</div>
+                            <div class="provider-info">
+                                <div class="provider-name">DeepSeek</div>
+                                <div class="provider-desc">DeepSeek-R1, DeepSeek-Chat</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="provider-card" onclick="selectProvider('ollama')">
+                        <div class="provider-header">
+                            <div class="provider-icon">🐑</div>
+                            <div class="provider-info">
+                                <div class="provider-name">Ollama</div>
+                                <div class="provider-desc">本地模型运行</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">⚙️ API配置</h2>
+
+                <div class="card">
                     <div class="form-group">
                         <label class="form-label">API Key</label>
-                        <input type="password" class="form-input" id="api-key" placeholder="输入 API Key">
+                        <p class="form-description">输入您的API密钥。密钥不会在客户端存储。</p>
+                        <input type="password" class="form-control api-key-input" id="api-key" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
                     </div>
+
                     <div class="form-group">
-                        <label class="form-label">Base URL（可选）</label>
-                        <input type="text" class="form-input" id="base-url" placeholder="使用默认地址">
+                        <label class="form-label">模型选择</label>
+                        <p class="form-description">选择要使用的模型，或输入自定义模型名称</p>
+
+                        <div class="model-item" onclick="selectModel('gpt-4o')">
+                            <div class="model-radio"></div>
+                            <div class="model-info">
+                                <div class="model-name">gpt-4o</div>
+                                <div class="model-desc">GPT-4o - 最先进的模型</div>
+                            </div>
+                        </div>
+
+                        <div class="model-item" onclick="selectModel('gpt-4-turbo')">
+                            <div class="model-radio"></div>
+                            <div class="model-info">
+                                <div class="model-name">gpt-4-turbo</div>
+                                <div class="model-desc">GPT-4 Turbo - 128K上下文</div>
+                            </div>
+                        </div>
+
+                        <div class="model-item" onclick="selectModel('gpt-3.5-turbo')">
+                            <div class="model-radio"></div>
+                            <div class="model-info">
+                                <div class="model-name">gpt-3.5-turbo</div>
+                                <div class="model-desc">GPT-3.5 Turbo - 经济实惠</div>
+                            </div>
+                        </div>
+
+                        <div class="model-item" onclick="selectModel('custom')">
+                            <div class="model-radio"></div>
+                            <div class="model-info">
+                                <div class="model-name">自定义模型名称</div>
+                                <div class="model-desc">输入自定义模型名称</div>
+                            </div>
+                        </div>
+
+                        <input type="text" class="custom-model-input" id="custom-model" placeholder="输入自定义模型名称..." style="display: none;">
+                    </div>
+
+                    <div class="config-section">
+                        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">高级配置</h3>
+
+                        <div class="form-group">
+                            <label class="form-label">最大令牌数</label>
+                            <input type="number" class="form-control" id="max-tokens" value="4096" min="1" max="128000">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">温度</label>
+                            <input type="range" class="form-control" id="temperature" min="0" max="2" step="0.1" value="0.7" style="height: 8px;">
+                            <span style="font-size: 12px; color: var(--text-muted);">0.7</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">🔍 测试连接</h2>
+
+                <div class="card">
+                    <button class="btn btn-primary" id="test-connection">
+                        🧪 测试连接
+                    </button>
+
+                    <div id="test-result"></div>
+                </div>
+            </div>
+
+            <div class="footer-actions">
+                <button class="btn btn-secondary">取消</button>
+                <button class="btn btn-primary" id="save-settings">
+                    💾 保存设置
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function selectProvider(provider) {
+            document.querySelectorAll('.provider-card').forEach(card => card.classList.remove('active'));
+            event.target.closest('.provider-card').classList.add('active');
+        }
+
+        function selectModel(model) {
+            document.querySelectorAll('.model-item').forEach(item => item.classList.remove('selected'));
+            event.target.closest('.model-item').classList.add('selected');
+
+            document.getElementById('custom-model').style.display = model === 'custom' ? 'block' : 'none';
+        }
+
+        document.getElementById('temperature').addEventListener('input', function(e) {
+            e.target.nextElementSibling.textContent = e.target.value;
+        });
+
+        document.getElementById('test-connection').addEventListener('click', async function() {
+            const btn = this;
+            btn.innerHTML = '<span class="loading-spinner"></span> 测试中...';
+            btn.disabled = true;
+
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/settings/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: 'openai',
+                        api_key: document.getElementById('api-key').value,
+                        model: document.getElementById('custom-model').style.display === 'block'
+                            ? document.getElementById('custom-model').value
+                            : 'gpt-4o'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result success">
+                            ✅ 连接成功！模型: ${data.model}, 响应ID: ${data.response_id}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result error">
+                            ❌ 连接失败: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result error">
+                        ❌ 请求失败: ${error.message}
                     </div>
                 `;
+            } finally {
+                btn.innerHTML = '🧪 测试连接';
+                btn.disabled = false;
             }
-            
-            document.getElementById('modal-content').innerHTML = `
-                <div class="form-group">
-                    <label class="form-label">配置名称</label>
-                    <input type="text" class="form-input" id="config-name" value="${provider.name}">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">选择模型</label>
-                    <select class="form-select" id="selected-model">
-                        ${provider.models.map(m => `<option value="${m}">${m}</option>`).join('')}
-                    </select>
-                </div>
-                ${extra}
-                <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="is-default">
-                        <span>设为默认模型</span>
-                    </label>
-                </div>
-                <div class="btn-row">
-                    <button class="btn btn-primary" onclick="saveConfig('${providerId}')">💾 保存</button>
-                    <button class="btn" onclick="closeModal()">取消</button>
-                    <a href="${provider.doc}" target="_blank" class="doc-link">📖 查看文档</a>
-                </div>
-            `;
-            document.getElementById('config-modal').classList.add('show');
-        }
-        
-        function saveConfig(providerId) {
-            const newModel = {
-                id: Date.now().toString(),
-                name: document.getElementById('config-name').value,
-                provider: providerId,
-                model: document.getElementById('selected-model').value,
-                apiKey: document.getElementById('api-key')?.value || '',
-                baseUrl: document.getElementById('base-url')?.value || '',
-                isDefault: document.getElementById('is-default')?.checked || false
-            };
-            
-            if (newModel.isDefault) {
-                configuredModels.forEach(m => m.isDefault = false);
+        });
+
+        document.getElementById('save-settings').addEventListener('click', async function() {
+            const btn = this;
+            btn.innerHTML = '<span class="loading-spinner"></span> 保存中...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/settings/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: 'openai',
+                        api_key: document.getElementById('api-key').value,
+                        model: document.getElementById('custom-model').style.display === 'block'
+                            ? document.getElementById('custom-model').value
+                            : 'gpt-4o',
+                        max_tokens: parseInt(document.getElementById('max-tokens').value),
+                        temperature: parseFloat(document.getElementById('temperature').value)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('设置保存成功！');
+                } else {
+                    alert('保存失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('保存失败: ' + error.message);
+            } finally {
+                btn.innerHTML = '💾 保存设置';
+                btn.disabled = false;
             }
-            
-            configuredModels.push(newModel);
-            localStorage.setItem('configuredModels', JSON.stringify(configuredModels));
-            
-            closeModal();
-            renderAllProviders();
-            renderConfiguredModels();
-            alert('✅ 配置已保存！');
-        }
-        
-        function closeModal() {
-            document.getElementById('config-modal').classList.remove('show');
-        }
-        
-        function setDefault(id) {
-            configuredModels.forEach(m => m.isDefault = m.id === id);
-            localStorage.setItem('configuredModels', JSON.stringify(configuredModels));
-            renderConfiguredModels();
-            renderAllProviders();
-        }
-        
-        function removeModel(id) {
-            if (!confirm('确定要删除这个配置吗？')) return;
-            configuredModels = configuredModels.filter(m => m.id !== id);
-            localStorage.setItem('configuredModels', JSON.stringify(configuredModels));
-            renderAllProviders();
-            renderConfiguredModels();
-        }
-        
-        document.getElementById('config-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'config-modal') closeModal();
         });
     </script>
 </body>

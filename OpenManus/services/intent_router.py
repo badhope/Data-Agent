@@ -137,7 +137,7 @@ def extract_content(message: str, intent: str) -> str:
     return content.strip()
 
 
-async def route_intent(message: str, files: list, websocket) -> bool:
+async def route_intent(message: str, files: list, websocket, settings: dict = None) -> bool:
     """
     意图路由主函数
     返回 True 表示已处理，False 表示交给通用Agent
@@ -154,7 +154,7 @@ async def route_intent(message: str, files: list, websocket) -> bool:
 
     try:
         if intent == "polish":
-            await handle_polish(content, websocket)
+            await handle_polish(content, websocket, settings)
         elif intent == "ppt":
             await handle_ppt(content, websocket)
         elif intent == "todo":

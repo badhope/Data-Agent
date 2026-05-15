@@ -1,44 +1,36 @@
-.thinking-phase { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.thinking-dot { width: 8px; height: 8px; background: #60a5fa; border-radius: 50%; animation: pulse 1s infinite; }
-.thinking-tools { margin-top: 8px; padding-left: 20px; }
-.tool-tag { display: inline-block; background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin-right: 8px; }
-
-/* ==================== 思考动画样式 ==================== */
 .thinking-container {
-    max-width: 85%;
-    margin: 16px auto;
-    background: rgba(30, 41, 59, 0.8);
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.1);
-    animation: fadeIn 0.3s ease;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-bottom: 16px;
+    min-height: 120px;
 }
 
+/* 旧样式保持兼容 */
 .thinking-item {
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 12px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
 }
 
 .thinking-item:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
 }
 
 .thinking-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 16px;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
     cursor: pointer;
-    transition: background var(--transition-fast);
-}
-
-.thinking-header:hover {
-    background: rgba(255,255,255,0.05);
 }
 
 .thinking-badge {
     width: 24px;
     height: 24px;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--primary);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -46,100 +38,158 @@
     font-size: 12px;
     font-weight: 600;
     color: white;
-    flex-shrink: 0;
 }
 
 .thinking-title {
     flex: 1;
-    font-size: 14px;
-    color: var(--text-secondary);
+    font-size: 13px;
     font-weight: 500;
 }
 
 .thinking-toggle {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--text-muted);
-    transition: transform var(--transition-fast);
 }
 
 .thinking-content {
-    padding: 0 16px 12px;
+    padding: 12px;
+    background: var(--bg-primary);
     font-size: 13px;
-    color: var(--text-tertiary);
     line-height: 1.6;
-    overflow: hidden;
-    max-height: 200px;
-    transition: max-height var(--transition-normal), padding var(--transition-normal);
+    color: var(--text-secondary);
 }
 
 .thinking-content.collapsed {
-    max-height: 0;
-    padding-bottom: 0;
-}
-
-/* 思考中脉冲动画 */
-.thinking-item.active .thinking-badge {
-    animation: thinkingPulse 1.5s infinite;
-}
-
-/* ==================== 代码块折叠样式 ==================== */
-.code-block-wrapper {
-    margin: 12px 0;
-    border-radius: 8px;
+    max-height: 80px;
     overflow: hidden;
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(255,255,255,0.1);
+    position: relative;
 }
 
-.code-block-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(30, 41, 59, 0.8);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    cursor: pointer;
+.thinking-content.collapsed::after {
+    content: '...';
+    position: absolute;
+    bottom: 0;
+    right: 12px;
+    background: var(--bg-primary);
+    padding-left: 20px;
 }
 
-.code-block-header:hover {
-    background: rgba(45, 55, 72, 0.8);
+/* 新的卡片样式 */
+.thinking-card {
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease-out;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.code-block-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #94a3b8;
+.thinking-card.show {
+    opacity: 1;
+    transform: translateY(0);
 }
 
-.code-block-lang {
+.thinking-card .thinking-header {
+    background: none;
+    padding: 0;
+    cursor: default;
+    margin-bottom: 12px;
+}
+
+.thinking-card .thinking-icon {
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+.thinking-card .thinking-title {
+    font-size: 15px;
     font-weight: 600;
-    color: #60a5fa;
+    color: var(--text-primary);
 }
 
-.code-block-toggle {
-    font-size: 12px;
-    color: #64748b;
+.thinking-card .thinking-content {
+    background: none;
+    padding: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
 }
 
-.code-block-content {
+/* 进度条样式 */
+.thinking-progress {
+    height: 6px;
+    background: var(--bg-primary);
+    border-radius: 3px;
     overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-    max-height: 1000px;
+    margin-bottom: 8px;
 }
 
-.code-block-content.collapsed {
-    max-height: 0;
-    padding: 0 !important;
+.thinking-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: 3px;
+    width: 0%;
 }
 
-.code-block-content pre {
-    margin: 0;
-    padding: 12px;
-    overflow-x: auto;
+.thinking-progress-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+    margin-bottom: 12px;
 }
 
-.code-block-content code {
-    font-size: 13px;
+/* 状态指示器动画 */
+.thinking-status {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.thinking-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    animation: thinking-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes thinking-pulse {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 阶段颜色 */
+.thinking-card.analyzing .thinking-progress-fill {
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.thinking-card.grammar_check .thinking-progress-fill {
+    background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%);
+}
+
+.thinking-card.style_conversion .thinking-progress-fill {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+.thinking-card.expression_optimization .thinking-progress-fill {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.thinking-card.final_check .thinking-progress-fill {
+    background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+}
+
+.thinking-card.ai_processing .thinking-progress-fill {
+    background: linear-gradient(90deg, #ec4899 0%, #f43f5e 100%);
+}
+
+.thinking-card.completed .thinking-progress-fill {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
 }
