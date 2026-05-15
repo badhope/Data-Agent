@@ -44,6 +44,7 @@ app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
 # WebSocket 端点 - 必须在其他路由之前定义
 from services.agent_service import run_universal_agent
 from services.input_sanitizer import validate_message
+from services.intent_router import route_intent
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -52,6 +53,8 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_json()
             message = data.get("content", "")
+            options = data.get("options", {})
+            files = data.get("files", [])
 
             # 输入验证
             validation = validate_message(message)
@@ -69,7 +72,14 @@ async def websocket_endpoint(websocket: WebSocket):
                         "content": validation["warning"]
                     })
 
-            await run_universal_agent(websocket, message)
+            # 意图识别：检查是否匹配特定功能
+            intent_result = await route_intent(message, files, websocket)
+            if intent_result:
+                # 已由意图路由处理，跳过通用Agent
+                continue
+
+            # 通用Agent处理
+            await run_universal_agent(websocket, message, options=options)
     except WebSocketDisconnect:
         pass
     except Exception as e:

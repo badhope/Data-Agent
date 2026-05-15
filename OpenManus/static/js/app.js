@@ -339,6 +339,15 @@ async function submitFeedback(btn, rating) {
 
 let lastUserMessage = '';
 
+// 发送建议卡片消息（将预设文本填入输入框并发送）
+function sendSuggestion(text) {
+    const inputBox = document.getElementById('input-box');
+    inputBox.value = text;
+    autoResize(inputBox);
+    updateCharCount();
+    sendMessage();
+}
+
 function sendMessageWithText(content) {
     const inputBox = document.getElementById('input-box');
     if (!content) return;

@@ -39,6 +39,13 @@
     text-align: center;
 }
 
+.welcome-subtitle {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0 0 4px;
+    text-align: center;
+}
+
 /* 建议卡片 - 3列网格布局 */
 .suggestion-grid {
     display: grid;

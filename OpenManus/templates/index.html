@@ -97,7 +97,7 @@ pre:hover .code-copy-btn { opacity: 1; }
 
     <div class="app-container">
         <!-- ==================== 侧边栏 ==================== -->
-        <div class="sidebar closed" id="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <h2 style="margin: 0;">DataAgent</h2>
@@ -178,36 +178,37 @@ pre:hover .code-copy-btn { opacity: 1; }
                     <div class="welcome-center">
                         <div class="welcome-logo">DA</div>
                         <h2 class="welcome-title">有什么可以帮忙的？</h2>
+                        <p class="welcome-subtitle">选择下方功能卡片，或直接输入你的需求</p>
                         <div class="suggestion-grid">
-                            <button class="suggestion-card" onclick="openModal('literature-modal')">
-                                <div class="suggestion-icon">📄</div>
-                                <div class="suggestion-title">文献摘要</div>
-                                <div class="suggestion-desc">上传PDF自动提取核心观点</div>
+                            <button class="suggestion-card" onclick="sendSuggestion('请帮我润色以下文本，使其更加学术规范：\n\n[请在此粘贴你的文本]')">
+                                <div class="suggestion-icon">✨</div>
+                                <div class="suggestion-title">语言润色</div>
+                                <div class="suggestion-desc">中英文学术润色，支持多种风格</div>
                             </button>
-                            <button class="suggestion-card" onclick="openModal('meeting-modal')">
+                            <button class="suggestion-card" onclick="sendSuggestion('请帮我生成一份PPT，主题是：[请填写主题]')">
+                                <div class="suggestion-icon">📊</div>
+                                <div class="suggestion-title">PPT生成</div>
+                                <div class="suggestion-desc">一键生成演示文稿并下载</div>
+                            </button>
+                            <button class="suggestion-card" onclick="sendSuggestion('请帮我提取以下文本中的待办事项：\n\n[请在此粘贴文本]')">
+                                <div class="suggestion-icon">✅</div>
+                                <div class="suggestion-title">待办提取</div>
+                                <div class="suggestion-desc">从文档中智能提取行动项</div>
+                            </button>
+                            <button class="suggestion-card" onclick="sendSuggestion('请帮我生成会议纪要：\n\n[请在此粘贴会议记录]')">
                                 <div class="suggestion-icon">📝</div>
                                 <div class="suggestion-title">会议纪要</div>
                                 <div class="suggestion-desc">从会议记录生成结构化纪要</div>
                             </button>
-                            <button class="suggestion-card" onclick="openModal('ppt-modal')">
-                                <div class="suggestion-icon">📊</div>
-                                <div class="suggestion-title">PPT生成</div>
-                                <div class="suggestion-desc">一键生成演示文稿</div>
-                            </button>
-                            <button class="suggestion-card" onclick="openModal('weekly-modal')">
+                            <button class="suggestion-card" onclick="sendSuggestion('请帮我生成周报：\n\n本周完成了：[填写工作内容]')">
                                 <div class="suggestion-icon">📋</div>
                                 <div class="suggestion-title">周报生成</div>
                                 <div class="suggestion-desc">智能扩写实习周报</div>
                             </button>
-                            <button class="suggestion-card" onclick="openModal('polish-modal')">
-                                <div class="suggestion-icon">✨</div>
-                                <div class="suggestion-title">语言润色</div>
-                                <div class="suggestion-desc">中英文学术润色</div>
-                            </button>
-                            <button class="suggestion-card" onclick="openModal('todo-modal')">
-                                <div class="suggestion-icon">✅</div>
-                                <div class="suggestion-title">待办提取</div>
-                                <div class="suggestion-desc">从文档提取行动项</div>
+                            <button class="suggestion-card" onclick="sendSuggestion('请帮我总结以下文献的核心观点：\n\n[请上传PDF或粘贴文献内容]')">
+                                <div class="suggestion-icon">📄</div>
+                                <div class="suggestion-title">文献摘要</div>
+                                <div class="suggestion-desc">上传PDF自动提取核心观点</div>
                             </button>
                         </div>
                     </div>
@@ -1000,7 +1001,7 @@ pre:hover .code-copy-btn { opacity: 1; }
     <script src="/static/js/databases.js"></script>
     <script src="/static/js/nl2sql.js"></script>
     <script src="/static/js/conversations.js"></script>
-    <script src="/static/js/app.js?v=2"></script>
+    <script src="/static/js/app.js?v=3"></script>
     <script src="/static/js/ui.js"></script>
 
     <!-- 内联辅助脚本 -->

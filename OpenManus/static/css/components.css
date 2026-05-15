@@ -1,3 +1,33 @@
+/* ==================== 功能结果卡片 ==================== */
+.ppt-download-card {
+    margin-top: 12px;
+    padding: 16px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.ppt-download-card a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 15px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.ppt-download-card a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
 /* ==================== 知识库组件 ==================== */
 .kb-grid {
     display: grid;
@@ -680,28 +710,31 @@ pre code {
 /* ==================== Toast 通知 - 居中卡片式 ==================== */
 .toast {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.9);
-    padding: 20px 28px;
-    border-radius: 16px;
+    top: 20px;
+    right: 20px;
+    transform: translateX(120%);
+    padding: 14px 20px;
+    border-radius: 12px;
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     z-index: 10000;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.3s ease;
-    min-width: 280px;
-    max-width: 480px;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    min-width: 240px;
+    max-width: 400px;
+    text-align: left;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .toast.show {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateX(0);
     pointer-events: auto;
 }
 
@@ -826,8 +859,8 @@ pre code {
     .toast {
         top: 12px;
         right: 12px;
-        left: 12px;
-        max-width: none;
+        left: auto;
+        max-width: calc(100vw - 24px);
     }
 }
 

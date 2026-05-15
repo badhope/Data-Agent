@@ -7,10 +7,17 @@
 
 /* ==================== 移动端适配 (≤ 768px) ==================== */
 @media screen and (max-width: 768px) {
-    /* 侧边栏 - 全屏覆盖 */
+    /* 侧边栏 - 全屏覆盖，默认隐藏 */
     .sidebar {
         width: 300px;
         box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+        transform: translateX(-100%);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0 !important;
     }
 
     /* 头部 */

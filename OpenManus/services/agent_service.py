@@ -385,7 +385,7 @@ class WebAgent:
 
 
 # 保持向后兼容的函数接口
-async def run_universal_agent(websocket: WebSocket, message: str):
+async def run_universal_agent(websocket: WebSocket, message: str, options: dict = None):
     """运行通用 Agent（增强版 ReAct 模式）"""
     agent = WebAgent(websocket, current_settings.model_dump())
     await agent.run(message)
