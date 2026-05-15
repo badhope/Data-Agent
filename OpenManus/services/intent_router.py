@@ -111,14 +111,24 @@ def detect_intent(message: str) -> Optional[str]:
 
 def extract_content(message: str, intent: str) -> str:
     """从用户消息中提取实际需要处理的内容"""
+    content = message
+
+    # 先尝试按冒号/分隔符分割，取后半部分
+    separators = r"[:：,，]"
+    parts = re.split(separators, content, maxsplit=1)
+    if len(parts) > 1:
+        after_sep = parts[1].strip()
+        # 如果后半部分足够长，优先使用
+        if len(after_sep) > 5:
+            content = after_sep
+
     # 移除指令性前缀
     prefixes = [
-        r"^(请帮我|帮我|请|麻烦|能不能|可以|帮我)\s*",
-        r"^(请帮我|帮我|请|麻烦)\s*(润色|修改|优化|改写|生成|提取|整理|总结|概括|提炼|写|做|制作)\s*",
+        r"^(请帮我|帮我|请|麻烦|能不能|可以)\s*",
+        r"(润色|修改|优化|改写|生成|提取|整理|总结|概括|提炼|写|做|制作)\s*(以下|下面|这段|这些|这个)?\s*(文本|内容|文字|文章|文献|会议|记录|待办|事项|任务)?\s*",
         r"(以下|下面|这段|这些|这个)\s*(文本|内容|文字|文章|文献|会议|记录)\s*[:：]\s*",
         r"主题[是为约：:]\s*",
     ]
-    content = message
     for prefix in prefixes:
         content = re.sub(prefix, "", content, flags=re.IGNORECASE)
     content = content.strip()

@@ -483,28 +483,42 @@ function clearChat() {
             <div class="welcome-center">
                 <div class="welcome-logo">DA</div>
                 <h2 class="welcome-title">有什么可以帮忙的？</h2>
+                <p class="welcome-subtitle">选择下方功能卡片，或直接输入你的需求</p>
                 <div class="suggestion-grid">
-                    <button class="suggestion-card" onclick="insertCommand('帮我分析数据'); sendMessage();">
-                        <div style="font-size: 20px; margin-bottom: 6px;">📊</div>
-                        <div>帮我分析数据</div>
+                    <button class="suggestion-card" onclick="sendSuggestion('请帮我润色以下文本，使其更加学术规范：\\n\\n[请在此粘贴你的文本]')">
+                        <div class="suggestion-icon">✨</div>
+                        <div class="suggestion-title">语言润色</div>
+                        <div class="suggestion-desc">中英文学术润色，支持多种风格</div>
                     </button>
-                    <button class="suggestion-card" onclick="insertCommand('生成一个图表'); sendMessage();">
-                        <div style="font-size: 20px; margin-bottom: 6px;">📈</div>
-                        <div>生成一个图表</div>
+                    <button class="suggestion-card" onclick="sendSuggestion('请帮我生成一份PPT，主题是：[请填写主题]')">
+                        <div class="suggestion-icon">📊</div>
+                        <div class="suggestion-title">PPT生成</div>
+                        <div class="suggestion-desc">一键生成演示文稿并下载</div>
                     </button>
-                    <button class="suggestion-card" onclick="insertCommand('写一段 Python 代码'); sendMessage();">
-                        <div style="font-size: 20px; margin-bottom: 6px;">💻</div>
-                        <div>写一段 Python 代码</div>
+                    <button class="suggestion-card" onclick="sendSuggestion('请帮我提取以下文本中的待办事项：\\n\\n[请在此粘贴文本]')">
+                        <div class="suggestion-icon">✅</div>
+                        <div class="suggestion-title">待办提取</div>
+                        <div class="suggestion-desc">从文档中智能提取行动项</div>
                     </button>
-                    <button class="suggestion-card" onclick="insertCommand('解析一个文档'); sendMessage();">
-                        <div style="font-size: 20px; margin-bottom: 6px;">📄</div>
-                        <div>解析一个文档</div>
+                    <button class="suggestion-card" onclick="sendSuggestion('请帮我生成会议纪要：\\n\\n[请在此粘贴会议记录]')">
+                        <div class="suggestion-icon">📝</div>
+                        <div class="suggestion-title">会议纪要</div>
+                        <div class="suggestion-desc">从会议记录生成结构化纪要</div>
+                    </button>
+                    <button class="suggestion-card" onclick="sendSuggestion('请帮我生成周报：\\n\\n本周完成了：[填写工作内容]')">
+                        <div class="suggestion-icon">📋</div>
+                        <div class="suggestion-title">周报生成</div>
+                        <div class="suggestion-desc">智能扩写实习周报</div>
+                    </button>
+                    <button class="suggestion-card" onclick="sendSuggestion('请帮我总结以下文献的核心观点：\\n\\n[请上传PDF或粘贴文献内容]')">
+                        <div class="suggestion-icon">📄</div>
+                        <div class="suggestion-title">文献摘要</div>
+                        <div class="suggestion-desc">上传PDF自动提取核心观点</div>
                     </button>
                 </div>
             </div>
         </div>
     `;
-    showWelcomePage();
 }
 
 // ==================== 字符计数 ====================
